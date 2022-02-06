@@ -26,6 +26,19 @@ theme_mode: markdown  # choices are: 'dark', 'standard', 'markdown'
 your_name: Skolk
 email: sean.kolk@mgail.com
 
+collections:
+  portfolio:
+    output: true
+    sortby: date
+  press:
+    sortby: date
+
+defaults:
+  - scope:
+      path: "portfolio"
+    values:
+      layout: "portfolio"
+
 navigation:
   - text: Home
     url: /
@@ -36,7 +49,7 @@ navigation:
   - text: Log
     url: /log
   - text: Portfolio
-    url: /portfolio
+    url: /portfolio.html
 
 projects:
   - name: git-secret
