@@ -33,6 +33,8 @@ navigation:
     url: /docs
   - text: Examples
     url: /examples
+  - text: Log
+    url: /log
 
 projects:
   - name: git-secret
