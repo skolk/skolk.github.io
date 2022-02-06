@@ -35,6 +35,8 @@ navigation:
     url: /examples
   - text: Log
     url: /log
+  - text: Portfolio
+    url: /portfolio
 
 projects:
   - name: git-secret
