@@ -9,7 +9,7 @@
 title: Sean's Personal Site
 description: A place for Sean's thoughts
 repository: https://github.com/skolk
-baseurl: https://github.com/skolk  # the subpath of your site, e.g. /blog
+# baseurl: /
 url: https://skolk.github.io  # the base hostname & protocol for your site
 
 # Build settings
