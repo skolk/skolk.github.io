@@ -7,6 +7,16 @@ permalink: log
   <h2>Log</h2>
 
   {% for post in site.posts %}
+    {% assign nth = forloop.index0 | modulo:2 %}
+    <div class="media t-hackcss-media">
+
+      {% if nth == 0 %}
+      <div class="t-hackcss-media-shift media-left">
+        <img class="t-hackcss-media-image"
+             src="{{ post.image_preview }}" alt="{{ post.title }}"
+             title="{{ post.title }}" />
+      </div>
+      {% endif %}
 
       <div class="media-body">
         <div class="media-heading">
