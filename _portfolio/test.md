@@ -5,4 +5,4 @@ name: test
 thumb: /images/dark.png
 ---
 
-test test test 
+test test test
