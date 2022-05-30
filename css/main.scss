@@ -31,6 +31,10 @@ $on-palm:          768px;
   "highlight"
 ;
 
+img[alt=drawing] {
+   width: 200px;
+ }
+
 div.container {
   max-width: 70rem;
 }
@@ -39,12 +43,12 @@ img.rounded_full {
   display: block;
   margin-left: auto;
   margin-right: auto;
-  border-radius: 15px; 
+  border-radius: 15px;
   width: 99.25%;
 }
 
 img.rounded_half {
-  border-radius: 15px; 
+  border-radius: 15px;
   width: 49.25%;
 }
 
@@ -56,7 +60,7 @@ img.rounded_half_nointerp {
   image-rendering: pixelated;                 /* Chrome */
   image-rendering: optimize-contrast;         /* CSS3 Proposed                  */
   -ms-interpolation-mode: nearest-neighbor;   /* IE8+    */
-  border-radius: 15px; 
+  border-radius: 15px;
   width: 49.5%;
 }
 
@@ -68,7 +72,7 @@ img.rounded_full_nointerp {
   image-rendering: pixelated;                 /* Chrome */
   image-rendering: optimize-contrast;         /* CSS3 Proposed                  */
   -ms-interpolation-mode: nearest-neighbor;   /* IE8+    */
-  border-radius: 15px; 
+  border-radius: 15px;
   width: 99.5%;
 }
 
@@ -96,7 +100,7 @@ div.poverlay {
   left: 5%;
   width: 35%;
   opacity: 0.70;
-  background-color: aliceblue; 
+  background-color: aliceblue;
 }
 
 h2.pheading {
