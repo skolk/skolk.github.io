@@ -6,10 +6,9 @@
 # 'jekyll serve'. If you change this file, please restart the server process.
 
 # Site settings
-title: Sean's Personal Site
-description: A place for Sean's thoughts
+title: Sean Kolk - Community Builder & Explorer
+description: Bringing people together to create more than they could have alone
 repository: https://github.com/skolk
-# baseurl: /
 url: https://skolk.github.io  # the base hostname & protocol for your site
 
 # Build settings
@@ -23,8 +22,8 @@ sass:
 theme_mode: standard  # choices are: 'dark', 'standard', 'markdown'
 
 # Customizations
-your_name: Skolk
-email: sean.kolk@mgail.com
+your_name: Sean Kolk
+email: sean.kolk@gmail.com
 
 collections:
   portfolio:
@@ -43,11 +42,11 @@ navigation:
   - text: Home
     url: /
 
-  - text: Docs
-    url: /docs
+  - text: About
+    url: /about
 
-  - text: Examples
-    url: /examples
+  - text: Projects
+    url: /projects
 
   - text: Log
     url: /log
