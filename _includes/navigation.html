@@ -4,7 +4,6 @@
   <nav class="menu" role="menubar">
     {% assign url = page.url|remove:'index.html' %}
     
-    <!-- Main pages -->
     <a class="menu-item {% if url == '/' %}active{% endif %}"
       role="menuitem" href="{{ '/' | prepend: site.baseurl }}" title="Home">
       Home <div class="pull-right">»</div>
@@ -20,7 +19,6 @@
       Log <div class="pull-right">»</div>
     </a>
     
-    <!-- Explorations section -->
     <div class="explorations-header">
       Explorations
     </div>
@@ -41,7 +39,6 @@
     </a>
   </nav>
 
-  <!-- Theme toggle at bottom of sidebar -->
   <div class="theme-toggle" id="theme-toggle" onclick="toggleNightMode()">
     <span id="lite-text" class="theme-option active">[lite]</span> <span class="theme-separator">/</span> <span id="dark-text" class="theme-option">dark</span>
   </div>
