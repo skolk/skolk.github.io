@@ -102,3 +102,42 @@ div.poverlay {
 h2.pheading {
   margin-bottom: 0px;
 }
+
+// Navigation styles
+.menu-item {
+  display: block;
+  padding: 8px 0;
+  color: #333;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.menu-item:hover,
+.menu-item.active {
+  border-bottom: 1px solid #333;
+}
+
+.explorations-header {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: #666;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+// Dark mode navigation styles
+body.dark-theme {
+  .menu-item {
+    color: #fff;
+  }
+  
+  .menu-item:hover,
+  .menu-item.active {
+    border-bottom: 1px solid #fff;
+  }
+  
+  .explorations-header {
+    color: #999;
+  }
+}

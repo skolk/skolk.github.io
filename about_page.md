@@ -7,56 +7,36 @@ permalink: /about
 
 I make tools to help communities explore new horizons. I enjoy bringing people together in a variety of different environments to see what it means to thrive with a variety of constraints.
 
+Currently, I'm Director of Grant Strategy at REAP Climate Center, leading strategic development for climate-focused bio-regenerative programs. I'm also Co-Founder of Astraeus Ocean Systems, developing ocean technology for sustainable marine applications.
+
 I seek the cold, water, and mountains.
 
-## Mountains I've Climbed
+## Explorations
 
-- Glacier Peak 2007
-- Mt Washington (Winter ascent) 2007
-- Mt Mansfield Winter 2008
-- Twin Sister 2011
-- Cerro Pintor (Chile)
-- Cerro Plomo (Chile) - high point in life! 2012
-- Mt Tallac: Summer 2014
-- North Peak NE Ridge (4th Class) (Yosemite) 2015
-- Cathedral Peak: NE Face (Yosemite) 2015
-- Mt Conness NE Ridge 5th Class (Yosemite) 2015
-- Mt Hood: Pearly Gates May 2015
-- Mt Whitney: Mountaineers Route April 2016
-- Mt Shasta: Avalanche gulch May 2016
-- Mt Rainier: Disappointment Cleaver July 2017
-- Cerro Chirripo January 2018
-- Triglav (Slovenia High point) July 2018
-- Mt. Stanley (Uganda/DRC Highpoint) Dec 2018
-- Mt. Kenya (Nelion) via the 'Normal route' (SE face 5.8) Feb 2019
-- Dragontail Peak June 2020
-- Mt. Baker (Coleman-Deming Route) July 2020
+My adventures and learning happen across three main areas:
 
-## Caves I've Descended
+**[Sailing](/sailing)** — Charter expeditions around the world, from the Seychelles to Croatia. Leading Boatless Sailing community for 40+ people who don't own boats but love blue water adventures.
 
-T.A.G. (Tennessee, Alabama, Georgia):
-- Valhalla
-- Neversink
-- Sinking Cove
-- Iliad Cave
-- No Cave
-- Cemetery Cave
-- Rumbling Falls, Tennessee (20 Hour day!)
+**[Making](/making)** — Building everything from brain-slicing robots to tiny houses. Hardware engineering, electronics design, and fabrication across biotech, climate technology, and ocean systems.
 
-## Places I've Sailed
+**[Mountaineering](/mountaineering)** — Peaks climbed from Yosemite to Uganda, including Mt. Kenya's technical routes and glaciated equatorial climbing. Teaching progression from follower to leader.
 
-- San Francisco Bay
-- Sacramento River Delta
-- La Paz, Baja Sur Mexico
-- Bay of Phuket, Thailand
-- Catalina Island, California
-- Split, Croatia
-- The Seychelles
-- Dar es Salaam to Tanga and back (around Zanzibar) Tanzania
-- The Dodecanese, Greece (out of Kos)
+## Professional Evolution
 
-## Philosophy
+My career has evolved from hands-on hardware engineering (3Scan biotech, electronics design) to strategic technology development (PickNik Robotics business development) to climate technology and ocean systems (REAP Climate Center, Astraeus Ocean Systems).
 
-I believe in creating systems that help people succeed even when they fail. I'm interested in the intersection of technology, community building, and exploration. Whether it's developing hardware solutions, organizing sailing expeditions, or building tools for better planning, I'm driven by the idea that we can create more together than we could alone.
+**Current focus:** Scaling bio-regenerative solutions through strategic funding, developing sustainable marine systems, and applying technical skills to urgent environmental challenges.
 
-The concept of 'type 2 fun' - activities that aren't fun in the moment but are rewarding afterward - guides much of my approach to both personal adventures and professional projects. It's about finding that sweet spot just outside your comfort zone where real growth happens.
+**Core philosophy:** Complex challenges require collaborative solutions. The best innovations happen when diverse perspectives and skills come together around shared goals.
+
+## Community Building
+
+**Adventure Report** — Monthly storytelling breakfast running since 2014, bringing together people to share adventure experiences.
+
+**Boatless Sailing** — Charter sailing expeditions for people who don't own boats, proving that shared adventures create lasting communities.
+
+**Teaching and Mentoring** — Sharing skills in sailing, electronics, mountaineering, and community organizing.
+
+---
+
+*For detailed stories and experiences, explore the [Sailing](/sailing), [Making](/making), and [Mountaineering](/mountaineering) sections.*
