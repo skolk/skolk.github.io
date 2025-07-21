@@ -136,6 +136,7 @@ h2.pheading {
   cursor: pointer;
   user-select: none;
   font-family: inherit;
+  text-align: center;
 }
 
 .theme-option {
@@ -184,6 +185,11 @@ body.dark-theme {
   }
   
   .theme-toggle:hover {
+    color: #fff;
+  }
+  
+  // Fix dark mode heading display
+  .t-hackcss-navigation-heading {
     color: #fff;
   }
 }
