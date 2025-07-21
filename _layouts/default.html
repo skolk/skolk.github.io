@@ -7,11 +7,6 @@
 
     {% include github-ribbon.html %}
 
-    <!-- Night Mode Toggle Button -->
-    <button class="night-mode-toggle" id="night-mode-toggle" onclick="toggleNightMode()">
-      🌙
-    </button>
-
     <div class="container">
       <div class="grid">
         <aside class="cell -3of12" role="navigation">
@@ -35,7 +30,8 @@
       // Check for saved theme preference or default to 'light'
       const currentTheme = localStorage.getItem('theme') || 'light';
       const body = document.getElementById('theme-body');
-      const toggle = document.getElementById('night-mode-toggle');
+      const liteText = document.getElementById('lite-text');
+      const darkText = document.getElementById('dark-text');
       
       // Apply saved theme on page load
       if (currentTheme === 'dark') {
@@ -59,8 +55,9 @@
         document.getElementById('theme-standard').disabled = true;
         document.getElementById('theme-dark').disabled = false;
         
-        // Update toggle button
-        toggle.innerHTML = '☀️';
+        // Update toggle text
+        liteText.classList.remove('active');
+        darkText.classList.add('active');
         
         // Save preference
         localStorage.setItem('theme', 'dark');
@@ -75,8 +72,9 @@
         document.getElementById('theme-standard').disabled = false;
         document.getElementById('theme-dark').disabled = true;
         
-        // Update toggle button
-        toggle.innerHTML = '🌙';
+        // Update toggle text
+        liteText.classList.add('active');
+        darkText.classList.remove('active');
         
         // Save preference
         localStorage.setItem('theme', 'light');

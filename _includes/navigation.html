@@ -3,12 +3,46 @@
 
   <nav class="menu" role="menubar">
     {% assign url = page.url|remove:'index.html' %}
-    {% for link in site.navigation %}
-      <a class="menu-item {% if url == link.url %}active{% endif %}"
-        role="menuitem" href="{{ link.url | prepend: site.baseurl }}" title="{{ link.title }}">
-        {{ link.text }} <div class="pull-right">»</div>
-      </a>
-    {% endfor %}
+    
+    <!-- Main pages -->
+    <a class="menu-item {% if url == '/' %}active{% endif %}"
+      role="menuitem" href="{{ '/' | prepend: site.baseurl }}" title="Home">
+      Home <div class="pull-right">»</div>
+    </a>
+    
+    <a class="menu-item {% if url == '/about' %}active{% endif %}"
+      role="menuitem" href="{{ '/about' | prepend: site.baseurl }}" title="About">
+      About <div class="pull-right">»</div>
+    </a>
+    
+    <a class="menu-item {% if url == '/log' %}active{% endif %}"
+      role="menuitem" href="{{ '/log' | prepend: site.baseurl }}" title="Log">
+      Log <div class="pull-right">»</div>
+    </a>
+    
+    <!-- Explorations section -->
+    <div class="explorations-header">
+      Explorations
+    </div>
+    
+    <a class="menu-item exploration-item {% if url == '/sailing' %}active{% endif %}"
+      role="menuitem" href="{{ '/sailing' | prepend: site.baseurl }}" title="Sailing">
+      → Sailing <div class="pull-right">»</div>
+    </a>
+    
+    <a class="menu-item exploration-item {% if url == '/making' %}active{% endif %}"
+      role="menuitem" href="{{ '/making' | prepend: site.baseurl }}" title="Making">
+      → Making <div class="pull-right">»</div>
+    </a>
+    
+    <a class="menu-item exploration-item {% if url == '/mountaineering' %}active{% endif %}"
+      role="menuitem" href="{{ '/mountaineering' | prepend: site.baseurl }}" title="Mountaineering">
+      → Mountaineering <div class="pull-right">»</div>
+    </a>
   </nav>
 
+  <!-- Theme toggle at bottom of sidebar -->
+  <div class="theme-toggle" id="theme-toggle" onclick="toggleNightMode()">
+    <span id="lite-text" class="theme-option active">lite</span> / <span id="dark-text" class="theme-option">dark</span>
+  </div>
 </div>
