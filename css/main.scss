@@ -126,6 +126,35 @@ h2.pheading {
   text-transform: uppercase;
 }
 
+// Theme toggle styles
+.theme-toggle {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  user-select: none;
+  font-family: inherit;
+}
+
+.theme-option {
+  transition: all 0.2s ease;
+}
+
+.theme-option.active {
+  color: #333;
+}
+
+.theme-separator {
+  margin: 0 8px;
+  color: #999;
+}
+
+.theme-toggle:hover {
+  color: #333;
+}
+
 // Dark mode navigation styles
 body.dark-theme {
   .menu-item {
@@ -139,5 +168,22 @@ body.dark-theme {
   
   .explorations-header {
     color: #999;
+  }
+  
+  .theme-toggle {
+    border-top-color: #555;
+    color: #999;
+  }
+  
+  .theme-option.active {
+    color: #fff;
+  }
+  
+  .theme-separator {
+    color: #666;
+  }
+  
+  .theme-toggle:hover {
+    color: #fff;
   }
 }
