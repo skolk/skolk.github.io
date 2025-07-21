@@ -1,37 +1,80 @@
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Favicon -->
-  <link rel="icon" href="{{ "/images/me.jpg" | prepend: site.baseurl }}">
-
-  <!-- Meta information -->
-  <title>{% if page.title %}{{ page.title }}{% else %}{{ site.title }}{% endif %}</title>
-  <meta name="description"
-        content="{% if page.excerpt %}{{ page.excerpt | strip_html | strip_newlines | truncate: 160 }}{% else %}{{ site.description }}{% endif %}">
-  <link rel="canonical"
-        href="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}" />
-
-  <meta property="og:image" content="{{ "/images/me.jpg" | prepend: site.baseurl }}">
-  <!-- hack.css -->
-  <link rel="stylesheet" href="https://npmcdn.com/hack/dist/hack.css" />
-  {% if site.theme_mode == 'standard' %}
-  <link rel="stylesheet" href="https://npmcdn.com/hack/dist/standard.css" />
-  {% elsif site.theme_mode == 'dark' %}
-  <link rel="stylesheet" href="https://npmcdn.com/hack/dist/dark.css" />
-  {% endif %}
-
-  <!-- Prism.js -->
-  <link rel="stylesheet" href="https://npmcdn.com/prismjs@1.5.1/themes/prism.css" />
-
-  <!-- Custom style -->
-  <link rel="stylesheet" href="{{ "/css/main.css" | prepend: site.baseurl }}" />
-
-  <!-- Feed -->
-  <link rel="alternate" type="application/rss+xml" title="{{ site.title }}"
-        href="{{ "/feed.xml" | prepend: site.baseurl }}" />
-
-  <!-- 'jekyll-seo' plugin -->
-  {% seo %}
-</head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+      <!-- Favicon -->
+      <link rel="icon" href="{{ "/images/me.jpg" | prepend: site.baseurl }}">
+    
+      <!-- Meta information -->
+      <title>{% if page.title %}{{ page.title }}{% else %}{{ site.title }}{% endif %}</title>
+      <meta name="description"
+            content="{% if page.excerpt %}{{ page.excerpt | strip_html | strip_newlines | truncate: 160 }}{% else %}{{ site.description }}{% endif %}">
+      <link rel="canonical"
+            href="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}" />
+    
+      <meta property="og:image" content="{{ "/images/me.jpg" | prepend: site.baseurl }}">
+      
+      <!-- hack.css base -->
+      <link rel="stylesheet" href="https://npmcdn.com/hack/dist/hack.css" />
+      
+      <!-- Theme CSS - will be toggled by JavaScript -->
+      <link rel="stylesheet" href="https://npmcdn.com/hack/dist/standard.css" id="theme-standard" />
+      <link rel="stylesheet" href="https://npmcdn.com/hack/dist/dark.css" id="theme-dark" disabled />
+    
+      <!-- Prism.js -->
+      <link rel="stylesheet" href="https://npmcdn.com/prismjs@1.5.1/themes/prism.css" />
+    
+      <!-- Custom style -->
+      <link rel="stylesheet" href="{{ "/css/main.css" | prepend: site.baseurl }}" />
+    
+      <!-- Night mode styles -->
+      <style>
+        .night-mode-toggle {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: transparent;
+          border: 1px solid #333;
+          color: #333;
+          padding: 8px 12px;
+          cursor: pointer;
+          font-family: inherit;
+          font-size: 14px;
+          z-index: 1000;
+          transition: all 0.3s ease;
+        }
+        
+        .night-mode-toggle:hover {
+          background: #333;
+          color: #fff;
+        }
+        
+        /* Dark mode styles */
+        body.dark-theme .night-mode-toggle {
+          border-color: #fff;
+          color: #fff;
+        }
+        
+        body.dark-theme .night-mode-toggle:hover {
+          background: #fff;
+          color: #333;
+        }
+        
+        /* Smooth transitions for theme switching */
+        body {
+          transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        a {
+          transition: color 0.3s ease;
+        }
+      </style>
+    
+      <!-- Feed -->
+      <link rel="alternate" type="application/rss+xml" title="{{ site.title }}"
+            href="{{ "/feed.xml" | prepend: site.baseurl }}" />
+    
+      <!-- 'jekyll-seo' plugin -->
+      {% seo %}
+    </head>

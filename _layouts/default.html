@@ -3,16 +3,14 @@
 
   {% include head.html %}
 
-
-  {% if site.theme_mode == 'markdown' %}
-  <body class="hack">
-  {% elsif site.theme_mode == 'standard' %}
-  <body class="standard">
-  {% elsif site.theme_mode == 'dark' %}
-  <body class="hack dark">
-  {% endif %}
+  <body class="standard" id="theme-body">
 
     {% include github-ribbon.html %}
+
+    <!-- Night Mode Toggle Button -->
+    <button class="night-mode-toggle" id="night-mode-toggle" onclick="toggleNightMode()">
+      🌙
+    </button>
 
     <div class="container">
       <div class="grid">
@@ -31,6 +29,59 @@
 
     <!-- Prism.js -->
     <script src="https://npmcdn.com/prismjs@1.5.1/prism.js"></script>
+    
+    <!-- Night Mode Script -->
+    <script>
+      // Check for saved theme preference or default to 'light'
+      const currentTheme = localStorage.getItem('theme') || 'light';
+      const body = document.getElementById('theme-body');
+      const toggle = document.getElementById('night-mode-toggle');
+      
+      // Apply saved theme on page load
+      if (currentTheme === 'dark') {
+        enableDarkMode();
+      }
+      
+      function toggleNightMode() {
+        if (body.classList.contains('dark-theme')) {
+          enableLightMode();
+        } else {
+          enableDarkMode();
+        }
+      }
+      
+      function enableDarkMode() {
+        // Update body classes
+        body.classList.remove('standard');
+        body.classList.add('hack', 'dark', 'dark-theme');
+        
+        // Update stylesheets
+        document.getElementById('theme-standard').disabled = true;
+        document.getElementById('theme-dark').disabled = false;
+        
+        // Update toggle button
+        toggle.innerHTML = '☀️';
+        
+        // Save preference
+        localStorage.setItem('theme', 'dark');
+      }
+      
+      function enableLightMode() {
+        // Update body classes
+        body.classList.remove('hack', 'dark', 'dark-theme');
+        body.classList.add('standard');
+        
+        // Update stylesheets
+        document.getElementById('theme-standard').disabled = false;
+        document.getElementById('theme-dark').disabled = true;
+        
+        // Update toggle button
+        toggle.innerHTML = '🌙';
+        
+        // Save preference
+        localStorage.setItem('theme', 'light');
+      }
+    </script>
   </body>
 
 </html>
