@@ -55,9 +55,11 @@
         document.getElementById('theme-standard').disabled = true;
         document.getElementById('theme-dark').disabled = false;
         
-        // Update toggle text
+        // Update toggle text with brackets
         liteText.classList.remove('active');
+        liteText.innerHTML = 'lite';
         darkText.classList.add('active');
+        darkText.innerHTML = '[dark]';
         
         // Save preference
         localStorage.setItem('theme', 'dark');
@@ -72,9 +74,11 @@
         document.getElementById('theme-standard').disabled = false;
         document.getElementById('theme-dark').disabled = true;
         
-        // Update toggle text
+        // Update toggle text with brackets
         liteText.classList.add('active');
+        liteText.innerHTML = '[lite]';
         darkText.classList.remove('active');
+        darkText.innerHTML = 'dark';
         
         // Save preference
         localStorage.setItem('theme', 'light');
