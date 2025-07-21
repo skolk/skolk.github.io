@@ -45,14 +45,17 @@ navigation:
   - text: About
     url: /about
 
-  - text: Projects
-    url: /projects
-
   - text: Log
     url: /log
 
-  - text: Portfolio
-    url: /portfolio.html
+  - text: Sailing
+    url: /sailing
+
+  - text: Making
+    url: /making
+
+  - text: Mountaineering
+    url: /mountaineering
 
 social:
   - service: github
