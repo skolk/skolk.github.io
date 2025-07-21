@@ -1,7 +1,7 @@
 ---
 layout: post
 title: The Nairobi Lamp - Teaching Making in Kenya
-date: 2011-06-15 00:00:00
+date: 2018-06-15 00:00:00
 categories: making teaching kenya entrepreneurship
 short_description: Creating a locally-made lamp in Nairobi using tin cans, local wood, and cement, then teaching the skills to create sustainable income opportunities.
 ---
