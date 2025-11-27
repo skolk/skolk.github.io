@@ -7,7 +7,7 @@ permalink: /about
 
 I make tools to help communities explore new horizons. I enjoy bringing people together in a variety of different environments to see what it means to thrive with a variety of constraints.
 
-Currently, I'm Director of Grant Strategy at REAP Climate Center, leading strategic development for climate-focused bio-regenerative programs. I'm also Co-Founder of Astraeus Ocean Systems, developing ocean technology for sustainable marine applications.
+Currently, I'm Director of Grant Strategy at [REAP Climate Center](https://www.reapcenter.org/), leading strategic development for climate-focused bio-regenerative programs. I'm also Co-Founder of [Astraeus Ocean Systems](https://astraeusocean.com/), developing ocean technology for sustainable marine applications.
 
 I seek the cold, water, and mountains.
 
