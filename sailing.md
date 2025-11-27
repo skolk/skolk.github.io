@@ -7,59 +7,103 @@ permalink: /sailing
 
 I've been organizing sailing expeditions since 2012, proving that you don't need to own a boat to have incredible adventures on the water. Through Boatless Sailing, I've led charters around the world for 40+ people who share a passion for exploration and the sea.
 
-## Recent Expeditions
+## Sailing Stats
 
-**The Seychelles (2018)** — 10-day expedition through pristine granite islands with a crew of 10. Encountered dolphins, whale sharks, and some of the world's most beautiful anchorages. Storm challenges taught us about weather management and flexible planning.
+**Years Sailing:** 13 &nbsp;&nbsp;&nbsp;&nbsp; **Miles Sailed:** 10,235 &nbsp;&nbsp;&nbsp;&nbsp;
 
-**Croatia (2018)** — 7-day exploration of the Dalmatian coast during World Cup finals and Ultra music festival. Mediterranean mooring, crowded anchorages, and complex navigation through hundreds of Croatian islands.
+**Days At Sea:** 368 &nbsp;&nbsp;&nbsp;&nbsp; **Days Skippered:** 233
 
-**Dar es Salaam to Tanga Race (2019)** — 250-mile coastal race in Tanzania without an engine. Pure sailing from start to finish, learning about wind patterns, current management, and the essence of what sailing actually is.
+**Vessels owned:** 1990 Catalina 36 Mk I • 1969 Coronado 25 • 2000 Hobie 18
 
-## Philosophy
+---
 
-**Charter over ownership** — Sailing other people's boats gives you access to better vessels, more destinations, and shared expertise without the hassles of maintenance and storage.
+### Certifications & Skills
 
-**Community building** — The intensity of sailing creates bonds that last far beyond the trip. Being dependent on each other, facing challenges together, exploring beautiful places together.
+**Certifications:** ASA BareBoat • ASA Catamaran • Wilderness First Responder • ACA Swift Water Rescue • Licensed HAM Radio Operator (KK6DFO)
 
-**Skills development** — Each expedition teaches navigation, boat handling, cultural immersion, team dynamics, and self-reliance when you're far from shore.
+**Skills:** Electro-mechanical Engineer • PADI Advanced Open Water Diver • Expedition Planning • French Onion Soup Underway
+
+---
+
+## Recent Highlights (2024-2025)
+
+**VanIsle 350 (2025)** — Crew on SV Golux BM50, finishing 5th place in this challenging 350-nautical-mile race around Vancouver Island. Three days of intense racing through variable Pacific Northwest conditions.
+
+**R2AK - Race to Alaska (2024)** — Skippered [Team Natural Disaster](https://r2ak.com/2024-teams-full-race/team-natural-disaster/ on an Olson 30, completing the 750-mile engineless race from Port Townsend to Ketchikan in 7 days, 5 hours, 14 minutes. No motor, no support—just wind, oars, and determination through the Inside Passage.
+
+**Seattle to Glacier Bay (2024)** — Four-month cruising expedition as skipper, navigating the Inside Passage from Seattle through British Columbia to Southeast Alaska. Extended wilderness cruising with wildlife encounters, remote anchorages, and challenging tidal passages.
+
+**Baja Ha-Ha (2021)** — Captained my Catalina 36 from Oakland, CA to Cabo San Lucas, Mexico as part of the annual cruising rally. First major offshore passage as captain, navigating 750+ miles of Pacific coast with crew through varied conditions.
+
+---
+
+## Racing History
+
+**2023: Round the County** — Crew (bow) on J105 *Kinetic*, circumnavigating the San Juan Islands in 2 days. Finished 6th out of 12 boats in challenging tidal conditions.
+
+**2023: Swiftsure Race** — Crew (bow/helm) on Catalina Mark II *Mata Hari*, racing from Victoria to Clallam Bay in 13 hours. Classic Pacific Northwest offshore race with strong currents and variable winds.
+
+**2019: Dar es Salaam to Tanga Race** — Four-day coastal race around Zanzibar, Tanzania. Awarded Most Meritorious for completing the 250-mile course without an engine. Pure sailing, learning about East African wind patterns and current management.
+
+---
+
+## Charter Expeditions & International Trips
+
+**The Seychelles (2018)** — 10-day expedition through pristine granite islands with 10 crew. Encountered dolphins, whale sharks, and some of the world's most beautiful anchorages. Storm challenges taught weather management and flexible planning.
+
+**Croatia (2018)** — 7-day exploration of the Dalmatian coast during World Cup finals. Mediterranean mooring, crowded anchorages, and navigation through hundreds of Croatian islands.
+
+**Kenya Coast (2019)** — Crewed on traditional dhows with local fishermen along the Indian Ocean. Learning Swahili phrases and alternative methods of harnessing wind with no metal rigging—pure traditional sailing techniques.
+
+**Sea of Cortez (2022)** — Double-handed Catalina 36 engineless from Loreto to La Paz, anchoring entirely under sail. Two seasons in Baja Sur exploring the incredible marine life and developing self-reliance when systems fail far from support.
+
+---
 
 ## Destinations Sailed
 
-- **San Francisco Bay** — Home waters, learning ground
-- **Sacramento River Delta** — Weekend escapes and skill building
-- **La Paz, Baja Sur Mexico** — Incredible wildlife, warm water, friendly locals
-- **Bay of Phuket, Thailand** — Limestone karsts, clear water, cultural immersion
-- **Catalina Island, California** — Classic Southern California sailing
-- **Split, Croatia** — Mediterranean sailing through the Dalmatian islands
-- **The Seychelles** — Pristine waters and incredible wildlife
-- **Dar es Salaam to Tanga, Tanzania** — East African coast racing
-- **The Dodecanese, Greece** — Ancient history and reliable winds
+### Pacific Northwest
+San Francisco Bay • Sacramento River Delta • Seattle • Salish Sea • Inside Passage • Glacier Bay • San Juan Islands • Princess Louisa Inlet
 
-## What Makes It Work
+### Mexico & Central America
+La Paz • Sea of Cortez • Cabo San Lucas • Catalina Island
 
-**Careful crew selection** — Sailing compatibility matters more than friendship compatibility. Mixed experience levels, shared commitment to learning and safety.
+### Asia & East Africa
+Phuket, Thailand • Dar es Salaam, Tanzania • Tanga, Tanzania • Zanzibar • Kenya Coast
 
-**Thorough planning** — Research destinations, weather patterns, local customs. Plan for challenges because things will go wrong, and that's where the best stories come from.
+### Mediterranean & Islands
+Split, Croatia • Dalmatian Coast • Dodecanese, Greece • Seychelles
 
-**Focus on experience** — The goal isn't to cover maximum distance but to have meaningful adventures. Sometimes the best sailing happens when you're hove-to in a storm, learning about your crew and yourself.
+---
 
-**Skills sharing** — Teaching and learning happen simultaneously. Experienced sailors mentor newcomers, everyone contributes their unique perspectives and capabilities.
+## Philosophy
+
+**Charter over ownership** — Sailing other people's boats gives you access to better vessels, more destinations, and shared expertise without the maintenance burden.
+
+**Community building** — The intensity of sailing creates lasting bonds. Being dependent on each other, facing challenges together, exploring beautiful places together—this builds relationships that extend far beyond the water.
+
+**Skills development** — Each expedition teaches navigation, boat handling, cultural immersion, team dynamics, and self-reliance when you're far from shore.
+
+**Embrace challenges** — Things will go wrong. That's where the best stories come from. Whether it's a failed freshwater impeller in the Sea of Cortez or hove-to in a storm, adversity reveals character and builds capability.
+
+---
 
 ## The Learning Curve
 
-Sailing brings lots of different skills together: planning, boat knowledge, logistics, coordination, cooking, medical response, wildlife identification, and interpersonal communication. Figuring out why everyone is on the trip is crucial for ensuring everyone feels safe and heard.
+Sailing integrates diverse skills: planning, boat systems, logistics, coordination, cooking, medical response, wildlife identification, and interpersonal communication. Figuring out why everyone is on the trip is crucial for ensuring everyone feels safe and heard.
 
-We use nightly crew reviews, one-on-one check-ups, and role changes for situations that aren't working. Little things become big things when you literally have nowhere else to go. The elephants in the room have to be addressed.
+We use nightly crew reviews, one-on-one check-ins, and role changes for situations that aren't working. Little things become big things when you literally have nowhere else to go. The elephants in the room must be addressed.
 
-Due to this intensity, friendships form and sometimes issues that have been underwater for a long time get brought up and resolved.
+Due to this intensity, friendships form and sometimes issues that have been underwater for a long time surface and get resolved.
 
-## Current Projects
+---
 
-**A Path into Sailing** — Writing a comprehensive guide for people interested in getting into sailing, covering everything from basic skills to organizing your own charter expeditions.
+## Boatless Sailing Community
 
-**Next Expeditions** — Always planning the next adventure. Recent focus on more remote destinations and longer passages. The boats are getting bigger, the crews more experienced, and the adventures more ambitious.
+Nearly 40 people have joined charter expeditions over the years. Many have sailed multiple trips and formed lasting friendships. Some have gone on to racing, others to cruising, many to acquiring new skills beyond sailing.
 
-**Boatless Sailing Community** — Nearly 40 people in our charter sailing group. Many members have sailed multiple trips and formed lasting friendships. Some have gone on to racing, others to fishing and cooking, many to acquiring new skills beyond sailing.
+We typically organize a trip every six months, and destinations keep getting more remote. The community continues to grow, united by the belief that the best adventures happen when you're slightly out of your comfort zone, surrounded by people you trust.
+
+---
 
 ## Getting Involved
 
@@ -69,5 +113,3 @@ If you're interested in charter sailing:
 - **Choose crew carefully** — Shared commitment to learning and safety matters most
 - **Embrace challenges** — Things will go wrong, and that's often where the best stories come from
 - **Focus on connection** — The water is always calling, and there's room for sailors ready for adventure
-
-*We seem to have a trip every six months or so, and the locations keep getting more remote. The community continues to grow, united by the belief that the best adventures happen when you're slightly out of your comfort zone, surrounded by people you trust.*
