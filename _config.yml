@@ -68,3 +68,12 @@ social:
 # Plugins
 gems:
   - jekyll-seo-tag
+
+# Internal planning docs — kept in the repo but not built into the site
+exclude:
+  - TODO.md
+  - VISION.md
+  - "_posts/SeanAKolk Square Space 2024 /"
+  - vendor/
+  - Gemfile
+  - Gemfile.lock

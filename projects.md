@@ -1,9 +1,9 @@
 ---
 layout: default
-permalink: /making
+permalink: /projects
 ---
 
-# Making
+# Projects
 
 I believe in learning through building. Whether it's [brain-slicing robots]({% post_url 2018-06-01-Brain-Slicing-Robots %}) for biotech research, [electronics for precision control systems]({% post_url 2017-05-15-AuxBoard %}), or [tiny houses from shipping containers]({% post_url 2016-08-15-tiny-house-post %}), making things teaches you how the world actually works.
 
