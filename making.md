@@ -9,6 +9,12 @@ I believe in learning through building. Whether it's [brain-slicing robots]({% p
 
 ## Major Projects
 
+**Space ROS (2025–)** — Convened a working group with NASA on Space ROS, the open-source robotics framework being adapted for spaceflight. Helping shape how the broader robotics community contributes to standards for in-space and surface operations.
+
+**REAP Climate Center — Workforce Development (2024–)** — Building a workforce development program at REAP Climate Center to grow the talent pipeline for bio-regenerative and climate-adjacent careers. Part of leading $12M+ in grant initiatives.
+
+**Astraeus Ocean Systems — Ocean Intelligence Platform (2024–)** — Co-founding Astraeus Ocean Systems and developing an Ocean Intelligence Platform: sustainable marine sensing and coastal monitoring infrastructure that turns raw ocean data into decisions for climate, conservation, and industry.
+
 **[Brain Slicing Robots at 3Scan]({% post_url 2018-06-01-Brain-Slicing-Robots %}) (2013-2018)** — First employee at a biotech startup building automated digital pathology systems. Designed liquid handling systems, PCB layouts, and manufacturing processes that scaled from Arduino prototypes to production biomedical equipment.
 
 **[AuxBoard Electronics]({% post_url 2017-05-15-AuxBoard %}) (2017)** — Designed Arduino-based control systems for biomedical equipment, managing water flow, temperature, and communications. Proved that accessible platforms like Arduino could power sophisticated scientific instruments with proper engineering.
