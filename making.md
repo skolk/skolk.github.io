@@ -5,25 +5,27 @@ permalink: /making
 
 # Making
 
-I believe in learning through building. Whether it's brain-slicing robots for biotech research, electronics for precision control systems, or tiny houses from shipping containers, making things teaches you how the world actually works.
+I believe in learning through building. Whether it's [brain-slicing robots]({% post_url 2018-06-01-Brain-Slicing-Robots %}) for biotech research, [electronics for precision control systems]({% post_url 2017-05-15-AuxBoard %}), or [tiny houses from shipping containers]({% post_url 2016-08-15-tiny-house-post %}), making things teaches you how the world actually works.
 
 ## Major Projects
 
-**Brain Slicing Robots at 3Scan (2013-2018)** — First employee at a biotech startup building automated digital pathology systems. Designed liquid handling systems, PCB layouts, and manufacturing processes that scaled from Arduino prototypes to production biomedical equipment.
+**[Brain Slicing Robots at 3Scan]({% post_url 2018-06-01-Brain-Slicing-Robots %}) (2013-2018)** — First employee at a biotech startup building automated digital pathology systems. Designed liquid handling systems, PCB layouts, and manufacturing processes that scaled from Arduino prototypes to production biomedical equipment.
 
-**AuxBoard Electronics (2017)** — Designed Arduino-based control systems for biomedical equipment, managing water flow, temperature, and communications. Proved that accessible platforms like Arduino could power sophisticated scientific instruments with proper engineering.
+**[AuxBoard Electronics]({% post_url 2017-05-15-AuxBoard %}) (2017)** — Designed Arduino-based control systems for biomedical equipment, managing water flow, temperature, and communications. Proved that accessible platforms like Arduino could power sophisticated scientific instruments with proper engineering.
 
-**The Halfway House (2016)** — Built a tiny house from a shipping container in a West Oakland warehouse with 14 other builders. Learned about space design, electrical systems, water management, and the reality that living in your construction project is a terrible idea.
+**[The Halfway House]({% post_url 2016-08-15-tiny-house-post %}) (2016)** — Built a tiny house from a shipping container in a West Oakland warehouse with 14 other builders. Learned about space design, electrical systems, water management, and the reality that living in your construction project is a terrible idea.
 
-**Nairobi Lamp (2011)** — Created locally-manufacturable lamps in Kenya using tin cans, hardwood, and cement. Taught electrical wiring and assembly skills as sustainable income opportunities, demonstrating appropriate technology principles.
+**[Nairobi Lamp]({% post_url 2018-06-15-The-Nairobi-Lamp %}) (2011)** — Created locally-manufacturable lamps in Kenya using tin cans, hardwood, and cement. Taught electrical wiring and assembly skills as sustainable income opportunities, demonstrating appropriate technology principles.
+
+**[Green Light]({% post_url 2016-10-18-Green-Light %}) (2016)** — Hydroponic growing experiments in mason jars — exploring what it means to participate in food production from a small apartment.
 
 ## Learning Spaces
 
-**TechShop** — Learned CNC machining, sheet metal fabrication, laser cutting, and water jet cutting. Access to industrial equipment democratized manufacturing and taught design for production principles.
+**[TechShop]({% post_url 2014-08-10-TechShop %})** — Learned CNC machining, sheet metal fabrication, laser cutting, and [water jet cutting]({% post_url 2014-09-15-water-jet-sheet-metal %}). Access to industrial equipment democratized manufacturing and taught design for production principles.
 
-**Corrugated Underground** — Tiny house building community in West Oakland. Shared tools, knowledge, and resources while learning construction skills and alternative living approaches.
+**Corrugated Underground** — Tiny house building community in West Oakland. Shared tools, knowledge, and resources while [learning construction skills and alternative living approaches]({% post_url 2016-08-15-tiny-house-post %}).
 
-**3Scan Engineering** — Biotech hardware development from prototype to production. Learned about regulatory requirements, manufacturing scaling, and precision engineering for scientific applications.
+**[3Scan Engineering]({% post_url 2018-06-01-Brain-Slicing-Robots %})** — Biotech hardware development from prototype to production. Learned about regulatory requirements, manufacturing scaling, and precision engineering for scientific applications.
 
 ## Philosophy
 
