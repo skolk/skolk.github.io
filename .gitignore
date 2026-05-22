@@ -1,0 +1,20 @@
+# Jekyll build output — rebuilt on every push, no value in committing
+_site/
+.jekyll-cache/
+.jekyll-metadata
+
+# Bundler / Ruby
+vendor/bundle/
+.bundle/
+
+# macOS junk
+.DS_Store
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local-only scratch (anything that should never leave the laptop)
+.scratch/

@@ -69,11 +69,15 @@ social:
 gems:
   - jekyll-seo-tag
 
-# Internal planning docs — kept in the repo but not built into the site
+# Jekyll auto-excludes any top-level `_*` directory that isn't a known
+# collection, which already covers _backend/, _archive/, and _drafts/.
+# These items aren't auto-excluded and need to be listed:
 exclude:
-  - TODO.md
-  - VISION.md
-  - "_posts/SeanAKolk Square Space 2024 /"
   - vendor/
   - Gemfile
   - Gemfile.lock
+  - CLAUDE.md
+  - CHANGELOG.md
+  - README.md
+  - build-push.sh
+  - .gitignore
