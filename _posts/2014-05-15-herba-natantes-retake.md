@@ -2,7 +2,8 @@
 layout: post
 title: Re-take on Herba Natantes
 date: 2014-05-15 00:00:00
-categories: log
+categories: making growing
+short_description: Re-take on a planter project — experimenting with floating greenery.
 ---
 
 <img src="/images/blog_posts/image25.jpg" width="100%">

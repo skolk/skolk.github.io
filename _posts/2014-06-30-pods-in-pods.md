@@ -2,7 +2,8 @@
 layout: post
 title: Pods in Pods
 date: 2014-06-30 00:00:00
-categories: log
+categories: making growing
+short_description: Smaller plant pods inside a bigger plant pod — a tiny experiment that suggested new directions.
 ---
 
 <img src="/images/blog_posts/image70.jpg" width="100%">

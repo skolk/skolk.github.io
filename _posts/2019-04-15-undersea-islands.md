@@ -2,7 +2,8 @@
 layout: post
 title: A potential Future with undersea Islands
 date: 2019-04-15 00:00:00
-categories: log
+categories: ocean speculation futures
+short_description: Thinking about a potential future where humans build islands underseas.
 ---
 
 The recent increase of seaweed blight along the Caribbean has forced the carbon markets to devalue the previously reliable CO2-capturing ability of the Florida shelf colonies. The Panasonic - Mondragon Co. is moving its graphite production floating factories, dependent on the kelp harvesting, northward early this year to the Hudson Bay and the North Canadian Aquatic-Green Ecosystem.

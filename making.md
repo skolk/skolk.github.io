@@ -86,3 +86,16 @@ I believe in learning through building. Whether it's brain-slicing robots for bi
 The intersection of climate technology, ocean systems, and community building offers rich opportunities for meaningful making. Projects that address environmental challenges while bringing people together around shared work.
 
 *Making things with your hands changes how you understand the world. Every manufactured object becomes a puzzle to solve rather than magic to accept.*
+
+## Project Logs
+
+{% assign making_keywords = "making,fabrication,electronics,hardware,biotech,engineering,growing,sustainability,tiny-house,building,teaching,kenya,entrepreneurship" | split: "," %}
+{% for post in site.posts %}
+  {% assign matched = false %}
+  {% for kw in making_keywords %}
+    {% if post.categories contains kw %}{% assign matched = true %}{% endif %}
+  {% endfor %}
+  {% if matched %}
+- **{{ post.date | date: "%Y" }}** — [{{ post.title }}]({{ post.url | prepend: site.baseurl }}){% if post.short_description %} — {{ post.short_description }}{% endif %}
+  {% endif %}
+{% endfor %}

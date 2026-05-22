@@ -2,7 +2,8 @@
 layout: post
 title: Water Jet and Sheet Metal Bending
 date: 2014-09-15 00:00:00
-categories: log
+categories: making fabrication
+short_description: Water-jet cutting and sheet-metal bending at TechShop.
 ---
 
 <img src="/images/blog_posts/image42.png" width="100%">

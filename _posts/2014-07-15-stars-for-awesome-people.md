@@ -2,7 +2,8 @@
 layout: post
 title: Stars for Awesome People
 date: 2014-07-15 00:00:00
-categories: log
+categories: making
+short_description: Quick making project — stars for awesome people.
 ---
 
 <img src="/images/blog_posts/image52.jpg" width="100%">
