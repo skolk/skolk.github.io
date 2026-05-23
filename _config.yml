@@ -61,6 +61,9 @@ social:
   - service: github
     username: skolk
     link: https://github.com/skolk
+  - service: linkedin
+    username: skolk
+    link: https://www.linkedin.com/in/skolk/
   - service: twitter
     username: S_kolk
     link: https://twitter.com/s_kolk

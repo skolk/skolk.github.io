@@ -10,7 +10,7 @@ permalink: /log
     <div class="media t-hackcss-media">
       <div class="media-body">
         <div class="media-heading">
-          <span>{{ post.date | date_to_string }} &raquo;
+          <span>{{ post.date | date: "%Y.%-m.%-d" }} &raquo;
             {% if post.external_url %}
               <a href="{{ post.external_url }}" target="_blank" title="{{ post.title }}">
                 {{ post.title }}

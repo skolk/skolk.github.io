@@ -43,8 +43,8 @@ Format: each item is one bullet. Optional tags in `[brackets]` — `[quick]`, `[
 - [ ] Verify portfolio entries in `_portfolio/` link to underlying posts where they exist. [content] [medium]
 - [ ] Replace or delete the three placeholder portfolio entries `_portfolio/test.md`, `test0.md`, `test1.md` — currently shipping as "test test test" with stock theme thumbnails. [content] [quick]
 - [ ] `/log` could show short_description / image previews — currently just title + date. [design] [medium]
+- [ ] Home bio at `index.html:7` still names only Astraeus + REAP. Island Lab now sits below in Current Projects but isn't in the lead paragraph. Either fold it in or shift the bio away from enumerating roles. [content] [quick]
 - [ ] Add an **SA Strategy and Design** section to `/projects` (consulting practice 2018–present, currently absent from the site). Mention NASA SBIR / Nahlia Health (Mars medical), Earth and Planetary Institute of Canada, eDNA drone w/ Sequence Environmental + M.A.R.E., Sanivation data architecture, marine autonomous navigation. [content] [medium]
-- [ ] Add **Island Lab** (May 2026–) to `/projects`. [content] [quick]
 - [ ] Add **Substack** link to footer alongside `/feed.xml`, `/now`, `/tags`. [infra] [quick]
 
 ### Identity dimensions currently absent from the site
@@ -110,6 +110,8 @@ Cross-reference: the "long-form essays vs. quick log entries — separate collec
 ### Infrastructure / repo hygiene
 - [ ] Resolve Dependabot vulnerabilities — 4 alerts (1 critical, 3 high). [infra] [quick]
 - [ ] Consider installing `jekyll-redirect-from` so `redirect_from:` frontmatter works (currently using a manual stub at `making.html`). [infra] [quick]
+- [ ] Twitter (`s_kolk`) still in `_config.yml:social:`. After moving messaging to LinkedIn, decide whether to keep it as a courtesy link or remove. [infra] [quick]
+- [ ] `_pages/now.md` "Last updated: YYYY-MM-DD" line is manually maintained and goes stale on every edit. Either derive from front matter `date:` (with a `last_modified_at` plugin or git-mtime) or drop the line. [infra] [quick]
 
 ### Design / aesthetic (see VISION.md)
 - [ ] Settle on direction before sinking time into theming. [design] [project]

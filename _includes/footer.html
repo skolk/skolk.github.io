@@ -6,10 +6,7 @@
   <div class="grid t-hackcss-sm-reversed-grid">
     <div class="cell -5of12">
       <div class="contact-list">
-        <p>
-          {{ site.your_name }},
-          <a href="mailto:{{ site.email }}">{{ site.email }}</a>
-        </p>
+        <p>{{ site.your_name }}</p>
         {% for social in site.social %}
           {% assign template = social.service|prepend:"icon-"|append:".html" %}
           <span class="t-hackcss-social">

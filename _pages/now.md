@@ -14,7 +14,7 @@ title: Now
 
 - **Astraeus Ocean Systems** — co-founding. Building the Ocean Intelligence Platform: sensing infrastructure that turns raw ocean data into decisions for climate, conservation, and industry.
 - **REAP Climate Center** — acting Director of Grant Strategy. Leading $12M+ in grant initiatives; standing up a workforce development program for bio-regenerative and climate-adjacent careers.
-- **Space ROS** — convening a working group with NASA on adapting the open-source ROS framework for spaceflight.
+- **[Island Lab](https://islandlab.dev)** (2026–) — Design group for rethinking systems.
 
 ## Making
 
