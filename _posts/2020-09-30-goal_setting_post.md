@@ -4,7 +4,7 @@ title: One Step a Day - A Goal Setting System That Actually Works
 date: 2020-09-30 00:00:00
 categories: productivity planning goals
 short_description: The goal setting system I've used for over a decade, based on quarterly planning and systematic accountability.
-image_preview: /images/goal-setting.jpg
+image_preview: /images/blog_posts/image1.jpg
 ---
 
 The first time I realized I could plot a course for life was 2007. I was working in a used camping gear shop just off Georgia Tech’s campus in Atlanta Georgia, where I had opened an Outside Magazine, and was reading a story on 10 people who were “”living their dream life.” I don’t remember what ‘most people’ were doing, but one that caught me was the story of a director of the IRC (the International Rescue Committee) who spent his time flying all over the world from earthquakes to floods, to civil wars; helping people get where they needed to go, and the supplies they needed to keep going.

@@ -4,7 +4,7 @@ title: Building the Halfway House - A Shipping Container Tiny House
 date: 2016-08-15 00:00:00
 categories: making tiny-house building
 short_description: Building our first house from a shipping container in a West Oakland warehouse, sharing tools and knowledge with 14 other tiny house builders.
-image_preview: /images/halfway-house.jpg
+image_preview: /images/blog_posts/image64.jpg
 ---
 
 # Building the Halfway House: A Shipping Container Tiny House

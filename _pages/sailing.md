@@ -113,3 +113,18 @@ If you're interested in charter sailing:
 - **Choose crew carefully** — Shared commitment to learning and safety matters most
 - **Embrace challenges** — Things will go wrong, and that's often where the best stories come from
 - **Focus on connection** — The water is always calling, and there's room for sailors ready for adventure
+
+---
+
+## Sailing Logs
+
+{% assign sailing_keywords = "sailing,racing,r2ak,offshore" | split: "," %}
+{% for post in site.posts %}
+  {% assign matched = false %}
+  {% for kw in sailing_keywords %}
+    {% if post.categories contains kw %}{% assign matched = true %}{% endif %}
+  {% endfor %}
+  {% if matched %}
+- **{{ post.date | date: "%Y" }}** — [{{ post.title }}]({{ post.url | prepend: site.baseurl }}){% if post.short_description %} — {{ post.short_description }}{% endif %}
+  {% endif %}
+{% endfor %}

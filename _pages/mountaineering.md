@@ -118,3 +118,18 @@ The mountains teach patience, humility, and the value of preparation. Over the y
 **Respect the Consequences** — Mountaineering can have fatal mistakes. Understanding and accepting this responsibility shapes how you approach every decision.
 
 *The mountains teach you about yourself in ways that few other activities can. They strip away pretense and reveal character under pressure. The best mountaineers are those who use these lessons to become better partners, leaders, and people.*
+
+---
+
+## Mountain Logs
+
+{% assign mountain_keywords = "mountaineering,climbing,alpine,skiing,paragliding,peak" | split: "," %}
+{% for post in site.posts %}
+  {% assign matched = false %}
+  {% for kw in mountain_keywords %}
+    {% if post.categories contains kw %}{% assign matched = true %}{% endif %}
+  {% endfor %}
+  {% if matched %}
+- **{{ post.date | date: "%Y" }}** — [{{ post.title }}]({{ post.url | prepend: site.baseurl }}){% if post.short_description %} — {{ post.short_description }}{% endif %}
+  {% endif %}
+{% endfor %}

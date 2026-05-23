@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+# bin/lint — static pre-commit checks for skolk.github.io.
+# Catches the failure modes that have actually bitten this repo before.
+# Does not build, does not edit. Exits non-zero if any check fails.
+#
+# Usage:
+#   ./bin/lint            # run all checks, report PASS/FAIL per check
+#   ./bin/lint --staged   # also check whether staged changes look safe
+#
+# The companion `/test_local` skill drives the slower build-based checks.
+
+set -u
+cd "$(dirname "$0")/.."
+
+fails=0
+
+pass() { printf 'PASS — %s\n' "$1"; }
+fail() {
+  printf 'FAIL — %s\n' "$1"
+  if [ -n "${2:-}" ]; then
+    printf '%s\n' "$2" | sed 's/^/  /'
+  fi
+  fails=$((fails + 1))
+}
+
+# 1. Post filenames follow YYYY-MM-DD-Title-With-Dashes.md
+bad=$(ls _posts/ 2>/dev/null | grep -vE '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[A-Za-z0-9_-]+\.md$' || true)
+if [ -z "$bad" ]; then
+  pass "post filenames"
+else
+  fail "post filenames (expect YYYY-MM-DD-Title-With-Dashes.md, zero-padded, no spaces)" "$bad"
+fi
+
+# 2. Every post has layout / title / date in front matter
+bad=""
+for f in _posts/*.md; do
+  [ -e "$f" ] || continue
+  front=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
+  missing=""
+  grep -qE '^layout:' <<<"$front" || missing="$missing layout"
+  grep -qE '^title:'  <<<"$front" || missing="$missing title"
+  grep -qE '^date:'   <<<"$front" || missing="$missing date"
+  if [ -n "$missing" ]; then
+    bad+="$f: missing$missing"$'\n'
+  fi
+done
+bad=${bad%$'\n'}
+if [ -z "$bad" ]; then
+  pass "post front matter (layout/title/date)"
+else
+  fail "post front matter" "$bad"
+fi
+
+# 3. `categories:` doesn't use commas as separators
+#    Jekyll parses `categories: a, b, c` as three strings: "a,", "b,", "c" —
+#    the trailing commas leak into URLs (/sailing,/, /community,/, etc.).
+#    Allowed forms: `categories: a b c` (space-separated) or `[a, b, c]` (YAML list).
+bad=$(grep -nE '^categories:[^[]*,' _posts/*.md 2>/dev/null || true)
+if [ -z "$bad" ]; then
+  pass "categories not comma-separated"
+else
+  fail "categories use commas (use space-separated or YAML [list] syntax)" "$bad"
+fi
+
+# 4. Every /images/... reference in posts and pages resolves to a real file.
+#    Skip YAML/HTML-comment lines so commented-out refs (placeholders waiting
+#    for a real photo) don't trip the check.
+bad=""
+while IFS= read -r ref; do
+  [ -z "$ref" ] && continue
+  path="${ref#/}"
+  if [ ! -e "$path" ]; then
+    where=$(grep -rl --include='*.md' --include='*.html' -F "$ref" _posts/ _pages/ 2>/dev/null \
+      | xargs grep -lE "^[[:space:]]*[^#<[:space:]].*${ref//\//\\/}" 2>/dev/null \
+      | tr '\n' ' ')
+    if [ -n "$where" ]; then
+      bad+="$ref  <- $where"$'\n'
+    fi
+  fi
+done < <(
+  grep -rh --include='*.md' --include='*.html' '/images/' _posts/ _pages/ 2>/dev/null \
+    | grep -vE '^[[:space:]]*(#|<!--)' \
+    | grep -oE '/images/[A-Za-z0-9_./-]+' \
+    | sort -u
+)
+bad=${bad%$'\n'}
+if [ -z "$bad" ]; then
+  pass "image references resolve"
+else
+  fail "broken image references" "$bad"
+fi
+
+# 5. Permalinks in _pages/ start with /
+bad=$(grep -rnE '^permalink:[[:space:]]+[^/[:space:]]' _pages/ 2>/dev/null || true)
+if [ -z "$bad" ]; then
+  pass "permalinks start with /"
+else
+  fail "permalink missing leading slash" "$bad"
+fi
+
+# 6. Permalinks unique across _pages/
+dupes=$(grep -rhE '^permalink:[[:space:]]+' _pages/ 2>/dev/null \
+  | awk '{print $2}' | sort | uniq -d)
+if [ -z "$dupes" ]; then
+  pass "permalinks unique"
+else
+  detail=""
+  while IFS= read -r p; do
+    [ -z "$p" ] && continue
+    files=$(grep -rlE "^permalink:[[:space:]]+${p}[[:space:]]*\$" _pages/ 2>/dev/null | tr '\n' ' ')
+    detail+="$p -> $files"$'\n'
+  done <<<"$dupes"
+  fail "permalink collisions" "${detail%$'\n'}"
+fi
+
+# 7. No build artifacts tracked in git
+bad=$(git ls-files 2>/dev/null | grep -E '(^_site/|\.DS_Store$|^vendor/bundle/|^\.jekyll-cache/)' || true)
+if [ -z "$bad" ]; then
+  pass "no build artifacts tracked"
+else
+  fail "build artifacts tracked in git" "$bad"
+fi
+
+# 8. No build artifacts in the staging area
+if [ "${1:-}" = "--staged" ] || [ -n "${LINT_STAGED:-}" ]; then
+  bad=$(git diff --cached --name-only 2>/dev/null \
+    | grep -E '(^_site/|\.DS_Store$|^vendor/bundle/|^\.jekyll-cache/)' || true)
+  if [ -z "$bad" ]; then
+    pass "no build artifacts staged"
+  else
+    fail "build artifacts staged for commit" "$bad"
+  fi
+fi
+
+echo
+if [ "$fails" -eq 0 ]; then
+  printf 'OK — all checks passed.\n'
+  exit 0
+else
+  printf '%d check(s) failed.\n' "$fails"
+  exit 1
+fi

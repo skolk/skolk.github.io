@@ -24,6 +24,11 @@
 
     <div class="cell -6of12">
       <p>{{ site.description }}</p>
+      <p>
+        <a href="{{ '/feed.xml' | prepend: site.baseurl }}">RSS</a> &middot;
+        <a href="{{ '/now' | prepend: site.baseurl }}">Now</a> &middot;
+        <a href="{{ '/tags' | prepend: site.baseurl }}">Tags</a>
+      </p>
     </div>
   </div>
 

@@ -13,6 +13,15 @@ Personal site for Sean Kolk — Jekyll-based, deployed via GitHub Pages from the
 - `bundle exec jekyll serve --drafts` — local dev including `_drafts/`
 - `bundle exec jekyll build` — write static site to `_site/`
 - `./build-push.sh` — build + push helper
+- `./bin/lint` — fast static checks (filenames, front matter, comma-categories, broken images, permalinks, tracked artifacts). No build required. Exits non-zero on failure.
+- `./bin/lint --staged` — same, plus refuse if `_site/` / `.DS_Store` / vendor cruft is staged.
+
+## Pre-commit hook
+Tracked at `.githooks/pre-commit`. Opt in once per clone:
+```
+git config core.hooksPath .githooks
+```
+Bypass for a single commit with `SKIP_LINT=1 git commit ...`.
 
 ## Front-end / back-end divide
 
@@ -22,8 +31,9 @@ Everything Jekyll *publishes* lives in the front-end. Everything that's for thin
 - `_posts/` — blog posts. Filename: `YYYY-MM-DD-Title-With-Dashes.md`. No spaces, no missing dashes.
 - `_layouts/`, `_includes/`, `_sass/` — Jekyll theme bits
 - `_portfolio/` — portfolio collection
+- `_pages/` — standalone pages (`about`, `log`, `sailing`, `mountaineering`, `projects`, `portfolio`, `now`, `tags`, `making` redirect stub). Opted into the build via `include: [_pages]` in `_config.yml`.
 - `images/`, `css/` — static assets
-- Top-level standalone pages: `index.html`, `about_page.md`, `log.html`, `sailing.md`, `projects.md`, `mountaineering.md`, `portfolio.html`, `projects_page.md`, `making.html` (redirect stub → `/projects`)
+- Root must-stay-at-root: `index.html`, `404.html`, `feed.xml`, `favicon.png`.
 
 ### Back-end (not deployed)
 - `_backend/` — **active** working material: `TODO.md`, `VISION.md`, scratch notes, planning. Tracked in git.

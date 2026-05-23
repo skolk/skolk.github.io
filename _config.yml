@@ -69,6 +69,11 @@ social:
 gems:
   - jekyll-seo-tag
 
+# Standalone pages live under `_pages/` for tidiness. Jekyll skips
+# underscore-prefixed dirs by default, so it has to be opted in here.
+include:
+  - _pages
+
 # Jekyll auto-excludes any top-level `_*` directory that isn't a known
 # collection, which already covers _backend/, _archive/, and _drafts/.
 # These items aren't auto-excluded and need to be listed:

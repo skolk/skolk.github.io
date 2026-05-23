@@ -2,9 +2,9 @@
 layout: post
 title: Finding Your Gaps and Working with Teams - Lessons from the Cockpit
 date: 2025-05-27 00:00:00
-categories: sailing, teams, learning, feedback
+categories: [sailing, teams, learning, feedback]
 short_description: How racing aboard Golux taught me about identifying knowledge gaps, receiving feedback, and building team dynamics both on the water and beyond.
-image_preview: /images/blog_posts/golux_racing.jpg
+# image_preview (TODO: add photo): /images/blog_posts/golux_racing.jpg
 ---
 
 I'm writing this from Flo and Andrew's place after another weekend racing aboard Golux, still processing what happened out there. My legs are finally warming up, and I'm thinking about gaps - not the ones between my foul weather gear that let the cold in, but the knowledge gaps that racing exposes so brutally and quickly.

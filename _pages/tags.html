@@ -1,0 +1,46 @@
+---
+layout: default
+permalink: /tags
+title: Tags
+---
+
+<section>
+  <h2>Tags</h2>
+
+  <p>Every category used across the log, with post counts. Each section lists the posts in reverse-chronological order.</p>
+
+  {% comment %}
+    Collect every category across every post, deduped and sorted.
+    Jekyll exposes site.categories as a hash, but its keys aren't sorted —
+    do it explicitly so the page is stable.
+  {% endcomment %}
+
+  {% assign sorted_categories = site.categories | sort %}
+
+  <h3>Index</h3>
+  <ul>
+    {% for entry in sorted_categories %}
+      {% assign cat = entry[0] %}
+      {% assign posts = entry[1] %}
+      <li><a href="#{{ cat | slugify }}">{{ cat }}</a> ({{ posts | size }})</li>
+    {% endfor %}
+  </ul>
+
+  <hr />
+
+  {% for entry in sorted_categories %}
+    {% assign cat = entry[0] %}
+    {% assign posts = entry[1] %}
+
+    <h3 id="{{ cat | slugify }}">{{ cat }} <small>({{ posts | size }})</small></h3>
+    <ul>
+      {% for post in posts %}
+        <li>
+          <span>{{ post.date | date: "%Y-%m-%d" }}</span> &mdash;
+          <a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
+          {% if post.short_description %}<br /><small>{{ post.short_description }}</small>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endfor %}
+</section>

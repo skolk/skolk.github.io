@@ -1,10 +1,10 @@
 ---
-layout: post 
+layout: post
 title: How Coastal Operations can Make Decisions in an Era of Volatility and Uncertainty
-date: 2026-02-22 00:00:00 
-categories: ecosystem, costal, astraeus, resilience 
-short_description: My thoughts on environmental Intelegence  
-image_preview: /images/blog_posts/dirt_roads.jpg
+date: 2026-02-22 00:00:00
+categories: [ecosystem, costal, astraeus, resilience]
+short_description: My thoughts on environmental Intelligence
+# image_preview (TODO: add photo): /images/blog_posts/dirt_roads.jpg
 ---
 
 At a recent conference this year in conversations with the Climate GPT initiative, tension kept surfacing from different angles. At the global level, we are building extraordinary capacity to observe Earth. Satellite constellations are imaging the entire planet daily. LLMs are being trained on vast climate datasets; the ambition is a unified environmental intelligence system that can synthesize carbon flows, methane emissions, ocean chemistry, and ecosystem health into something approaching a real-time picture of planetary conditions.

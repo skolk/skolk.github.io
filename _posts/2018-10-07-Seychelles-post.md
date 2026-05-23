@@ -2,9 +2,9 @@
 layout: post
 title: Sailing the Seychelles
 date: 2018-10-07 00:00:00
-categories: sailing, adventure, travel
+categories: [sailing, adventure, travel]
 short_description: A 10-day sailing adventure through the Seychelles islands with a crew of 10, exploring pristine waters and learning about island life.
-image_preview: /images/seychelles.jpg
+image_preview: /images/blog_posts/image8.jpg
 ---
 
 Location: The Seychelles: Mahe, Praslin, Curious, La Digue, Silhouette.

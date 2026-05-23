@@ -2,9 +2,9 @@
 layout: post
 title: Access to Tools - A Center for Thinking Deeply About Our Situation
 date: 2025-01-15 00:00:00
-categories: tools, systems, thinking, culture
+categories: [tools, systems, thinking, culture]
 short_description: Rediscovering the Whole Earth Catalog's "Access to Tools" and what it meant to bridge culture and counterculture in helping humans think about their place in the world.
-image_preview: /images/blog_posts/access_to_tools.jpg
+# image_preview (TODO: add photo): /images/blog_posts/access_to_tools.jpg
 ---
 
 I stumbled across the MoMA exhibition on "Access to Tools" this week, and it stopped me cold. Not because of the artifacts or the design, but because of what it represented: a moment when someone had the audacity to create "a center for helping human beings think deeply about their situation."

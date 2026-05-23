@@ -2,9 +2,9 @@
 layout: post
 title: Building Sanivation - Lessons from a Social Startup
 date: 2012-12-15 00:00:00
-categories: entrepreneurship, social-impact, startup
+categories: [entrepreneurship, social-impact, startup]
 short_description: The story of co-founding Sanivation, a solar sanitation company in Kenya that's still operating today.
-image_preview: /images/sanivation.jpg
+# image_preview (TODO: add photo): /images/sanivation.jpg
 ---
 
 # Sanivation: Building a Social Enterprise
