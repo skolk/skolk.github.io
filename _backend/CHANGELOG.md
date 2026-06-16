@@ -4,6 +4,9 @@ All notable changes to this site are recorded here. Format loosely follows [Keep
 
 ## [Unreleased]
 
+### Changed
+- Moved `RISKS.md`, `NEXT_STEPS.md`, `DECISIONS.md`, `DEFINITION_OF_DONE.md` from repo root to `_backend/` (planning docs belong in the back-end per CLAUDE.md; at root Jekyll copied them as web-reachable static files). Updated path references in `.claude/agents/`.
+
 ### Added
 - `CLAUDE.md` — project notes for AI-assisted work (stack, commands, conventions).
 - `CHANGELOG.md` — this file.

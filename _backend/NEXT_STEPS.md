@@ -82,6 +82,42 @@ Format:
 
 ---
 
+## From the June 2026 editor's pass on the log
+
+Full notes: `_backend/EDITORS_PASS_2026-06-LOG.md`. The five-item shortlist:
+
+- **Item**: Delete the Hello World test stub post.
+  - **Why**: Scaffolding left in the frame on a live log.
+  - **Owner**: Sean.
+  - **Effort**: S.
+  - **Status**: queued.
+
+- **Item**: Draw the calendar-as-a-circle diagram and drop it into "One Step a Day" (goal setting).
+  - **Why**: The post already references it ("PDF of Calendar here") and the link is missing. Highest-leverage diagram in the set.
+  - **Owner**: Sean.
+  - **Effort**: M.
+  - **Status**: queued.
+
+- **Item**: Pull existing SVG route maps from `/sailing` into Seychelles, Dar-Tanga, and Split posts.
+  - **Why**: Ties the sailing page to the matching log entries and beats any stock photo.
+  - **Owner**: Sean.
+  - **Effort**: M.
+  - **Status**: queued.
+
+- **Item**: Add a one-paragraph framing intro to Seychelles, Halfway House, and Freezing People naming the real subject.
+  - **Why**: Logbook format buries the thesis; the framing paragraph turns the day-by-day into evidence for a point.
+  - **Owner**: Sean.
+  - **Effort**: M.
+  - **Status**: queued.
+
+- **Item**: Make two small "model" diagrams: inclusive / exclusive spectrum (Social Anchors), comfort dial (Subnautica).
+  - **Why**: Doubles as visual-thinking practice and gives both posts a sticky takeaway image.
+  - **Owner**: Sean.
+  - **Effort**: M.
+  - **Status**: queued.
+
+---
+
 ## Open prompts for Sean
 
 - Should the broken-link sweep become a GitHub Action (e.g., `html-proofer`) instead of a manual cycle? Worth the overhead?
