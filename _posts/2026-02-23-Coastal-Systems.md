@@ -1,8 +1,8 @@
 ---
 layout: post
 title: How Coastal Operations can Make Decisions in an Era of Volatility and Uncertainty
-date: 2026-02-22 00:00:00
-categories: [ecosystem, costal, astraeus, resilience]
+date: 2026-02-23 00:00:00
+categories: [ecosystem, coastal, astraeus, resilience]
 short_description: My thoughts on environmental Intelligence
 # image_preview (TODO: add photo): /images/blog_posts/dirt_roads.jpg
 ---
