@@ -77,8 +77,6 @@ Split, Croatia • Dalmatian Coast • Dodecanese, Greece • Seychelles
 
 ## Philosophy
 
-**Charter over ownership** — Sailing other people's boats gives you access to better vessels, more destinations, and shared expertise without the maintenance burden.
-
 **Community building** — The intensity of sailing creates lasting bonds. Being dependent on each other, facing challenges together, exploring beautiful places together—this builds relationships that extend far beyond the water.
 
 **Skills development** — Each expedition teaches navigation, boat handling, cultural immersion, team dynamics, and self-reliance when you're far from shore.
