@@ -33,8 +33,6 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 **Seattle to Glacier Bay (2024)** — Four-month cruising expedition as skipper, navigating the Inside Passage from Seattle through British Columbia to Southeast Alaska. Extended wilderness cruising with wildlife encounters, remote anchorages, and challenging tidal passages.
 
-**Baja Ha-Ha (2021)** — Captained my Catalina 36 from Oakland, CA to Cabo San Lucas, Mexico as part of the annual cruising rally. First major offshore passage as captain, navigating 750+ miles of Pacific coast with crew through varied conditions.
-
 ---
 
 ## Racing History
@@ -55,23 +53,44 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 **Kenya Coast (2019)** — Crewed on traditional dhows with local fishermen along the Indian Ocean. Learning Swahili phrases and alternative methods of harnessing wind with no metal rigging—pure traditional sailing techniques.
 
+**Baja Ha-Ha (2021)** — Captained my Catalina 36 from Oakland, CA to Cabo San Lucas, Mexico as part of the annual cruising rally. First major offshore passage as captain, navigating 750+ miles of Pacific coast with crew through varied conditions.
+
 **Sea of Cortez (2022)** — Double-handed Catalina 36 engineless from Loreto to La Paz, anchoring entirely under sail. Two seasons in Baja Sur exploring the incredible marine life and developing self-reliance when systems fail far from support.
 
 ---
 
 ## Destinations Sailed
 
-### Pacific Northwest
-San Francisco Bay • Sacramento River Delta • Seattle • Salish Sea • Inside Passage • Glacier Bay • San Juan Islands • Princess Louisa Inlet
+**Pacific Northwest**
+- Salish Sea (Seattle, San Juan Islands)
+- Princess Louisa Inlet
+- Inside Passage
+- Glacier Bay
+- San Francisco Bay
+- Sacramento River Delta
 
-### Mexico & Central America
-La Paz • Sea of Cortez • Cabo San Lucas • Catalina Island
+**Mexico & Central America**
+- La Paz
+- Sea of Cortez
+- Cabo San Lucas
+- Catalina Island
 
-### Asia & East Africa
-Phuket, Thailand • Dar es Salaam, Tanzania • Tanga, Tanzania • Zanzibar • Kenya Coast
+**East Africa**
+- Dar es Salaam, Tanzania
+- Tanga, Tanzania
+- Zanzibar
+- Kenya Coast
 
-### Mediterranean & Islands
-Split, Croatia • Dalmatian Coast • Dodecanese, Greece • Seychelles
+**Asia**
+- Phuket, Thailand
+
+**Mediterranean**
+- Split, Croatia
+- Dalmatian Coast
+- Dodecanese, Greece
+
+**Indian Ocean**
+- Seychelles
 
 ---
 
