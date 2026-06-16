@@ -51,6 +51,28 @@ else
   fail "post front matter" "$bad"
 fi
 
+# 3a. If `type:` is present in a post, it must be one of the known values.
+#    Type is optional (existing posts may not have it), but a typo'd type
+#    would silently fail to show up on its landing page.
+allowed_types="update trip-report recap project article"
+bad=""
+for f in _posts/*.md; do
+  [ -e "$f" ] || continue
+  front=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
+  t=$(grep -E '^type:' <<<"$front" | head -1 | sed -E 's/^type:[[:space:]]*//; s/[[:space:]]*$//; s/^"//; s/"$//')
+  if [ -n "$t" ]; then
+    if ! grep -qw "$t" <<<"$allowed_types"; then
+      bad+="$f: type: $t (allowed: $allowed_types)"$'\n'
+    fi
+  fi
+done
+bad=${bad%$'\n'}
+if [ -z "$bad" ]; then
+  pass "post type values (when set)"
+else
+  fail "unknown post type" "$bad"
+fi
+
 # 3. `categories:` doesn't use commas as separators
 #    Jekyll parses `categories: a, b, c` as three strings: "a,", "b,", "c" —
 #    the trailing commas leak into URLs (/sailing,/, /community,/, etc.).

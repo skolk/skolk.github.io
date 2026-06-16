@@ -2,6 +2,10 @@
 _site/
 .jekyll-cache/
 .jekyll-metadata
+.sass-cache/
+
+# MCP / tooling caches
+.playwright-mcp/
 
 # Bundler / Ruby
 vendor/bundle/

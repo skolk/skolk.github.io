@@ -22,17 +22,27 @@
     <div class="explorations-header">
       Explorations
     </div>
-    
-    <a class="menu-item exploration-item {% if url == '/sailing' %}active{% endif %}"
-      role="menuitem" href="{{ '/sailing' | prepend: site.baseurl }}" title="Sailing">
-      → Sailing <div class="pull-right">»</div>
-    </a>
-    
+
     <a class="menu-item exploration-item {% if url == '/projects' %}active{% endif %}"
       role="menuitem" href="{{ '/projects' | prepend: site.baseurl }}" title="Projects">
       → Projects <div class="pull-right">»</div>
     </a>
-    
+
+    <a class="menu-item exploration-item {% if url == '/articles' %}active{% endif %}"
+      role="menuitem" href="{{ '/articles' | prepend: site.baseurl }}" title="Articles">
+      → Articles <div class="pull-right">»</div>
+    </a>
+
+    <a class="menu-item exploration-item {% if url == '/trip-reports' %}active{% endif %}"
+      role="menuitem" href="{{ '/trip-reports' | prepend: site.baseurl }}" title="Trip Reports">
+      → Trip Reports <div class="pull-right">»</div>
+    </a>
+
+    <a class="menu-item exploration-item {% if url == '/sailing' %}active{% endif %}"
+      role="menuitem" href="{{ '/sailing' | prepend: site.baseurl }}" title="Sailing">
+      → Sailing <div class="pull-right">»</div>
+    </a>
+
     <a class="menu-item exploration-item {% if url == '/mountaineering' %}active{% endif %}"
       role="menuitem" href="{{ '/mountaineering' | prepend: site.baseurl }}" title="Mountaineering">
       → Mountaineering <div class="pull-right">»</div>

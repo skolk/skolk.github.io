@@ -78,14 +78,13 @@ include:
   - _pages
 
 # Jekyll auto-excludes any top-level `_*` directory that isn't a known
-# collection, which already covers _backend/, _archive/, and _drafts/.
-# These items aren't auto-excluded and need to be listed:
+# collection, which already covers _backend/ and _drafts/. These items
+# aren't auto-excluded and need to be listed:
 exclude:
   - vendor/
   - Gemfile
   - Gemfile.lock
   - CLAUDE.md
-  - CHANGELOG.md
   - README.md
-  - build-push.sh
   - .gitignore
+  - .githooks/

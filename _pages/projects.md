@@ -9,13 +9,13 @@ I believe in learning through building. Whether it's [brain-slicing robots]({% p
 
 ## Major Projects
 
-**REAP Climate Center — Workforce Development (2024–)** — Building a workforce development program at REAP Climate Center to grow the talent pipeline for bio-regenerative and climate-adjacent careers. Part of leading $12M+ in grant initiatives.
+**[REAP Climate Center](https://www.reapcenter.org/) — Workforce Development (2024–)** — Building a workforce development program at REAP Climate Center to grow the talent pipeline for bio-regenerative and climate-adjacent careers. Part of leading $12M+ in grant initiatives.
 
-**Astraeus Ocean Systems — Ocean Intelligence Platform (2024–)** — Co-founding Astraeus Ocean Systems and developing an Ocean Intelligence Platform: sustainable marine sensing and coastal monitoring infrastructure that turns raw ocean data into decisions for climate, conservation, and industry.
+**[Astraeus Ocean Systems](https://astraeusocean.com/) — Ocean Intelligence Platform (2024–)** — Co-founding Astraeus Ocean Systems and developing an Ocean Intelligence Platform: sustainable marine sensing and coastal monitoring infrastructure that turns raw ocean data into decisions for climate, conservation, and industry.
 
 **[Island Lab](https://islandlab.dev) (2026–)** — Design group for rethinking systems.
 
-**Space ROS (2025)** — Convened a working group with NASA on Space ROS, the open-source robotics framework being adapted for spaceflight. Helped shape how the broader robotics community contributes to standards for in-space and surface operations.
+**[Space ROS](https://space.ros.org/) (2025)** — Convened a working group with NASA on Space ROS, the open-source robotics framework being adapted for spaceflight. Helped shape how the broader robotics community contributes to standards for in-space and surface operations.
 
 **[Brain Slicing Robots at 3Scan]({% post_url 2018-06-01-Brain-Slicing-Robots %}) (2013-2018)** — First employee at a biotech startup building automated digital pathology systems. Designed liquid handling systems, PCB layouts, and manufacturing processes that scaled from Arduino prototypes to production biomedical equipment.
 
@@ -31,7 +31,7 @@ I believe in learning through building. Whether it's [brain-slicing robots]({% p
 
 **[TechShop]({% post_url 2014-08-10-TechShop %})** — Learned CNC machining, sheet metal fabrication, laser cutting, and [water jet cutting]({% post_url 2014-09-15-water-jet-sheet-metal %}). Access to industrial equipment democratized manufacturing and taught design for production principles.
 
-**Corrugated Underground** — Tiny house building community in West Oakland. Shared tools, knowledge, and resources while [learning construction skills and alternative living approaches]({% post_url 2016-08-15-tiny-house-post %}).
+**[Corrugated Underground](https://www.businessinsider.com/boxouse-bay-area-tiny-homes-2016-6)** — Tiny house building community in West Oakland. Shared tools, knowledge, and resources while [learning construction skills and alternative living approaches]({% post_url 2016-08-15-tiny-house-post %}).
 
 **[3Scan Engineering]({% post_url 2018-06-01-Brain-Slicing-Robots %})** — Biotech hardware development from prototype to production. Learned about regulatory requirements, manufacturing scaling, and precision engineering for scientific applications.
 
@@ -99,13 +99,7 @@ The intersection of climate technology, ocean systems, and community building of
 
 ## Project Logs
 
-{% assign making_keywords = "making,fabrication,electronics,hardware,biotech,engineering,growing,sustainability,tiny-house,building,teaching,kenya,entrepreneurship" | split: "," %}
-{% for post in site.posts %}
-  {% assign matched = false %}
-  {% for kw in making_keywords %}
-    {% if post.categories contains kw %}{% assign matched = true %}{% endif %}
-  {% endfor %}
-  {% if matched %}
+{% assign project_posts = site.posts | where: "type", "project" %}
+{% for post in project_posts %}
 - **{{ post.date | date: "%Y" }}** — [{{ post.title }}]({{ post.url | prepend: site.baseurl }}){% if post.short_description %} — {{ post.short_description }}{% endif %}
-  {% endif %}
 {% endfor %}

@@ -1,0 +1,37 @@
+---
+layout: default
+permalink: /trip-reports
+---
+
+<section>
+  <h2>Trip Reports</h2>
+  <p>Long-form accounts from expeditions, races, and travel — what happened, what it meant.</p>
+
+  {% assign trips = site.posts | where: "type", "trip-report" %}
+  {% if trips.size == 0 %}
+    <p><em>No trip reports tagged yet.</em></p>
+  {% endif %}
+
+  {% for post in trips %}
+    <div class="media t-hackcss-media">
+      <div class="media-body">
+        <div class="media-heading">
+          <span>{{ post.date | date: "%Y.%-m.%-d" }} &raquo;
+            {% if post.external_url %}
+              <a href="{{ post.external_url }}" target="_blank" title="{{ post.title }}">
+                {{ post.title }}
+              </a>
+            {% else %}
+              <a href="{{ post.url | prepend: site.baseurl }}" title="{{ post.title }}">
+                {{ post.title }}
+              </a>
+            {% endif %}
+          </span>
+        </div>
+        <div class="media-content">
+          {{ post.short_description }}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</section>

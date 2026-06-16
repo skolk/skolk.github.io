@@ -9,4 +9,4 @@ if [ -n "${SKIP_LINT:-}" ]; then
   exit 0
 fi
 
-exec ./bin/lint --staged
+exec ./_backend/bin/lint --staged

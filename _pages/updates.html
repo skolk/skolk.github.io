@@ -1,0 +1,37 @@
+---
+layout: default
+permalink: /updates
+---
+
+<section>
+  <h2>Updates</h2>
+  <p>Short notes — quick thoughts, observations, work-in-progress. The fast lane.</p>
+
+  {% assign updates = site.posts | where: "type", "update" %}
+  {% if updates.size == 0 %}
+    <p><em>No updates yet.</em></p>
+  {% endif %}
+
+  {% for post in updates %}
+    <div class="media t-hackcss-media">
+      <div class="media-body">
+        <div class="media-heading">
+          <span>{{ post.date | date: "%Y.%-m.%-d" }} &raquo;
+            {% if post.external_url %}
+              <a href="{{ post.external_url }}" target="_blank" title="{{ post.title }}">
+                {{ post.title }}
+              </a>
+            {% else %}
+              <a href="{{ post.url | prepend: site.baseurl }}" title="{{ post.title }}">
+                {{ post.title }}
+              </a>
+            {% endif %}
+          </span>
+        </div>
+        <div class="media-content">
+          {{ post.short_description }}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</section>
