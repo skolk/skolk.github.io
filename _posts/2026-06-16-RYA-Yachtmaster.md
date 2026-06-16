@@ -9,6 +9,7 @@ short_description: Reflections on passing the RYA Yachtmaster exam
 ---
 
 <img src="/images/blog_posts/sk-sailing.png" width="100%">
+<em>Photo by <a href="https://hannahlclose.com/">Hannah Close</a>.</em>
 
 I hadn't been this flustered in years. Twenty degrees off course, and I'd put us there. The pressure to name the "right" heading and the scramble of voices in the cockpit kept me quiet while we steered toward the shoal. Then Mart stopped us. "Before you crash into Bramble Bank due to Sean's cardinal confusion..."
 
