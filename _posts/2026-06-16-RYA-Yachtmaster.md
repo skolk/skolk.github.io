@@ -35,6 +35,18 @@ The week opens with theory and practical review, then two days and nights of exa
 
 The instructor drills you on every way the exam might come at you. We work tides and tidal streams by hand, plotting courses to steer and estimated positions; we navigate at night with no electronics, only transit lines, compass bearings, and the buoys we can find; we park her every way there is, moor under sail, and run man-overboard drills in every condition; and through all of it we handle the boat in crowded water, holding to the collision regulations and staying clear of commercial and military traffic.
 
+<img src="/images/blog_posts/rya-yachtmaster-study-1.png" width="100%">
+<em>Late nights at the desk. Tides, EPs, and courses to steer by hand.</em>
+
+<img src="/images/blog_posts/rya-yachtmaster-study-2.png" width="100%">
+<em>Working a passage plan with classmates around the saloon table. Triangles, bearings, plotter.</em>
+
+<img src="/images/blog_posts/rya-yachtmaster-study-3.png" width="100%">
+<em>Light and buoyage flash cards in the sun. Memorizing flash patterns until I could see them with my eyes closed.</em>
+
+<img src="/images/blog_posts/rya-yachtmaster-study-4.png" width="100%">
+<em>Central Solent. Standard exam patch.</em>
+
 The instructor deals in drills. They give you everything they can and feed back what they can, but the knowing and the proving are yours.
 
 The examiner looks for competence and says nothing about pass or fail until the end. Four candidates sail the boat, so each of us gets a turn skippering, and you may not get a second one if you blow the first. A few mistakes end the exam on the spot: five horn blasts from a commercial vessel, your keel kissing the seabed, a crash gybe. Beyond those, an examiner can fail you on almost anything. They want you to pass, and they tell you so on day one: you start trusted with competence, and they dig only where you show them gaps in knowledge or skill. Confidence isn't a bonus here; it's evidence.
