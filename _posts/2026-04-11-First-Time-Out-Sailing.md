@@ -4,6 +4,7 @@ title: First Time Out Sailing - A Guide for New Crew
 date: 2026-04-11 09:00:00
 categories: [sailing, community, guide]
 type: article
+reviewed_by_sean: false
 short_description: We often take friends out sailing for the first time. Here's what to expect on a day aboard SV Petrichor, from the dock at Shilshole to whatever Puget Sound is offering that day.
 ---
 

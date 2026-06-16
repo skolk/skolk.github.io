@@ -4,6 +4,7 @@ title: Reconciling Abundance and Scarcity
 date: 2026-04-11 11:00:00
 categories: [philosophy, systems, commons]
 type: article
+reviewed_by_sean: false
 short_description: A tension I keep returning to - between acceptance and agency, between techno-utopians and people working within firm limits, between the one-to-many and the many-to-many.
 ---
 

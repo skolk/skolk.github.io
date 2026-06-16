@@ -4,6 +4,7 @@ title: Math-Induced Sailing Doubt
 date: 2026-04-21 09:00:00
 categories: [sailing, learning, rya]
 type: article
+reviewed_by_sean: false
 short_description: Studying for the RYA Yachtmaster and reckoning with the gap between theory and the kind of confidence you can only build by going out.
 ---
 

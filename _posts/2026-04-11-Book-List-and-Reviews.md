@@ -4,6 +4,7 @@ title: Book List and Reviews
 date: 2026-04-11 15:00:00
 categories: [reading, books, reviews]
 type: article
+reviewed_by_sean: false
 short_description: A run through the books I've read recently, the ones still on the short and long lists, and the ones I keep coming back to recommend.
 ---
 

@@ -4,6 +4,7 @@ title: Capabilities, First Aid, and Risk for Your Trips
 date: 2026-04-13 09:00:00
 categories: [sailing, risk, leadership, first-aid]
 type: article
+reviewed_by_sean: false
 short_description: After a first aid class with new sailors, what started as a capabilities conversation became a risk conversation. De-risk by practice, not by armchair theory.
 ---
 

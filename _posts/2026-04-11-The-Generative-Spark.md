@@ -4,6 +4,7 @@ title: The Generative Spark
 date: 2026-04-11 13:00:00
 categories: [leadership, community, vision]
 type: article
+reviewed_by_sean: false
 short_description: What inspires action. The tension between sloth and burnout, the difference between identity that propels you and identity that confines you, and what leading by inviting actually looks like.
 ---
 
