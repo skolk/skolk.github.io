@@ -25,8 +25,12 @@ layout: default
     {% assign recaps = site.posts | where: "type", "recap" %}
     {% assign recent_recaps = recaps | slice: 0, 3 %}
     {% for post in recent_recaps %}
-      <h3><a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a></h3>
-      <p class="post-meta">{{ post.date | date: "%Y.%-m.%-d" }}{% if post.location %} — {{ post.location }}{% endif %}</p>
+      <article>
+        <h3><a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a></h3>
+        <p class="post-meta">{{ post.date | date: "%Y.%-m.%-d" }}{% if post.location %} — {{ post.location }}{% endif %}</p>
+        {{ post.content }}
+        <hr />
+      </article>
     {% endfor %}
     <p><a href="/recaps">Recap archive →</a></p>
   </section>
