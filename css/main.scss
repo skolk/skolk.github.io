@@ -103,6 +103,14 @@ h2.pheading {
   margin-bottom: 0px;
 }
 
+// Home page section headings ("Recent log", "Recent recaps", "Current
+// Projects") — bump them up so they read as headings above their lists.
+h2.home-section-heading {
+  font-size: 1.4em;
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+
 // Navigation styles
 .menu-item {
   display: block;
@@ -194,15 +202,25 @@ body.dark-theme {
   }
 
   // hack.css dark theme decorates headings with literal markdown syntax
-  // (e.g. "## " before h2, "==========" under h1). Strip those so we keep
-  // the dark color scheme without the markdown chrome leaking through.
+  // (e.g. "## " before h2, "==========" under h1, "*" around <em>, etc.).
+  // Strip those so we keep the dark color scheme without the markdown chrome
+  // leaking through.
   h1::before, h1::after,
   h2::before, h2::after,
   h3::before, h3::after,
   h4::before, h4::after,
   h5::before, h5::after,
-  h6::before, h6::after {
+  h6::before, h6::after,
+  em::before, em::after,
+  strong::before, strong::after,
+  blockquote::before, blockquote::after,
+  hr::before, hr::after {
     content: none !important;
     display: none !important;
   }
+
+  // hack.css uses monospace-aligned <em> with width set assuming the
+  // pseudo-elements take up space — restore normal italic styling here.
+  em { font-style: italic; }
+  strong { font-weight: bold; }
 }
