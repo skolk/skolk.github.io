@@ -17,6 +17,11 @@ This site is Sean Kolk's **personal blog + portfolio**.
 - Posts can be short. They don't have to be polished essays.
 - Show the work, not just the conclusion.
 
+## Formatting conventions
+- **Label bullets** use a colon, not an em-dash: `- **Label**: description`. The em-dash separator is reserved for book/work attributions in Reading lists (`- *Title* — Author`), where a colon would read as a subtitle.
+- **Links** point to the entity's own official site first, then Wikipedia, then a stable canonical page. Books are the exception — they link to Goodreads search. Avoid ad-driven aggregators or paywalled pages when a primary source exists.
+- These are mirrored in `CLAUDE.md` under Conventions, which is the operational copy Claude follows when editing.
+
 ## What belongs here
 - Project write-ups (making, building, field work).
 - Trip reports (sailing, mountaineering, paragliding, travel).
