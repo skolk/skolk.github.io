@@ -9,9 +9,9 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 ## Sailing Stats
 
-**Years Sailing:** 13 &nbsp;&nbsp;&nbsp;&nbsp; **Miles Sailed:** 10,235 &nbsp;&nbsp;&nbsp;&nbsp;
+**Years Sailing:** 14 &nbsp;&nbsp;&nbsp;&nbsp; **Miles Sailed:** 12,000+ &nbsp;&nbsp;&nbsp;&nbsp;
 
-**Days At Sea:** 368 &nbsp;&nbsp;&nbsp;&nbsp; **Days Skippered:** 233
+**Days At Sea:** 370+ &nbsp;&nbsp;&nbsp;&nbsp; **Days Skippered:** 233
 
 **Vessels owned:** 1990 Catalina 36 Mk I • 1969 Coronado 25 • 2000 Hobie 18
 
@@ -19,7 +19,7 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 ### Certifications & Skills
 
-**Certifications:** ASA BareBoat • ASA Catamaran • RYA Yachtmaster Offshore • Wilderness First Responder • ACA Swift Water Rescue • Licensed HAM Radio Operator (KK6DFO)
+**Certifications:** ASA BareBoat • ASA Catamaran • RYA Yachtmaster Offshore (2026) • Wilderness First Responder • ACA Swift Water Rescue • Licensed HAM Radio Operator (KK6DFO)
 
 **Skills:** Electro-mechanical Engineer • PADI Advanced Open Water Diver • Expedition Planning • French Onion Soup Underway
 
@@ -29,7 +29,7 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 **VanIsle 360 (2025)** — Crew on SV Golux BM50, finishing 5th place in this challenging 580-nautical-mile race around Vancouver Island. Three weeks of intense racing through variable Pacific Northwest conditions.
 
-**R2AK - Race to Alaska (2024)** — Skippered [Team Natural Disaster](https://r2ak.com/2024-teams-full-race/team-natural-disaster/ on an Olson 30, completing the 750-mile engineless race from Port Townsend to Ketchikan in 7 days, 5 hours, 14 minutes. No motor, no support—just wind, oars, and determination through the Inside Passage.
+**R2AK - Race to Alaska (2024)** — Skippered [Team Natural Disaster](https://r2ak.com/2024-teams-full-race/team-natural-disaster/) on an Olson 30, completing the 750-mile engineless race from Port Townsend to Ketchikan in 7 days, 5 hours, 14 minutes. No motor, no support—just wind, oars, and determination through the Inside Passage.
 
 **Seattle to Glacier Bay (2024)** — Four-month cruising expedition as skipper, navigating the Inside Passage from Seattle through British Columbia to Southeast Alaska. Extended wilderness cruising with wildlife encounters, remote anchorages, and challenging tidal passages.
 
