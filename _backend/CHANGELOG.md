@@ -8,9 +8,11 @@ All notable changes to this site are recorded here. Format loosely follows [Keep
 - `_posts/2025-06-20-vanisle-360.md`: front-matter `date:` was `2025-08-15` but filename said `2025-06-20`. Race actually ran June 2025. Aligned front matter to `2025-06-20` so the permalink resolves correctly.
 - `_posts/2026-02-23-Coastal-Systems.md`: front-matter `date:` was `2026-02-22` but filename said `2026-02-23`. Aligned front matter to `2026-02-23`. Also fixed category typo `costal` → `coastal`.
 - `_pages/404.html`: was a meta-refresh redirect to `https://meawoppl.github.io/` (a different person's GitHub Pages site, leftover from a template fork). Replaced with a custom "Navigation error" page using the default layout, with waypoint links into the site.
+- `_posts/2025-07-31-July-2025-Recap.md`: unquoted colon in `short_description` (`out loud: am I…`) broke the YAML front matter and failed the Jekyll build. Quoted the value.
 
 ### Changed
 - Moved `RISKS.md`, `NEXT_STEPS.md`, `DECISIONS.md`, `DEFINITION_OF_DONE.md` from repo root to `_backend/` (planning docs belong in the back-end per CLAUDE.md; at root Jekyll copied them as web-reachable static files). Updated path references in `.claude/agents/`.
+- Editorial consistency pass on the 2026 recaps (Jan–May), per `_backend/RECAP_CLEANUP_PLAN.md`: Jan/Feb spaced hyphens → em-dashes; Feb label bullets → colon style (Travel reworded); link parity (March "Warm Data" and Feb "Future Food Institute" now linked, matching the Apr/May convention); removed `reviewed_by_sean: false` from the Jan/Feb recaps.
 
 ### Added
 - `CLAUDE.md` — project notes for AI-assisted work (stack, commands, conventions).
