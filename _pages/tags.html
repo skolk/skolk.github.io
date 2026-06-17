@@ -36,7 +36,7 @@ title: Tags
     <ul>
       {% for post in posts %}
         <li>
-          <span>{{ post.date | date: "%Y.%-m.%-d" }}</span> &mdash;
+          <span>{{ post.date | date: "%Y.%-m.%-d" }}</span> &raquo;
           <a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
           {% if post.short_description %}<br /><small>{{ post.short_description }}</small>{% endif %}
         </li>
