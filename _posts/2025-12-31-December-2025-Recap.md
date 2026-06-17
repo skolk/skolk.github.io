@@ -1,10 +1,10 @@
 ---
-layout: post
+layout: recap
 type: recap
 title: December 2025 Recap
 date: 2025-12-31
 location: Seattle → Bocas del Toro, Panama → Guatemala (Flores, Xela, San Marcos, Antigua) → Seattle
-categories: [travel, central-america, panama, guatemala, hiking, astraeus]
+categories: [recap, travel, central-america, panama, guatemala, hiking, astraeus]
 reviewed_by_sean: false
 short_description: Three weeks in Central America. A working week in Bocas del Toro with Till at Bocas Mariculture. Two weeks moving through Guatemala on a Quetzaltrekkers hike and a tour of altitude headaches. The line that became the year's frame got written in a voice memo in Flores.
 ---

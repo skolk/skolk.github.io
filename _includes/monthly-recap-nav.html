@@ -1,0 +1,33 @@
+{%- comment -%}
+  Previous/Next month navigation for monthly recap posts.
+  Filters site.posts down to those with `recap` in their categories,
+  sorts ascending by date, finds the current page, and renders prev/next
+  links with the month name. Hides whichever side does not exist.
+{%- endcomment -%}
+{%- assign recap_posts = site.posts | where: "type", "recap" | sort: "date" -%}
+{%- assign current_index = -1 -%}
+{%- for rp in recap_posts -%}
+  {%- if rp.url == page.url -%}
+    {%- assign current_index = forloop.index0 -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if current_index >= 0 -%}
+{%- assign prev_index = current_index | minus: 1 -%}
+{%- assign next_index = current_index | plus: 1 -%}
+{%- assign last_index = recap_posts.size | minus: 1 -%}
+<nav class="recap-nav" aria-label="Monthly recap navigation" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-top:2rem;padding-top:1rem;border-top:1px solid #ddd;font-size:0.9rem;">
+  <span class="recap-nav-prev" style="flex:1;text-align:left;">
+    {%- if prev_index >= 0 -%}
+      {%- assign prev_post = recap_posts[prev_index] -%}
+      <a href="{{ prev_post.url | relative_url }}" rel="prev">&larr; {{ prev_post.date | date: "%B %Y" }}</a>
+    {%- endif -%}
+  </span>
+  <span class="recap-nav-next" style="flex:1;text-align:right;">
+    {%- if next_index <= last_index -%}
+      {%- assign next_post = recap_posts[next_index] -%}
+      <a href="{{ next_post.url | relative_url }}" rel="next">{{ next_post.date | date: "%B %Y" }} &rarr;</a>
+    {%- endif -%}
+  </span>
+</nav>
+{%- endif -%}
