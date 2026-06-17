@@ -1,37 +1,28 @@
 ---
 layout: default
 title: REAP Climate Center
-subtitle: REAP Climate Center, a regenerative agriculture and food-systems initiative.
+subtitle: Director of Grant Strategy at REAP Climate Center.
 permalink: /projects/reap/
 categories: [project]
 project_tag: reap
 status: draft
 reviewed_by_sean: false
 last_updated: 2026-06-17
-dates: 2022-2024
+dates: 2024-present
 ---
 
 # REAP Climate Center
 
-A regenerative agriculture and food-systems initiative.
+[REAP Climate Center](https://www.reapcenter.org/) is a Bay Area climate organization built around community learning experiences and job training, a half-mile campus run as a regional hub for deploying nature as infrastructure. The work supports nature-based processes and biodiversity through biomimicry and ecosystem support, toward a world where human-built systems align with nature. It runs through volunteering, curated experiences, and workforce and training, measured against equity, biodiversity, soil, air, water, and carbon.
 
 ## Role
 
-I worked on REAP from 2022 through 2024. My role was program design and execution: shaping what the initiative was trying to do, who it was for, and how the work actually got done on the ground.
-
-## What it is
-
-REAP sits at the intersection of regenerative agriculture and food systems. The thesis is that the work of repairing soil, watersheds, and the human relationships around food is one project, not three. The initiative is structured around that thesis: programs that move money and attention toward people doing the long work of replanting, in the broadest sense.
-
-## What I did
-
-Program shape and operating logic. Partner conversations. The slow work of turning a thesis into a thing that can be funded, staffed, and pointed at a problem without losing what made it worth doing in the first place. A lot of it was protecting the shape of the work from the gravity of conventional grantmaking.
+Acting Director of Grant Strategy, since 2024. I lead $12M+ in grant initiatives and am standing up a workforce development program for bio-regenerative and climate-adjacent careers.
 
 ## Status
 
-Active through 2024. This page is a stub; more to come.
+Ongoing. This page is a stub; more to come.
 
 ## Sources
 
-<!-- internal notes to link when ready -->
-
+- [REAP Climate Center](https://www.reapcenter.org/)
