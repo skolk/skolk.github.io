@@ -117,6 +117,10 @@ Do both layers, but in priority order:
 - **`brctl download` pre-pull**: attempted 2026-06-17; asynchronous, throttled, and "Access denied" from the sandboxed shell. Unreliable as a standing mitigation.
 - **No guard, just discipline ("always build before push")**: rejected. That discipline already failed twice (`7df2a24`, `f52248e`).
 
+### Update 2026-06-17 (same day)
+
+The "keep the repo in `~/Documents`" half of this decision was softened the same day after the eviction kept biting (a 286s build). Rather than relocate the whole repo, we relocated only the evictable part: Bundler now installs gems outside iCloud (`.bundle/config` -> `BUNDLE_PATH: ~/.bundle/skolk-github-io`) and the in-repo `vendor/` was deleted. This removes the build's hot evictable path while leaving the repo in place, so it's the surgical form of the "relocate" alternative, not a reversal. The `bin/build` timeout from layer 1 stays as a backstop (the fix is gitignored/laptop-local, and a stray cold image could still evict). See RISKS.md R-010, now Mitigated.
+
 ---
 
 ## How this file is used

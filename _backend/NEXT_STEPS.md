@@ -132,11 +132,11 @@ Full plan: `_backend/RECAP_CLEANUP_PLAN.md`.
 
 ## Build tooling / iCloud (from RISKS.md R-010, ADR-003)
 
-- **Item**: Relocate the repo out of `~/Documents` (e.g. `~/Developer/skolk.github.io`) to end iCloud eviction permanently.
-  - **Why**: `bin/build`'s timeout stops the hang but the root cause (iCloud evicting `vendor/`) persists, so cold-file builds stay slow and can still hit the 180s cap. Relocation kills it for good. The only cost is repointing the Cursor workspace.
-  - **Owner**: Sean.
+- **Item**: End iCloud eviction of the gem tree (root cause of the build hang).
+  - **Why**: `bin/build`'s timeout only stops the hang; the build stayed slow (a 286s materialization-bound build) while `vendor/` lived inside iCloud-synced `~/Documents`.
+  - **Owner**: Sean / Claude.
   - **Effort**: S.
-  - **Status**: queued (Sean chose the watchdog over relocation 2026-06-17; revisit if the cap keeps tripping).
+  - **Status**: done 2026-06-17. Instead of relocating the whole repo (more invasive), moved only the gem path: `.bundle/config` now sets `BUNDLE_PATH` to `~/.bundle/skolk-github-io` (outside iCloud) and the in-repo `vendor/` was deleted. Build back to ~1.4s, no stalls. See RISKS.md R-010 and ADR-003. Note: laptop-local (`.bundle/config` is gitignored), so re-apply on a fresh clone.
 
 - **Item**: Re-run `./_backend/bin/build` once `vendor/` is warm (fully materialized) to confirm a clean exit-0 build, not just a timeout-allowed commit.
   - **Why**: The pre-commit hook lets a 124 timeout through, so a green build should be confirmed manually after the iCloud download settles. The warm build on 2026-06-17 was clean (1.0s, 171 files), re-confirm after any large vendor change.
