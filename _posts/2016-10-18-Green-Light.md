@@ -14,6 +14,8 @@ The idea so far has sprouted from the inverse idea of my pickle jar. Pickling ha
 
 The same tool that I use to pickle (a jar). I would like to experiment in growing food. A tiny ecosystem of growth and storage (minus the dirt). What if you could have a line of jars on your wall, some growing, other storing, all viable options for consumption.
 
+<img src="/images/blog_posts/image24.jpg" width="100%">
+
 Green Light Prototype 1:
 
 <img src="/images/blog_posts/image57.jpg" width="100%">
