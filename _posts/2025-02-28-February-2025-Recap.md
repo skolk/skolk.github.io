@@ -21,26 +21,14 @@ Kate left Feb 1 for *Amundsen* and the Falklands. I stayed on Petrichor, started
 
 **Nahlia.** Jayant back from Galveston, good reception. 10 hours a week, $100 per hour.
 
-## Mountains
+**Mountains.** Feb 8 backcountry in Phantom Trees and Friendly Trees with Ajay, Sally, Nick Lee, Daniel Vashon. Dug a pit, ran a column test, skied three laps. Feb 2 day at Alpental with Davin ($165, ouch).
 
-Feb 8 backcountry in Phantom Trees and Friendly Trees with Ajay, Sally, Nick Lee, Daniel Vashon. Dug a pit, ran a column test, skied three laps. Feb 2 day at Alpental with Davin ($165, ouch).
+**Inner work.** Todd on Feb 10 introduced me to Internal Family Systems: *No Bad Parts*, *Self Therapy*, *You Are the One You've Been Waiting For*. I read all three. It changed how I think about my own internal politics.
 
-## Inner work
+**Family.** A visit from Mom and an honest letter draft about being dismissed. When you say I don't have trauma, it's discounting those experiences.
 
-Todd on Feb 10 introduced me to Internal Family Systems: *No Bad Parts*, *Self Therapy*, *You Are the One You've Been Waiting For*. I read all three. It changed how I think about my own internal politics.
+**Writing.** The Salt and Snow draft logs: shipping the boat from Mexico, storing in Ketchikan, the mice, the thru-hull material debate, the mongoose-and-watcher-bird metaphor for distrusting search engines.
 
-## Family
+**Lines.** If you have freedom, recognise it and use it. On REAP: the idea that we convert volunteers into donors is ridiculous. On the boat alone: it's cozy, but too easy to be a wanker there. I can't believe it's only been 3 weeks since Kate left, it's felt longer.
 
-A visit from Mom and an honest letter draft about being dismissed. When you say I don't have trauma, it's discounting those experiences.
-
-## Writing
-
-The Salt and Snow draft logs: shipping the boat from Mexico, storing in Ketchikan, the mice, the thru-hull material debate, the mongoose-and-watcher-bird metaphor for distrusting search engines.
-
-## Lines
-
-If you have freedom, recognise it and use it. On REAP: the idea that we convert volunteers into donors is ridiculous. On the boat alone: it's cozy, but too easy to be a wanker there. I can't believe it's only been 3 weeks since Kate left, it's felt longer.
-
-## Looking ahead
-
-PNW Climate Week buildout. Spearhead Traverse ski. SF Climate Week in April with Todd. Petrichor haul-out. Hake treaty in Victoria March 11-13. A real decision on REAP.
+**Looking ahead.** PNW Climate Week buildout. Spearhead Traverse ski. SF Climate Week in April with Todd. Petrichor haul-out. Hake treaty in Victoria March 11-13. A real decision on REAP.

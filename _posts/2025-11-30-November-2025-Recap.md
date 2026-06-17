@@ -6,7 +6,7 @@ date: 2025-11-30
 location: Pacific Ocean → San Francisco → Zihuatanejo → Seattle
 categories: [recap, travel, sailing, mexico, wedding, conference]
 reviewed_by_sean: false
-short_description: A 300 foot Norwegian barque from Seattle to San Francisco, K-Max's wedding in Zihuatanejo, then Pacific Marine Expo back home. A month of motion that ended at a desk in Ballard with Astraeus language sharper than it had ever been.
+short_description: A 300 foot Norwegian barque from Seattle to San Francisco, a friend's wedding in Zihuatanejo, then Pacific Marine Expo back home. A month of motion that ended at a desk in Ballard with Astraeus language sharper than it had ever been.
 ---
 
 A month of motion that started at sea and ended at a desk in Ballard.
@@ -17,7 +17,7 @@ November opened mid-Pacific on the *[Statsraad Lehmkuhl](https://www.lehmkuhl.no
 
 San Francisco mid-month for a stretch of working and networking around [One Ocean Week](https://www.oneoceanweek.com/). The follow-up list at the end of it was a useful map of who I want to keep in touch with: [Karine](https://www.linkedin.com/), Andrew, Native Ocean Conservancy, Paolla. I started cleaning up the decks I had been promising people for weeks.
 
-Then a flight to Zihuatanejo for K-Max's wedding. Spear diving, a beach ceremony, one pair of pants that worked from a 4am Pacific night watch to a Mexican wedding without complaint. I wrote up the one-bag question on the way back: how a ~30L carry-on with a 10L core stack handled both a Pacific Northwest sail in November and a tropical wedding in the same trip.
+Then a flight to Zihuatanejo for a friend's wedding. Spear diving, a beach ceremony, one pair of pants that worked from a 4am Pacific night watch to a Mexican wedding without complaint. I wrote up the one-bag question on the way back: how a ~30L carry-on with a 10L core stack handled both a Pacific Northwest sail in November and a tropical wedding in the same trip.
 
 Back in Seattle on November 19 for [Pacific Marine Expo](https://www.pacificmarineexpo.com/). Alex and I presented to the Seattle [VentureWell](https://venturewell.org/) cohort and to a Dutch maritime delegation that came through [Maritime Blue](https://www.maritimebluewa.org/). We talked about how hyperlocal forecasting and maritime domain awareness can support working waterfronts: shellfish operators, finfish operators, fisheries, ports. Each presentation made the next one clearer. Every audience taught us what wasn't landing.
 
@@ -41,6 +41,4 @@ Back in Seattle on November 19 for [Pacific Marine Expo](https://www.pacificmari
 
 **Astraeus pitch language.** Not a finished piece, but the language work that became the December and January Davos prep arc. The shift from "resilience" to "aquatic infrastructure risk reduction system" happened on the page this month.
 
-## Looking ahead
-
-Three weeks in Central America starting December 6: Panama for working time with Till at Bocas Mariculture, then Guatemala for hiking and Spanish. Then home, then Davos in late January. I want to hike, work, and spend less time pretending to know what I'm doing.
+**Looking ahead.** Three weeks in Central America starting December 6: Panama for working time with Till at Bocas Mariculture, then Guatemala for hiking and Spanish. Then home, then Davos in late January. I want to hike, work, and spend less time pretending to know what I'm doing.

@@ -25,26 +25,14 @@ Wrapped up two months in Bellingham with Kate. Summited Ruth Mountain solo. Wood
 
 **Consulting.** Threadfund / Tim conversation on true-cost accounting tools.
 
-## Finds
+**Finds.** Kate back from travels. Summer in Bellingham together. Ujjwal leading QA repositioning. Mark at Futurity Systems intro'd Norway, Sweden, "Silikon Valley," Norrsken impact fund. Barbara Ream the welder lawyer goat-ag researcher (USDA value-added grants). KB on Sep 18: no income, no routine. David Lang and other friends on the list of people who inspired me in the past four weeks. Ricken Patel, Jigar Shah, Al Subbloie from the Climate Week panels. Rex Raimond on Rockefeller and regenerative work.
 
-Kate back from travels. Summer in Bellingham together. Ujjwal leading QA repositioning. Mark at Futurity Systems intro'd Norway, Sweden, "Silikon Valley," Norrsken impact fund. Barbara Ream the welder lawyer goat-ag researcher (USDA value-added grants). KB on Sep 18: no income, no routine. David Lang, Lowell, Joni, Emily, Matt, Brandon, James on the list of people who inspired me in the past four weeks. Ricken Patel, Jigar Shah, Al Subbloie from the Climate Week panels. Rex Raimond on Rockefeller and regenerative work.
+**Writing.** Two poems on "Be. Here. Now. / Do. One. Thing. / Wherever you go, there you are" on Sep 26. The Climate Week 2-minute pitch for Quantum Alliance.
 
-## Writing
+**Reading.** Arthur C. Brooks on the Reverse Bucket List. Considering moving off Kindle and Audible.
 
-Two poems on "Be. Here. Now. / Do. One. Thing. / Wherever you go, there you are" on Sep 26. The Climate Week 2-minute pitch for Quantum Alliance.
+**Lines.** Be in love with the problem not the solution (Ricken Patel). You don't have impact if you don't scale (Jigar Shah). Getting turned down by foundations feels even worse because most of these people haven't actually done the work. Keep showing up and keep doing the work. Write each morning. Banjo in the evening. The difficult hard work every day.
 
-## Reading
+**Fall identities.** Business Owner. Concept Designer. Banjo Player. Solstice goals: $30K LLC, 10 portfolio pieces, 3 songs.
 
-Arthur C. Brooks on the Reverse Bucket List. Considering moving off Kindle and Audible.
-
-## Lines
-
-Be in love with the problem not the solution (Ricken Patel). You don't have impact if you don't scale (Jigar Shah). Getting turned down by foundations feels even worse because most of these people haven't actually done the work. Keep showing up and keep doing the work. Write each morning. Banjo in the evening. The difficult hard work every day.
-
-## Fall identities
-
-Business Owner. Concept Designer. Banjo Player. Solstice goals: $30K LLC, 10 portfolio pieces, 3 songs.
-
-## Looking ahead
-
-Land QA contract at $3 to 5K a month. Submit AOS contract. Prep boat for winter. Plan G3's bachelor party. Make and gift Bitter Tea. Chair Peak. Ski trip planning for the Alps, Garibaldi Neve, Spearhead. Sailing plans for spring: Canada, France, Norway, Iceland.
+**Looking ahead.** Land QA contract at $3 to 5K a month. Submit AOS contract. Prep boat for winter. Plan G3's bachelor party. Make and gift Bitter Tea. Chair Peak. Ski trip planning for the Alps, Garibaldi Neve, Spearhead. Sailing plans for spring: Canada, France, Norway, Iceland.
