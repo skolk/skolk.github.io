@@ -43,10 +43,15 @@ permalink: /trip-reports
     {% endfor %}
   {% endfor %}
 
-  {% assign no_region_trips = trips | where_exp: "post", "post.region == nil or post.region == ''" %}
-  {% if no_region_trips.size > 0 %}
+  {% comment %} where_exp can't take `or`; count/iterate with {% if %} instead {% endcomment %}
+  {% assign no_region_count = 0 %}
+  {% for post in trips %}
+    {% if post.region == nil or post.region == "" %}{% assign no_region_count = no_region_count | plus: 1 %}{% endif %}
+  {% endfor %}
+  {% if no_region_count > 0 %}
     <h3>Other</h3>
-    {% for post in no_region_trips %}
+    {% for post in trips %}
+      {% if post.region == nil or post.region == "" %}
       <div class="media t-hackcss-media">
         <div class="media-body">
           <div class="media-heading">
@@ -60,6 +65,7 @@ permalink: /trip-reports
           </div>
         </div>
       </div>
+      {% endif %}
     {% endfor %}
   {% endif %}
 </section>
