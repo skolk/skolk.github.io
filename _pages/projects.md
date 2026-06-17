@@ -97,9 +97,11 @@ The intersection of climate technology, ocean systems, and community building of
 
 *Making things with your hands changes how you understand the world. Every manufactured object becomes a puzzle to solve rather than magic to accept.*
 
-## Project Logs
+## Active Projects
 
-{% assign project_posts = site.posts | where: "type", "project" %}
-{% for post in project_posts %}
-- **{{ post.date | date: "%Y" }}**: [{{ post.title }}]({{ post.url | prepend: site.baseurl }}){% if post.short_description %}, {{ post.short_description }}{% endif %}
-{% endfor %}
+Detailed write-ups of the tools I'm currently building. Each page covers what the tool is, why it exists, what it produces, and a real worked example from a live engagement.
+
+- **[Ecosystem Agent]({{ '/projects/ecosystem-agent/' | prepend: site.baseurl }})**: A coastal monitoring tool that drops onto any coastline in three commands. Worked example: Pollica.
+- **[Astraeus Tracker]({{ '/projects/astraeus-tracker/' | prepend: site.baseurl }})**: Hardware, firmware, and the bench tooling that catches what unit tests miss. Worked example: the gps_status use-after-free debugging arc.
+- **[Long Watch]({{ '/projects/long-watch/' | prepend: site.baseurl }})**: A place-based, long-horizon partner practice for working coastal communities. Worked example: the verified Pollica cell.
+- **[Island Lab]({{ '/projects/islandlab/' | prepend: site.baseurl }})**: A design group rethinking systems through small, generative voyages. Worked example: the September 2026 Sound Experience pilot.
