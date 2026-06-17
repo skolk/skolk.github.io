@@ -2,11 +2,9 @@
 layout: default
 title: REAP Climate Center
 subtitle: REAP Climate Center, a regenerative agriculture and food-systems initiative.
-permalink: /projects/replant-center/
-redirect_from:
-  - /projects/reap/
+permalink: /projects/reap/
 categories: [project]
-project_tag: replant-center
+project_tag: reap
 status: draft
 reviewed_by_sean: false
 last_updated: 2026-06-17
