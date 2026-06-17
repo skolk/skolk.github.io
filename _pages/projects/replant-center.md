@@ -1,7 +1,7 @@
 ---
 layout: default
-title: REAP
-subtitle: REAP, a regenerative agriculture and food-systems initiative.
+title: REAP Climate Center
+subtitle: REAP Climate Center, a regenerative agriculture and food-systems initiative.
 permalink: /projects/replant-center/
 redirect_from:
   - /projects/reap/
@@ -13,9 +13,9 @@ last_updated: 2026-06-17
 dates: 2022-2024
 ---
 
-# REAP
+# REAP Climate Center
 
-A regenerative agriculture and food-systems initiative. Sometimes referred to as the Replant Center; the project goes by both names.
+A regenerative agriculture and food-systems initiative.
 
 ## Role
 
