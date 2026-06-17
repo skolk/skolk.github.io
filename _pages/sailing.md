@@ -27,11 +27,11 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 ## Recent Highlights (2024-2025)
 
-**VanIsle 360 (2025)**: Crew on SV Golux BM50, finishing 5th place in this challenging 580-nautical-mile race around Vancouver Island. Three weeks of intense racing through variable Pacific Northwest conditions.
+**[VanIsle 360 (2025)]({% post_url 2025-06-20-vanisle-360 %})**: Crew on SV Golux BM50, finishing 5th place in this challenging 580-nautical-mile race around Vancouver Island. Three weeks of intense racing through variable Pacific Northwest conditions.
 
-**R2AK - Race to Alaska (2024)**: Skippered [Team Natural Disaster](https://r2ak.com/2024-teams-full-race/team-natural-disaster/) on an Olson 30, completing the 750-mile engineless race from Port Townsend to Ketchikan in 7 days, 5 hours, 14 minutes. No motor, no support, just wind, oars, and determination through the Inside Passage.
+**[R2AK - Race to Alaska (2024)]({% post_url 2024-06-20-r2ak2024 %})**: Skippered [Team Natural Disaster](https://r2ak.com/2024-teams-full-race/team-natural-disaster/) on an Olson 30, completing the 750-mile engineless race from Port Townsend to Ketchikan in 7 days, 5 hours, 14 minutes. No motor, no support, just wind, oars, and determination through the Inside Passage.
 
-**Seattle to Glacier Bay (2024)**: Four-month cruising expedition as skipper, navigating the Inside Passage from Seattle through British Columbia to Southeast Alaska. Extended wilderness cruising with wildlife encounters, remote anchorages, and challenging tidal passages.
+**[Seattle to Glacier Bay (2024)]({% post_url 2026-05-15-alaska-petrichor %})**: Four-month cruising expedition as skipper, navigating the Inside Passage from Seattle through British Columbia to Southeast Alaska. Extended wilderness cruising with wildlife encounters, remote anchorages, and challenging tidal passages. (Trip report is the in-progress alaska-petrichor stub; dedicated Glacier Bay write-up still to come.)
 
 ---
 

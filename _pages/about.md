@@ -7,7 +7,7 @@ permalink: /about
 
 I make tools to help communities explore new horizons. I enjoy bringing people together in a variety of different environments to see what it means to thrive with a variety of constraints.
 
- I'm the Co-Founder of [Astraeus Ocean Systems](https://astraeusocean.com/), infrastructure for coastal monitoring, and Co-Founder of [Island Lab](https://islandlab.dev/), an experiment in developing coastal communities through various gathering and development methodologies. Also I'm the acting Director of Grant Strategy at [REAP Climate Center](https://www.reapcenter.org/), leading strategic development for climate-focused bio-regenerative programs.
+ I'm the Co-Founder of [Astraeus Ocean Systems](https://astraeusocean.com/), infrastructure for coastal monitoring, and Co-Founder of [Island Lab](https://islandlab.dev/), an experiment in developing coastal communities through various gathering and development methodologies. I also lead grant strategy work for climate-focused bio-regenerative programs.
 
 I seek the cold, water, and mountains.
 
@@ -23,9 +23,9 @@ My adventures and learning happen across three main areas:
 
 ## Professional Evolution
 
-My career has evolved from hands-on hardware engineering (3Scan biotech, electronics design) to strategic technology development (PickNik Robotics business development) to climate technology and ocean systems (REAP Climate Center, Astraeus Ocean Systems).
+My career has evolved from hands-on hardware engineering (3Scan biotech, electronics design) to strategic technology development (PickNik Robotics business development) to climate technology and ocean systems (Astraeus Ocean Systems and grant strategy work for bio-regenerative programs).
 
-**Current focus:** Scaling bio-regenerative solutions through strategic funding, developing sustainable marine systems, and applying technical skills to urgent environmental challenges.
+**Current focus:** Scaling bio-regenerative solutions through strategic funding work, developing sustainable marine systems, and applying technical skills to urgent environmental challenges.
 
 **Core philosophy:** Complex challenges require collaborative solutions. The best innovations happen when diverse perspectives and skills come together around shared goals.
 

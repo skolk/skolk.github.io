@@ -7,15 +7,21 @@ permalink: /projects
 
 I believe in learning through building. Whether it's [brain-slicing robots]({% post_url 2018-06-01-Brain-Slicing-Robots %}) for biotech research, [electronics for precision control systems]({% post_url 2017-05-15-AuxBoard %}), or [tiny houses from shipping containers]({% post_url 2016-08-15-tiny-house-post %}), making things teaches you how the world actually works.
 
-## Major Projects
+## Active Projects
 
-**[REAP Climate Center](https://www.reapcenter.org/), Workforce Development (2024–)**: Building a workforce development program at REAP Climate Center to grow the talent pipeline for bio-regenerative and climate-adjacent careers. Part of leading $12M+ in grant initiatives.
+Detailed write-ups of the tools and groups I'm currently building. Each page covers what the project is, why it exists, what it produces, and a real worked example.
 
-**[Astraeus Ocean Systems](https://astraeusocean.com/), Ocean Intelligence Platform (2024–)**: Co-founding Astraeus Ocean Systems and developing an Ocean Intelligence Platform: sustainable marine sensing and coastal monitoring infrastructure that turns raw ocean data into decisions for climate, conservation, and industry.
+- **[Island Lab]({{ '/projects/islandlab/' | prepend: site.baseurl }}) (2026-)**: A design group rethinking systems through small, generative voyages. Worked example: the September 2026 Sound Experience pilot.
+- **[Astraeus Ocean Systems](https://astraeusocean.com/) (2024-)**: Co-founding Astraeus and developing an Ocean Intelligence Platform: sustainable marine sensing and coastal monitoring infrastructure that turns raw ocean data into decisions for climate, conservation, and industry. Subprojects: [Ecosystem Agent]({{ '/projects/ecosystem-agent/' | prepend: site.baseurl }}), [Astraeus Tracker]({{ '/projects/astraeus-tracker/' | prepend: site.baseurl }}), [Long Watch]({{ '/projects/long-watch/' | prepend: site.baseurl }}).
+- **[Replant Center]({{ '/projects/replant-center/' | prepend: site.baseurl }}) (2024-)**: Workforce development for bio-regenerative and climate-adjacent careers, with grant strategy work supporting the initiatives.
+- **[Race to Alaska (R2AK)]({{ '/projects/r2ak/' | prepend: site.baseurl }})**: Prep, build, and route work for the engineless 750-mile race. Project frame around the [2024 trip report]({% post_url 2024-06-20-r2ak2024 %}).
+- **[The Halfway House]({{ '/projects/halfway-house/' | prepend: site.baseurl }}) (2016)**: A shipping-container tiny house built in West Oakland. Backstory in [the post]({% post_url 2016-08-15-tiny-house-post %}).
+- **[Nairobi Communal House]({{ '/projects/nairobi-house/' | prepend: site.baseurl }})**: Communal living and shared infrastructure in Nairobi.
+- **[Friday Morning Gatherings]({{ '/projects/friday-gatherings/' | prepend: site.baseurl }})**: A weekly convening practice. The good meetings you bring people to.
 
-**[Island Lab](https://islandlab.dev) (2026–)**: Design group for rethinking systems.
+## Earlier Major Projects
 
-**[Space ROS](https://space.ros.org/) (2025)**: Convened a working group with NASA on Space ROS, the open-source robotics framework being adapted for spaceflight. Helped shape how the broader robotics community contributes to standards for in-space and surface operations.
+**[Space ROS](https://space.ros.org/) (2022-2024)**: Convened a working group with NASA on Space ROS, the open-source robotics framework being adapted for spaceflight. Helped shape how the broader robotics community contributes to standards for in-space and surface operations.
 
 **[Brain Slicing Robots at 3Scan]({% post_url 2018-06-01-Brain-Slicing-Robots %}) (2013-2018)**: First employee at a biotech startup building automated digital pathology systems. Designed liquid handling systems, PCB layouts, and manufacturing processes that scaled from Arduino prototypes to production biomedical equipment.
 
@@ -59,7 +65,7 @@ I believe in learning through building. Whether it's [brain-slicing robots]({% p
 
 **Ocean Technology Development**: Through Astraeus Ocean Systems, developing marine monitoring and sustainable infrastructure systems. Applying years of hardware experience to environmental challenges.
 
-**Climate Technology**: Supporting bio-regenerative programs at REAP Climate Center, understanding how technology can address environmental problems at scale.
+**Climate Technology**: Supporting bio-regenerative programs through grant strategy work, understanding how technology can address environmental problems at scale.
 
 **Tools and Planning Systems**: Building calendar and trip planning applications that help people organize complex projects and adventures.
 
@@ -96,12 +102,3 @@ I believe in learning through building. Whether it's [brain-slicing robots]({% p
 The intersection of climate technology, ocean systems, and community building offers rich opportunities for meaningful making. Projects that address environmental challenges while bringing people together around shared work.
 
 *Making things with your hands changes how you understand the world. Every manufactured object becomes a puzzle to solve rather than magic to accept.*
-
-## Active Projects
-
-Detailed write-ups of the tools I'm currently building. Each page covers what the tool is, why it exists, what it produces, and a real worked example from a live engagement.
-
-- **[Ecosystem Agent]({{ '/projects/ecosystem-agent/' | prepend: site.baseurl }})**: A coastal monitoring tool that drops onto any coastline in three commands. Worked example: Pollica.
-- **[Astraeus Tracker]({{ '/projects/astraeus-tracker/' | prepend: site.baseurl }})**: Hardware, firmware, and the bench tooling that catches what unit tests miss. Worked example: the gps_status use-after-free debugging arc.
-- **[Long Watch]({{ '/projects/long-watch/' | prepend: site.baseurl }})**: A place-based, long-horizon partner practice for working coastal communities. Worked example: the verified Pollica cell.
-- **[Island Lab]({{ '/projects/islandlab/' | prepend: site.baseurl }})**: A design group rethinking systems through small, generative voyages. Worked example: the September 2026 Sound Experience pilot.

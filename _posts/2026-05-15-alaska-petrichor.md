@@ -23,7 +23,7 @@ The route, broadly, runs out of Shilshole, north through the San Juans and into 
 What I want to write about, once I have time to write it properly:
 
 - The boat preparation. *Petrichor* is a small boat for this trip, and what we changed about her before the season tells most of the story of what cruising really demands.
-- The crew rotations. Kate, friends, family, the people who came up for legs and the ones who flew home from harbors I never thought I'd see.
+- The crew rotations. My partner, friends, family, the people who came up for legs and the ones who flew home from harbors I never thought I'd see.
 - The decision-making in tide gates. Seymour Narrows, Yuculta Rapids, the Wrangell Narrows. These are the places where seamanship has to actually be seamanship.
 - The wildlife. Humpbacks bubble-net feeding. Brown bears on tidal flats. Eagles on every other piling.
 - The weather. Pacific Northwest cruising is mostly weather. Reading it, waiting on it, hiding from it, and the long stretches where you get the gift of a window and you take it.

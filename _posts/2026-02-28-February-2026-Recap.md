@@ -37,5 +37,7 @@ February opened in Barcelona at the tail of the European trip, then home to Seat
 
 ## Reading
 
+See the [full reading library](/library/) for the complete archive of books read.
+
 - *Pluralism vs. Universalism: A Critical Reading List*, assembled a long set of texts to work through this question. Still in progress.
 - Continuing into the neoliberalism history that I'd finish in March.

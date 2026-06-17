@@ -63,7 +63,7 @@ A full Phase-1 run on a populated cell is about three dollars and twenty minutes
 
 ## Where It's Going
 
-Bocas del Toro is the next live cell. The cell.yaml is scaffolded, partner inputs from Till and STRI-adjacent sources need to be populated, FPIC considerations need to land before any indigenous-governance content moves through the strand-3 check. La Paz is similarly scaffolded. Puerto Rico is contingent on a co-principal decision with Daniel.
+Bocas del Toro is the next live cell. The cell.yaml is scaffolded, partner inputs from local collaborators and STRI-adjacent sources need to be populated, FPIC considerations need to land before any indigenous-governance content moves through the strand-3 check. La Paz is similarly scaffolded. Puerto Rico is contingent on a co-principal decision with a collaborator.
 
 Behind that, Phase-2 agents (`@stakeholder-cartographer`, planning-cluster agents) and the eventual integration into a delivery (the Pollica Internal Decision Plan, sections six and seven, which is where the financial-decade translation work has to actually land).
 

@@ -11,7 +11,7 @@ last_updated: 2026-06-16
 
 # Island Lab
 
-> Island Lab is Kate Schnippering and Sean Kolk: sailors, designers, engineers, and gatherers of problem-solvers who bring people together in and around the water to better understand how we all coexist with it. The vessel and the islands are the venue. The cohort is the program.
+> Island Lab is Sean Kolk and an adventure partner and co-founder: sailors, designers, engineers, and gatherers of problem-solvers who bring people together in and around the water to better understand how we all coexist with it. The vessel and the islands are the venue. The cohort is the program.
 
 This is the human-scale project among the four. It is not software, although the design discipline is the same. It is a format: small group, tight constraints, many-to-many generative structure, hosts as vehicle providers rather than centers of gravity. The boat enforces the constraints we would otherwise have to manufacture.
 
@@ -47,7 +47,7 @@ Adventuress, four days, Thursday September 17 through Sunday September 20, depar
 
 The cohort target is fifteen to twenty participants. Three pricing tiers, all live on the public voyage page: Supporter at $2,500 for those whose means or institution can give more, Professional at $1,600, and a small Artist/early-career allocation at $1,000. The deep-discount tier from earlier pricing iterations was retired in May.
 
-Programming theme is still in selection between three candidates that came out of conversations with Sound Experience's science team: coastal monitoring network design, blue-economy workforce pathways, and climate-resilient food systems in the Salish Sea. The theme decision gates the Julie call, co-host commitment, and cohort recruiting.
+Programming theme is still in selection between three candidates that came out of conversations with Sound Experience's science team: coastal monitoring network design, blue-economy workforce pathways, and climate-resilient food systems in the Salish Sea. The theme decision gates the next partner conversation, co-host commitment, and cohort recruiting.
 
 ### What it produced
 
