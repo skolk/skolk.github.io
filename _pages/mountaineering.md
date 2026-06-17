@@ -121,15 +121,17 @@ The mountains teach patience, humility, and the value of preparation. Over the y
 
 ---
 
-## Mountain Logs
+## Mountain Trip Reports
 
-{% assign mountain_keywords = "mountaineering,climbing,alpine,skiing,paragliding,peak" | split: "," %}
+{% assign mountain_keywords = "mountaineering,climbing,alpine,skiing,paragliding,peak,winter" | split: "," %}
 {% for post in site.posts %}
-  {% assign matched = false %}
-  {% for kw in mountain_keywords %}
-    {% if post.categories contains kw %}{% assign matched = true %}{% endif %}
-  {% endfor %}
-  {% if matched %}
+  {% if post.categories contains "trip-report" %}
+    {% assign matched = false %}
+    {% for kw in mountain_keywords %}
+      {% if post.categories contains kw %}{% assign matched = true %}{% endif %}
+    {% endfor %}
+    {% if matched %}
 - **{{ post.date | date: "%Y" }}**: [{{ post.title }}]({{ post.url | prepend: site.baseurl }}){% if post.short_description %}, {{ post.short_description }}{% endif %}
+    {% endif %}
   {% endif %}
 {% endfor %}

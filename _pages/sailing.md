@@ -53,9 +53,15 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 **Kenya Coast (2019)**: Crewed on traditional dhows with local fishermen along the Indian Ocean. Learning Swahili phrases and alternative methods of harnessing wind with no metal rigging, pure traditional sailing techniques.
 
-**Baja Ha-Ha (2021)**: Captained my Catalina 36 from Oakland, CA to Cabo San Lucas, Mexico as part of the annual cruising rally. First major offshore passage as captain, navigating 750+ miles of Pacific coast with crew through varied conditions.
+**Greece, Kos (2019)**: 7-day charter through the Dodecanese out of Kos. Aegean trade winds, island hops, and stern-to mooring along ancient harbors.
 
-**Sea of Cortez (2022)**: Double-handed Catalina 36 engineless from Loreto to La Paz, anchoring entirely under sail. Two seasons in Baja Sur exploring the incredible marine life and developing self-reliance when systems fail far from support.
+**Baja, Mexico (2021)**: Captained my Catalina 36 *Petrichor* from Oakland, CA to Cabo San Lucas in the annual Baja Ha-Ha rally. First major offshore passage as captain, 750+ miles of Pacific coast.
+
+**Mexico (2021-2022)**: A long season cruising the Sea of Cortez out of Cabo into La Paz and back, capped by a double-handed engineless run from Loreto to La Paz.
+
+**Bahamas with Green Coco Expeditions (2026)**: A week off Exuma on the 60-foot catamaran *SV Nesi*, blue holes and loggerheads through the Hog Cut to Stone Cay, Water Cay, and Flamingo Key. Best charter I've been on.
+
+**Alaska on Petrichor (2026)**: A long Inside Passage run from Shilshole to Southeast Alaska aboard *Petrichor*. A long blog in itself, full writeup still in progress.
 
 ---
 
@@ -133,15 +139,10 @@ If you're interested in charter sailing:
 
 ---
 
-## Sailing Logs
+## Sailing Trip Reports
 
-{% assign sailing_keywords = "sailing,racing,r2ak,offshore" | split: "," %}
 {% for post in site.posts %}
-  {% assign matched = false %}
-  {% for kw in sailing_keywords %}
-    {% if post.categories contains kw %}{% assign matched = true %}{% endif %}
-  {% endfor %}
-  {% if matched %}
+  {% if post.categories contains "trip-report" and post.categories contains "sailing" %}
 - **{{ post.date | date: "%Y" }}**: [{{ post.title }}]({{ post.url | prepend: site.baseurl }}){% if post.short_description %}, {{ post.short_description }}{% endif %}
   {% endif %}
 {% endfor %}

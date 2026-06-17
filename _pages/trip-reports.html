@@ -5,33 +5,61 @@ permalink: /trip-reports
 
 <section>
   <h2>Trip Reports</h2>
-  <p>Long-form accounts from expeditions, races, and travel, what happened, what it meant.</p>
+  <p>Long-form accounts from expeditions, races, and travel: where I was, what happened, what it meant. Grouped by region, newest first within each region.</p>
 
   {% assign trips = site.posts | where: "type", "trip-report" %}
   {% if trips.size == 0 %}
     <p><em>No trip reports tagged yet.</em></p>
   {% endif %}
 
-  {% for post in trips %}
-    <div class="media t-hackcss-media">
-      <div class="media-body">
-        <div class="media-heading">
-          <span>{{ post.date | date: "%Y.%-m.%-d" }} &raquo;
-            {% if post.external_url %}
-              <a href="{{ post.external_url }}" target="_blank" title="{{ post.title }}">
-                {{ post.title }}
-              </a>
-            {% else %}
-              <a href="{{ post.url | prepend: site.baseurl }}" title="{{ post.title }}">
-                {{ post.title }}
-              </a>
-            {% endif %}
-          </span>
-        </div>
-        <div class="media-content">
-          {{ post.short_description }}
+  {% assign regions = trips | map: "region" | uniq | sort %}
+
+  {% for region in regions %}
+    {% if region == "" or region == nil %}{% continue %}{% endif %}
+    <h3>{{ region }}</h3>
+    {% assign region_trips = trips | where: "region", region %}
+    {% for post in region_trips %}
+      <div class="media t-hackcss-media">
+        <div class="media-body">
+          <div class="media-heading">
+            <span>{{ post.date | date: "%Y.%-m.%-d" }} &raquo;
+              {% if post.external_url %}
+                <a href="{{ post.external_url }}" target="_blank" title="{{ post.title }}">
+                  {{ post.title }}
+                </a>
+              {% else %}
+                <a href="{{ post.url | prepend: site.baseurl }}" title="{{ post.title }}">
+                  {{ post.title }}
+                </a>
+              {% endif %}
+              {% if post.place %}<small>&middot; {{ post.place }}</small>{% endif %}
+            </span>
+          </div>
+          <div class="media-content">
+            {% if post.subtitle %}{{ post.subtitle }}{% else %}{{ post.short_description }}{% endif %}
+          </div>
         </div>
       </div>
-    </div>
+    {% endfor %}
   {% endfor %}
+
+  {% assign no_region_trips = trips | where_exp: "post", "post.region == nil or post.region == ''" %}
+  {% if no_region_trips.size > 0 %}
+    <h3>Other</h3>
+    {% for post in no_region_trips %}
+      <div class="media t-hackcss-media">
+        <div class="media-body">
+          <div class="media-heading">
+            <span>{{ post.date | date: "%Y.%-m.%-d" }} &raquo;
+              <a href="{{ post.url | prepend: site.baseurl }}" title="{{ post.title }}">{{ post.title }}</a>
+              {% if post.place %}<small>&middot; {{ post.place }}</small>{% endif %}
+            </span>
+          </div>
+          <div class="media-content">
+            {% if post.subtitle %}{{ post.subtitle }}{% else %}{{ post.short_description }}{% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
 </section>

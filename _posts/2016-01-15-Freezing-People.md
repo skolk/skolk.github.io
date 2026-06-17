@@ -1,8 +1,11 @@
 ---
 layout: post
+type: trip-report
 title: Freezing People - A Winter Camping Experiment
 date: 2016-01-15 00:00:00
-categories: camping winter adventure community
+categories: [camping, winter, adventure, community, trip-report]
+place: "Lassen Volcanic National Park, CA"
+region: "California"
 short_description: An experiment in bringing people together through winter camping at Lassen Volcanic National Park, exploring how constraints create community.
 ---
 

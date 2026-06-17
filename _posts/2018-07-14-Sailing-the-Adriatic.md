@@ -1,8 +1,12 @@
 ---
 layout: post
+type: trip-report
 title: Sailing the Adriatic from Split, Croatia
 date: 2018-07-14 00:00:00
-categories: sailing croatia adventure
+categories: [sailing, croatia, adventure, trip-report]
+tags: [sailing, charter, international]
+place: "Split, Croatia"
+region: "Mediterranean"
 short_description: A 7-day sailing adventure along the Croatian coast during World Cup finals and Ultra music festival, learning about Mediterranean sailing and weather challenges.
 ---
 

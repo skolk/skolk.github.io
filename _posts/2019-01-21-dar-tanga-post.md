@@ -1,9 +1,13 @@
 ---
 layout: post
+type: trip-report
 title: Dar to Tanga Race - Sailing Without an Engine
 date: 2019-01-21 00:00:00
-categories: sailing racing adventure
-short_description: A 250-mile coastal race from Dar es Salaam to Tanga, Tanzania - sailing without an engine and learning about racing in East Africa.
+categories: [sailing, racing, adventure, trip-report]
+tags: [sailing, racing, international]
+place: "Dar es Salaam to Tanga, Tanzania"
+region: "East Africa"
+short_description: A 250-mile coastal race from Dar es Salaam to Tanga, Tanzania, sailing without an engine and learning about racing in East Africa.
 ---
 
 <img src="/images/blog_posts/image14.jpg" width="100%">

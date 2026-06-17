@@ -1,8 +1,12 @@
 ---
 layout: post
+type: trip-report
 title: Sailing the Seychelles
 date: 2018-10-07 00:00:00
-categories: [sailing, adventure, travel]
+categories: [sailing, adventure, travel, trip-report]
+tags: [sailing, charter, international]
+place: "Seychelles"
+region: "Indian Ocean"
 short_description: A 10-day sailing adventure through the Seychelles islands with a crew of 10, exploring pristine waters and learning about island life.
 image_preview: /images/blog_posts/image8.jpg
 ---

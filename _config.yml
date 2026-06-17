@@ -51,6 +51,9 @@ navigation:
   - text: Sailing
     url: /sailing
 
+  - text: Trip Reports
+    url: /trip-reports
+
   - text: Making
     url: /making
 

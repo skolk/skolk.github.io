@@ -4,8 +4,11 @@ type: trip-report
 title: RYA Yachtmaster Reflections
 date: 2026-06-16
 location: Hamble, UK
-categories: [sailing, learning]
-short_description: Reflections on passing the RYA Yachtmaster exam
+categories: [sailing, learning, trip-report]
+tags: [sailing, international]
+place: "The Solent (Hamble, UK)"
+region: "British Isles"
+short_description: Reflections on passing the RYA Yachtmaster exam, two days and nights on the Solent.
 ---
 
 <img src="/images/blog_posts/sk-sailing.png" width="100%">
