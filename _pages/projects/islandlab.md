@@ -11,7 +11,7 @@ last_updated: 2026-06-16
 
 # Island Lab
 
-> Island Lab is Sean Kolk and an adventure partner and co-founder: sailors, designers, engineers, and gatherers of problem-solvers who bring people together in and around the water to better understand how we all coexist with it. The vessel and the islands are the venue. The cohort is the program.
+> Island Lab is Kate Schnippering and Sean Kolk: sailors, designers, engineers, and gatherers of problem-solvers who bring people together in and around the water to better understand how we all coexist with it. The vessel and the islands are the venue. The cohort is the program.
 
 This is the human-scale project among the four. It is not software, although the design discipline is the same. It is a format: small group, tight constraints, many-to-many generative structure, hosts as vehicle providers rather than centers of gravity. The boat enforces the constraints we would otherwise have to manufacture.
 

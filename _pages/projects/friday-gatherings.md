@@ -1,31 +1,30 @@
 ---
 layout: default
 title: Friday Morning Gatherings
-subtitle: A weekly convening practice - the good meetings you bring people to
+subtitle: A regular gathering practice for orienting people into community.
 permalink: /projects/friday-gatherings/
 categories: [project]
 project_tag: friday-gatherings
-status: stub
+status: draft
 reviewed_by_sean: false
-last_updated: 2026-06-16
+last_updated: 2026-06-17
 ---
 
 # Friday Morning Gatherings
 
-> Stub created from Sean's 2026-06-16 site walkthrough. A convening practice: the good meetings you bring people to.
+A weekly coffee gathering. A low-barrier on-ramp for people new to a community or new to me, and a regular checkpoint for the people who already orbit the place.
 
-## The Problem
+## The shape
 
-<!-- placeholder: why regular convening matters / what other formats miss -->
+Friday morning. Coffee. Show up. Leave when you need to. The format is deliberately thin: no agenda, no programming, no ask. The point is that it happens again next week, and the week after that, and that the door is the same width every time.
 
-## What I'm Building
+## Why it works as a practice
 
-<!-- placeholder: structure of the gathering, who comes, what it produces, where it happens -->
+Most invitations into community are too big. Dinner is a commitment. A retreat is a commitment. A one-on-one is a commitment with a charge to it. A weekly open coffee is small enough that someone can come once, decide it is not for them, and lose nothing. The cost of the first visit is low enough that the first visit happens, and the second visit is what matters.
+
+The repetition is the work. Showing up every Friday, whether or not it feels worth it that week, is what turns a hangout into an institution-shaped thing without it actually becoming one. It is a practice, not a program.
 
 ## Status
 
-Stub. Reach out if you want to know more or get involved.
+Ongoing.
 
-## Sources
-
-<!-- link to recap mentions, photos, vault notes when they exist -->

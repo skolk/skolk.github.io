@@ -11,7 +11,7 @@ short_description: A summer that ended on a Mt. Baker high note, then pivoted in
 
 ## Travel
 
-Wrapped up two months in Bellingham with my partner. Summited Ruth Mountain solo. Wooden Boat Festival follow-ups for AOS in early September. Flew to NYC for Climate Week Sep 22-27. Co-organized a Harvard Club convening with MIT Sustainability Initiative and S3 Markets. Attended "Abundance in Action" with Rob Bonta, Jane Fonda, Tom Steyer. The "Missing Middle" panel with Tim Profeta, Nicole Steele, Carl Hoiland (Zanskar), Elemental Impact, Amalgamated Bank. Sauna with Mythos on the Sunday of UN General Assembly.
+Wrapped up two months in Bellingham with Kate. Summited Ruth Mountain solo. Wooden Boat Festival follow-ups for AOS in early September. Flew to NYC for Climate Week Sep 22-27. Co-organized a Harvard Club convening with MIT Sustainability Initiative and S3 Markets. Attended "Abundance in Action" with Rob Bonta, Jane Fonda, Tom Steyer. The "Missing Middle" panel with Tim Profeta, Nicole Steele, Carl Hoiland (Zanskar), Elemental Impact, Amalgamated Bank. Sauna with Mythos on the Sunday of UN General Assembly.
 
 ## Projects
 
@@ -19,13 +19,13 @@ Wrapped up two months in Bellingham with my partner. Summited Ruth Mountain solo
 
 **Quantum Alliance.** Repositioning as 501(c)(3). Pitched at the Harvard Club. Policy sandbox language. Harvard Growth Lab plus XPRIZE plus MIT Sustainability Initiative plus Massachusetts government framing.
 
-**Corumat (Mike Waggoner).** CRM build-out. Outreach push to Kellanova (Jennifer Hebets), Trident Seafood (Senya Joerss), Microsoft (Katie Ross), Mars (Paola). Attended the Carbonaughts event. Contract structured.
+**Corumat (Mike Waggoner).** CRM build-out. Outreach push to Kellanova (Jennifer Hebets), Trident Seafood (Senya Joerss), and Microsoft (Katie Ross). Attended the Carbonaughts event. Contract structured.
 
 **Climate nonprofit work.** Officially stepped back. Left and didn't feel like a total jerk. Still getting paid.
 
 **Consulting.** Threadfund / Tim conversation on true-cost accounting tools.
 
-**Finds.** My partner back from travels. Summer in Bellingham together. Ujjwal leading QA repositioning. Mark at Futurity Systems intro'd Norway, Sweden, "Silikon Valley," Norrsken impact fund. A welder-lawyer goat-ag researcher contact. A friend on Sep 18: no income, no routine. David Lang and other friends on the list of people who inspired me in the past four weeks. Ricken Patel, Jigar Shah, Al Subbloie from the Climate Week panels. Rex Raimond on Rockefeller and regenerative work.
+**Finds.** Kate back from travels. Summer in Bellingham together. Ujjwal leading QA repositioning. Mark at Futurity Systems intro'd Norway, Sweden, "Silikon Valley," Norrsken impact fund. A welder-lawyer goat-ag researcher contact. A friend on Sep 18: no income, no routine. David Lang and other friends on the list of people who inspired me in the past four weeks. Ricken Patel, Jigar Shah, Al Subbloie from the Climate Week panels. Rex Raimond on Rockefeller and regenerative work.
 
 **Writing.** Two poems on "Be. Here. Now. / Do. One. Thing. / Wherever you go, there you are" on Sep 26. The Climate Week 2-minute pitch for Quantum Alliance.
 
