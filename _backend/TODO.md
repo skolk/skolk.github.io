@@ -26,7 +26,7 @@ Format: each item is one bullet. Optional tags in `[brackets]`, `[quick]`, `[med
 - [ ] Reconcile Nairobi Lamp date, `/projects` says "(2011)", post is dated 2018-06-15. [content] [quick]
 - [ ] Audit `_posts/` for missing or malformed front matter. [content] [quick]
 - [ ] Add real photos for the 6 commented-out `image_preview:` refs (`grep -rn '# image_preview' _posts/` to find them). Each post's filename hints at the intended shot, r2ak2024.jpg, vanisle360.jpg, golux_racing.jpg, access_to_tools.jpg, dirt_roads.jpg, sanivation.jpg. Drop files in `images/blog_posts/`, then uncomment. [content] [medium]
-- [ ] Typo `costal` → `coastal` in `_posts/2026-02-23-Coastal-Systems.md:5` (`categories: ecosystem, costal, …`) and `_pages/about.md:10` ("costal resilience"). The post filename was already fixed; the body and frontmatter still carry the typo. [content] [quick]
+- [x] Typo `costal` → `coastal` in `_posts/2026-02-23-Coastal-Systems.md:5` (`categories: ecosystem, costal, …`) and `_pages/about.md:10` ("costal resilience"). [content] [quick] — done, verified 2026-06-17 (both now read "coastal").
 
 ### Site structure / nav
 - [ ] Refresh `_pages/about.md` to reflect 2026 context, broken out from LinkedIn diff (2026-05-22):
@@ -39,7 +39,7 @@ Format: each item is one bullet. Optional tags in `[brackets]`, `[quick]`, `[med
   - Add a link out to Substack (`skolk7.substack.com`).
   [content] [medium]
 - [ ] Update stale `/making` links in `about_page.md` (lines 20, 42) to `/projects`, the redirect catches them but the source is inconsistent post-rename. [content] [quick]
-- [ ] Fix malformed link in `index.html`, `<a href="www.astraeusoceansystems.com">` is missing protocol and renders as a relative path. [content] [quick]
+- [x] Fix malformed link in `index.html`, `<a href="www.astraeusoceansystems.com">` is missing protocol and renders as a relative path. [content] [quick] — done, verified 2026-06-17 (now `https://astraeusocean.com/`).
 - [ ] Verify portfolio entries in `_portfolio/` link to underlying posts where they exist. [content] [medium]
 - [ ] Replace or delete the three placeholder portfolio entries `_portfolio/test.md`, `test0.md`, `test1.md`, currently shipping as "test test test" with stock theme thumbnails. [content] [quick]
 - [ ] `/log` could show short_description / image previews, currently just title + date. [design] [medium]
@@ -140,6 +140,8 @@ Phase 3, deferred until joint site with Kate exists:
 
 (Move completed items here with a date.)
 
+- 2026-06-17: fixed broken `/images/me.jpg` favicon + `og:image` (shipped 404 on every page) by repointing both to `/images/favicon.png` in `_includes/head.html`.
+- 2026-06-17: removed em-dashes the June sweep missed: `index.html` (8 occurrences → `&raquo;`/`&middot;` for log/recap meta separators, colon for "Current Projects" label-descriptions) and `_pages/tags.html` (`&mdash;` entity → `&raquo;`). Tree is em-dash-clean.
 - 2026-05-22: cleared 3 of 9 broken image refs by promoting real inline images to `image_preview:`, Seychelles → image8.jpg, goal-setting → image1.jpg, tiny-house → image64.jpg. Commented out the other 6 (`# image_preview (TODO: add photo): …`) so `bin/lint` passes; backlog item to add real photos.
 - 2026-05-22: hardened `bin/lint` image check to skip YAML/HTML comment lines.
 

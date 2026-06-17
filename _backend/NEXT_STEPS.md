@@ -20,7 +20,7 @@ Format:
   - **Why**: Internal contradiction is the kind of thing readers notice.
   - **Owner**: Sean.
   - **Effort**: S.
-  - **Status**: queued.
+  - **Status**: done (June 2026 cycle, verified 2026-06-17: `about.md:18,36` and `sailing.md:8,125` all read "40+").
 
 - **Item**: Verify RYA Yachtmaster Offshore (2026) status in `sailing.md` line 22. Currently reads as completed.
   - **Why**: If in-progress vs. in-hand, the framing should change.
@@ -58,7 +58,7 @@ Format:
   - **Why**: Sending every 404 off-site to a stranger's domain is not the intended UX for `skolk.github.io`.
   - **Owner**: Sean.
   - **Effort**: S.
-  - **Status**: queued.
+  - **Status**: done (shipped in `927d406`, verified 2026-06-17: `404.html` is now a proper navigation-error page with valid internal links, no off-site redirect).
 
 - **Item**: Decide how to handle empty listing pages. `updates.html` and `projects.md`'s "Selected Projects" section filter on `type:` front matter that no posts carry, so they always show the empty state. Either tag posts with the matching `type:` or remove the listing.
   - **Why**: An empty listing on a portfolio site looks unfinished.
@@ -127,6 +127,22 @@ Full plan: `_backend/RECAP_CLEANUP_PLAN.md`.
   - **Owner**: Claude (execution), Sean (judgment calls).
   - **Effort**: M.
   - **Status**: done (June 2026 cycle, also fixed a YAML build break in the July 2025 recap surfaced during verification).
+
+---
+
+## Build tooling / iCloud (from RISKS.md R-010, ADR-003)
+
+- **Item**: Relocate the repo out of `~/Documents` (e.g. `~/Developer/skolk.github.io`) to end iCloud eviction permanently.
+  - **Why**: `bin/build`'s timeout stops the hang but the root cause (iCloud evicting `vendor/`) persists, so cold-file builds stay slow and can still hit the 180s cap. Relocation kills it for good. The only cost is repointing the Cursor workspace.
+  - **Owner**: Sean.
+  - **Effort**: S.
+  - **Status**: queued (Sean chose the watchdog over relocation 2026-06-17; revisit if the cap keeps tripping).
+
+- **Item**: Re-run `./_backend/bin/build` once `vendor/` is warm (fully materialized) to confirm a clean exit-0 build, not just a timeout-allowed commit.
+  - **Why**: The pre-commit hook lets a 124 timeout through, so a green build should be confirmed manually after the iCloud download settles. The warm build on 2026-06-17 was clean (1.0s, 171 files), re-confirm after any large vendor change.
+  - **Owner**: Sean or Claude.
+  - **Effort**: S.
+  - **Status**: queued.
 
 ---
 

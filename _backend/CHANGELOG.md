@@ -9,6 +9,7 @@ All notable changes to this site are recorded here. Format loosely follows [Keep
 - `_posts/2026-02-23-Coastal-Systems.md`: front-matter `date:` was `2026-02-22` but filename said `2026-02-23`. Aligned front matter to `2026-02-23`. Also fixed category typo `costal` → `coastal`.
 - `_pages/404.html`: was a meta-refresh redirect to `https://meawoppl.github.io/` (a different person's GitHub Pages site, leftover from a template fork). Replaced with a custom "Navigation error" page using the default layout, with waypoint links into the site.
 - `_posts/2025-07-31-July-2025-Recap.md`: unquoted colon in `short_description` (`out loud: am I…`) broke the YAML front matter and failed the Jekyll build. Quoted the value.
+- `_pages/trip-reports.html`: two successive Liquid build errors that each failed the Pages build. First, a `where_exp` with a compound `or`/`nil` condition (`post.region == nil or post.region == ''`), `where_exp`'s single-expression parser can't take `or`; introduced in `7df2a24`. The follow-up fix (`f52248e`) was pushed unbuilt and introduced a second break: a literal `{% if %}` inside a `{% comment %}` block (Liquid still parses tags inside comments). Both resolved by collapsing to one `where_exp: "post", "post.region == empty"` (Liquid `empty` matches nil and `""`). See RISKS.md R-003 / R-010.
 
 ### Changed
 - Moved `RISKS.md`, `NEXT_STEPS.md`, `DECISIONS.md`, `DEFINITION_OF_DONE.md` from repo root to `_backend/` (planning docs belong in the back-end per CLAUDE.md; at root Jekyll copied them as web-reachable static files). Updated path references in `.claude/agents/`.
@@ -26,7 +27,8 @@ All notable changes to this site are recorded here. Format loosely follows [Keep
 - `/tags` page, category index with post counts, anchored sections per category.
 - Footer links to `/feed.xml`, `/now`, `/tags`.
 - `bin/lint`, static pre-commit checks (filenames, front matter, comma-categories, image refs, permalinks, tracked artifacts).
-- `.githooks/pre-commit`, calls `bin/lint --staged`. Opt in per clone with `git config core.hooksPath .githooks`.
+- `.githooks/pre-commit`, calls `bin/lint --staged`, then a real `bin/build`. Opt in per clone with `git config core.hooksPath .githooks`. Exit-124 (iCloud-stall timeout) warns but allows the commit; any other build failure blocks it.
+- `_backend/bin/build`, guarded `jekyll build` with a portable hard timeout (default 180s `BUILD_TIMEOUT`, no coreutils needed). Prevents the iCloud-eviction hang (RISKS.md R-010) from wedging the terminal: a stall fails fast (exit 124) with a `brctl download` / move-out-of-`~/Documents` remedy. `build-push.sh` now builds via `bin/build` and pushes only on a green build.
 
 ### Fixed
 - 9 broken image references caught by `./bin/lint`. 3 swapped to real inline images (Seychelles, goal-setting, tiny-house). The other 6 were placeholder paths for posts whose photos were never added; commented out as `# image_preview (TODO: add photo): …` until the originals get dropped in.

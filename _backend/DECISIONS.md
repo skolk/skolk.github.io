@@ -88,6 +88,37 @@ Use `mv .git/X.lock .git/X.lock.bak` to rename the locks out of the way. The mou
 
 ---
 
+## ADR-003: Guard the build with a timeout wrapper; keep the repo in iCloud
+
+- **Date**: 2026-06-17
+- **Status**: Accepted
+
+### Context
+
+The repo lives under `~/Documents`, which macOS syncs to iCloud. iCloud evicts vendored gem files (`vendor/bundle/`) to dataless placeholders; the first read blocks in the kernel at 0% CPU while macOS re-downloads them, so a bare `bundle exec jekyll build` can hang indefinitely with no output (diagnosed 2026-06-17, see RISKS.md R-010). The hang is indistinguishable at a glance from a slow build, and the natural workaround, push without building, is exactly how build-breakers reached origin (R-003). Two clean fixes exist: relocate the repo out of `~/Documents` (kills the eviction), or guard the build so a stall can't hang forever.
+
+### Decision
+
+Do both layers, but in priority order:
+
+1. Add `_backend/bin/build`: runs `jekyll build` under a portable hard timeout (default 180s, no coreutils dependency). On timeout it exits 124 with a remedy message instead of wedging the terminal. `build-push.sh` routes through it and pushes only on a green build; `.githooks/pre-commit` runs it after lint and treats exit 124 (iCloud stall) as warn-not-block while a real build error blocks the commit.
+2. Keep the repo in `~/Documents` for now. Sean chose the watchdog over relocation (2026-06-17). Relocation remains the recommended permanent fix and is queued in NEXT_STEPS.
+
+### Consequences
+
+- A build can no longer silently hang; the worst case is a fast, explained failure.
+- The root cause (eviction) persists: cold-file first-reads stay slow, and `bin/build` can hit its 180s cap on a genuinely-warm-needed build if vendor/ is heavily evicted. The timeout is a guard, not a cure.
+- If relocation later happens (NEXT_STEPS), `bin/build`'s timeout becomes belt-and-suspenders rather than load-bearing. Keep it; it's cheap.
+
+### Alternatives considered
+
+- **Relocate the repo out of `~/Documents` now**: the true fix; deferred by Sean's choice because it changes the local path and Cursor workspace. Still recommended.
+- **Disable iCloud Desktop & Documents sync**: kills eviction globally but affects the whole machine, out of scope for a repo-level decision.
+- **`brctl download` pre-pull**: attempted 2026-06-17; asynchronous, throttled, and "Access denied" from the sandboxed shell. Unreliable as a standing mitigation.
+- **No guard, just discipline ("always build before push")**: rejected. That discipline already failed twice (`7df2a24`, `f52248e`).
+
+---
+
 ## How this file is used
 
 - New decisions get appended with the next ADR number.
