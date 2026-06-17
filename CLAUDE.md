@@ -12,7 +12,8 @@ Personal site for Sean Kolk. Jekyll-based, deployed via GitHub Pages from the `m
 - `bundle exec jekyll serve`: local dev server at http://localhost:4000
 - `bundle exec jekyll serve --drafts`: local dev including `_drafts/`
 - `bundle exec jekyll build`: write static site to `_site/`
-- `./_backend/build-push.sh`: build + push helper
+- `./_backend/bin/build`: guarded `jekyll build` with a hard timeout. Prefer over a bare `jekyll build`, it can't hang silently (see iCloud gotcha below).
+- `./_backend/build-push.sh`: build (via `bin/build`) + commit + push helper. Only pushes if the build succeeds.
 - `./_backend/bin/lint`: fast static checks (filenames, front matter, comma-categories, broken images, permalinks, tracked artifacts). No build required. Exits non-zero on failure.
 - `./_backend/bin/lint --staged`: same, plus refuse if `_site/` / `.DS_Store` / vendor cruft is staged.
 
@@ -74,3 +75,4 @@ Everything Jekyll *publishes* lives in the front-end. Everything that's for thin
 - Don't commit `_site/`. It's gitignored now. If a tool re-stages it, drop it.
 - The site has both a curated `/projects` page and per-post auto-listing on it. Categories drive which posts appear, so keep them topical (`making`, `fabrication`, etc.), not generic (`log`).
 - `hack.css` dark mode adds literal markdown chrome (`##`, `===`) via pseudo-elements. `css/main.scss` overrides them under `body.dark-theme`.
+- **iCloud build hang:** this repo lives under `~/Documents`, which macOS syncs to iCloud. iCloud evicts files (including vendored gems under `vendor/bundle/`) to dataless placeholders; the first read blocks in the kernel at 0% CPU while macOS re-downloads them, so a bare `jekyll build` can hang indefinitely with no output. Use `./_backend/bin/build` (hard timeout). If it stalls, run `brctl download "$(pwd)"` to pull files local, or move the repo out of `~/Documents` to prevent it for good. A build that hangs at 0% CPU with no output is this, not a slow build.
