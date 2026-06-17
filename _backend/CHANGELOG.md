@@ -13,7 +13,7 @@ All notable changes to this site are recorded here. Format loosely follows [Keep
 
 ### Changed
 - Moved `RISKS.md`, `NEXT_STEPS.md`, `DECISIONS.md`, `DEFINITION_OF_DONE.md` from repo root to `_backend/` (planning docs belong in the back-end per CLAUDE.md; at root Jekyll copied them as web-reachable static files). Updated path references in `.claude/agents/`.
-- Editorial consistency pass on the 2026 recaps (Jan–May), per `_backend/RECAP_CLEANUP_PLAN.md`: Jan/Feb spaced hyphens → em-dashes; Feb label bullets → colon style (Travel reworded); link parity (March "Warm Data" and Feb "Future Food Institute" now linked, matching the Apr/May convention); removed `reviewed_by_sean: false` from the Jan/Feb recaps.
+- Editorial consistency pass on the 2026 recaps (Jan–May), per `_backend/RECAP_CLEANUP_PLAN.md`: Jan/Feb spaced hyphens → comma/colon house style (this entry previously read "→ em-dashes"; corrected, the em-dash is banned site-wide and the conversion was reversed by the `80365d1` sweep); Feb label bullets → colon style (Travel reworded); link parity (March "Warm Data" and Feb "Future Food Institute" now linked, matching the Apr/May convention); removed `reviewed_by_sean: false` from the Jan/Feb recaps.
 
 ### Added
 - `CLAUDE.md`, project notes for AI-assisted work (stack, commands, conventions).
@@ -27,6 +27,7 @@ All notable changes to this site are recorded here. Format loosely follows [Keep
 - `/tags` page, category index with post counts, anchored sections per category.
 - Footer links to `/feed.xml`, `/now`, `/tags`.
 - `bin/lint`, static pre-commit checks (filenames, front matter, comma-categories, image refs, permalinks, tracked artifacts).
+- `bin/lint` check #9: em-dash (U+2014) detection in published files, both the literal character and rendered entities (`&mdash;`/`&#8212;`/`&#x2014;`), scoped to the deployed surface (posts/pages/layouts/includes/`index.html`). Enforces the site-wide em-dash ban that was previously sweep-by-hand (RISKS.md R-008).
 - `.githooks/pre-commit`, calls `bin/lint --staged`, then a real `bin/build`. Opt in per clone with `git config core.hooksPath .githooks`. Exit-124 (iCloud-stall timeout) warns but allows the commit; any other build failure blocks it.
 - `_backend/bin/build`, guarded `jekyll build` with a portable hard timeout (default 180s `BUILD_TIMEOUT`, no coreutils needed). Prevents the iCloud-eviction hang (RISKS.md R-010) from wedging the terminal: a stall fails fast (exit 124) with a `brctl download` / move-out-of-`~/Documents` remedy. `build-push.sh` now builds via `bin/build` and pushes only on a green build.
 

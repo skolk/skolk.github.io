@@ -154,6 +154,22 @@ if [ "${1:-}" = "--staged" ] || [ -n "${LINT_STAGED:-}" ]; then
   fi
 fi
 
+# 9. No em-dash (U+2014) in published files, as a literal character or as a
+#    rendered HTML entity (&mdash; / &#8212; / &#x2014;). The em-dash is banned
+#    site-wide (see CLAUDE.md). This checks only the DEPLOYED surface (posts,
+#    pages, layouts, includes, root index.html); back-end planning docs are
+#    swept by hand because they legitimately quote the character when stating
+#    the rule. En-dashes (U+2013, e.g. "Jan-May" date ranges) are allowed.
+emdash=$(printf '\xe2\x80\x94')
+bad_char=$(grep -rnF "$emdash" --include='*.md' --include='*.html' _posts/ _pages/ _layouts/ _includes/ index.html 2>/dev/null || true)
+bad_entity=$(grep -rnE '&(mdash|#8212|#[xX]2014);' --include='*.md' --include='*.html' _posts/ _pages/ _layouts/ _includes/ index.html 2>/dev/null || true)
+bad=$(printf '%s\n%s\n' "$bad_char" "$bad_entity" | grep -v '^$' || true)
+if [ -z "$bad" ]; then
+  pass "no em-dashes in published files"
+else
+  fail "em-dash found (banned site-wide; use comma/colon/period, or &raquo;/&middot; as a separator)" "$bad"
+fi
+
 echo
 if [ "$fails" -eq 0 ]; then
   printf 'OK, all checks passed.\n'
