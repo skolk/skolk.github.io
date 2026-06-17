@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# bin/build, guarded Jekyll build for skolk.github.io.
+#
+# Why this exists: this repo lives under ~/Documents, which macOS syncs to
+# iCloud. iCloud evicts files (including the vendored gems under vendor/bundle/)
+# to "dataless" placeholders. The first read of an evicted file blocks in the
+# kernel at 0% CPU while macOS downloads it, which can hang `jekyll build`
+# indefinitely, with no output, no error, just a wedged process. (Diagnosed
+# 2026-06-17: the build was parked in read() loading a Rouge lexer file; the
+# 14MB vendor/ tree took over two minutes to read back from iCloud file-by-file.)
+#
+# This wrapper runs `jekyll build` under a hard timeout, so the stall can never
+# leave the terminal wedged: it fails fast with a clear remedy instead.
+#
+# Usage: _backend/bin/build [extra jekyll args]
+# Env:   BUILD_TIMEOUT (seconds, default 180)
+
+set -uo pipefail
+cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)" || exit 1
+
+BUILD_TIMEOUT="${BUILD_TIMEOUT:-180}"
+
+# Portable replacement for coreutils `timeout` (not installed on stock macOS):
+# run "$@", kill it after $1 seconds. Returns 124 if it had to be killed.
+run_with_timeout() {
+  local secs="$1"; shift
+  "$@" &
+  local pid=$!
+  ( sleep "$secs"; kill -9 "$pid" 2>/dev/null ) &
+  local watcher=$!
+  wait "$pid"; local rc=$?
+  kill "$watcher" 2>/dev/null
+  wait "$watcher" 2>/dev/null
+  [ "$rc" -eq 137 ] && return 124   # 137 = 128 + SIGKILL(9)
+  return "$rc"
+}
+
+echo "==> jekyll build (hard cap ${BUILD_TIMEOUT}s)..."
+run_with_timeout "$BUILD_TIMEOUT" bundle exec jekyll build "$@" </dev/null
+rc=$?
+if [ "$rc" -eq 124 ]; then
+  echo "!! Build exceeded ${BUILD_TIMEOUT}s and was killed (terminal NOT left hanging)." >&2
+  echo "   A 0%-CPU stall with no output is almost always iCloud materializing" >&2
+  echo "   evicted files under ~/Documents. Pull them down, then rebuild:" >&2
+  echo "       brctl download \"$(pwd)\"" >&2
+  echo "   To prevent it for good, keep this repo out of iCloud (e.g. ~/Developer)." >&2
+  exit 124
+elif [ "$rc" -ne 0 ]; then
+  echo "!! Build failed (exit $rc). See output above." >&2
+  exit "$rc"
+fi
+echo "==> Build OK."
