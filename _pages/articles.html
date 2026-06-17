@@ -12,7 +12,6 @@ permalink: /articles
     <p><em>No articles yet.</em></p>
   {% endif %}
 
-  {% assign years = articles | map: "date" | sort | reverse %}
   {% assign current_year = "" %}
 
   {% for post in articles %}

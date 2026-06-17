@@ -25,7 +25,7 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 ---
 
-## Recent Highlights (2024-2025)
+## Recent Highlights (2024-2026)
 
 **[VanIsle 360 (2025)]({% post_url 2025-06-20-vanisle-360 %})**: Crew on SV Golux BM50, finishing 5th place in this challenging 580-nautical-mile race around Vancouver Island. Three weeks of intense racing through variable Pacific Northwest conditions.
 
