@@ -9,4 +9,25 @@ if [ -n "${SKIP_LINT:-}" ]; then
   exit 0
 fi
 
-exec ./_backend/bin/lint --staged
+# Static checks first (fast, no build).
+./_backend/bin/lint --staged || exit 1
+
+# Then a real build: lint passes even when the site can't render (e.g. a
+# where_exp Liquid error in a page), which is exactly how a build-breaker
+# reached master in 7df2a24. bin/build is timeout-guarded so it can't hang.
+#
+# Exit-code handling matters in this iCloud-synced repo: a genuine build error
+# fails fast (a Liquid error dies in ~1s) and MUST block the commit. But a
+# timeout (exit 124) means bin/build was killed at its cap, almost always an
+# iCloud eviction stall, an environment problem, not a code problem, so it
+# warns and lets the commit through rather than holding it hostage to iCloud.
+./_backend/bin/build
+rc=$?
+if [ "$rc" -eq 124 ]; then
+  echo "pre-commit: build timed out (likely iCloud eviction), allowing commit." >&2
+  echo "           verify manually when files are warm: ./_backend/bin/build" >&2
+  exit 0
+elif [ "$rc" -ne 0 ]; then
+  exit "$rc"
+fi
+exit 0
