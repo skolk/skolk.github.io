@@ -3,7 +3,7 @@ layout: post
 title: Lux Auctus
 date: 2014-04-15 00:00:00
 categories: making lighting
-short_description: A mason-jar lamp experiment — transitioning from industrial to organic forms, with jars inside jars.
+short_description: A mason-jar lamp experiment, transitioning from industrial to organic forms, with jars inside jars.
 ---
 
 <img src="/images/blog_posts/image24.jpg" width="100%">

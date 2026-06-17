@@ -3,7 +3,7 @@ layout: post
 title: One Small Step
 date: 2014-11-10 00:00:00
 categories: environment activism
-short_description: Reflections after watching Gasland and reading Alastair Humphreys — committing to small, intentional actions.
+short_description: Reflections after watching Gasland and reading Alastair Humphreys, committing to small, intentional actions.
 ---
 
 <img src="/images/blog_posts/image40.jpg" width="100%">

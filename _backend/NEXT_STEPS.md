@@ -122,11 +122,11 @@ Full notes: `_backend/EDITORS_PASS_2026-06-LOG.md`. The five-item shortlist:
 
 Full plan: `_backend/RECAP_CLEANUP_PLAN.md`.
 
-- **Item**: Editorial consistency pass on the five 2026 recaps (Jan–May) — dash style (hyphen → em-dash in Jan/Feb), label-bullet colons, link parity (March Warm Data, Feb Future Food Institute), Reading-section format, and `reviewed_by_sean` flag removal.
+- **Item**: Editorial consistency pass on the five 2026 recaps (Jan–May), dash style (hyphen → em-dash in Jan/Feb), label-bullet colons, link parity (March Warm Data, Feb Future Food Institute), Reading-section format, and `reviewed_by_sean` flag removal.
   - **Why**: Jan/Feb were written after the Mar–May standardization and drifted from the house style and link conventions.
   - **Owner**: Claude (execution), Sean (judgment calls).
   - **Effort**: M.
-  - **Status**: done (June 2026 cycle — also fixed a YAML build break in the July 2025 recap surfaced during verification).
+  - **Status**: done (June 2026 cycle, also fixed a YAML build break in the July 2025 recap surfaced during verification).
 
 ---
 

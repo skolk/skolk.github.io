@@ -12,7 +12,7 @@ Wisdom comes from learning, learning comes from experience, experience comes fro
 
 “Wisdom comes from learning, learning comes from experience, experience comes from mistakes. ”
 
-— 4am Google image search
+, 4am Google image search
 
 Transferring experience into learning isn’t as simple as having had that experience, there’s also the processing of those mistakes and experience; solidifying those learning’s by reflecting on the actions taken. Mastering those skills and knowledge and turning those learnings into wisdom (a term I would never use in front of anyone you’re attempting to lead or instruct) by teaching others and seeing where the methodology is in unrefined or un-transferable.
 

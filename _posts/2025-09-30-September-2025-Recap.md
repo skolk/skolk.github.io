@@ -1,10 +1,10 @@
 ---
-layout: post
+layout: recap
 type: recap
 title: September 2025 Recap
 date: 2025-09-30
 location: Bellingham → Mt. Baker (Ruth Mountain) → Seattle → NYC (Climate Week)
-categories: [travel, mountains, climate-week, astraeus, quantum-alliance, corumat]
+categories: [recap, travel, mountains, climate-week, astraeus, quantum-alliance, corumat]
 reviewed_by_sean: false
 short_description: A summer that ended on a Mt. Baker high note, then pivoted into Climate Week NYC. Quantum Alliance convenings at the Harvard Club, AOS shellfish outreach, and a hard look at what doing the work actually means.
 ---

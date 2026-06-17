@@ -1,10 +1,10 @@
 ---
-layout: post
+layout: recap
 type: recap
 title: February 2025 Recap
 date: 2025-02-28
 location: Petrichor (Shilshole, Seattle, Kate at sea) → 9Zero → SF → Alpental → Bellingham
-categories: [travel, sailing, astraeus, reap, mountains]
+categories: [recap, travel, sailing, astraeus, reap, mountains]
 reviewed_by_sean: false
 short_description: A month of Kate-away solitude. Twenty percent of Astraeus on paper, the Maritime track for PNW Climate Week on the calendar, REAP funding freezing under the new administration, and Internal Family Systems work that finally landed.
 ---

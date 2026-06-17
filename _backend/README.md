@@ -1,10 +1,10 @@
 # _backend/
 
-Active planning and working materials. **Not built by Jekyll** — the leading underscore makes Jekyll skip the directory.
+Active planning and working materials. **Not built by Jekyll**, the leading underscore makes Jekyll skip the directory.
 
 ## What lives here
-- `TODO.md` — open work, carry-overs, things to fix
-- `VISION.md` — long-term direction and reference inspirations
+- `TODO.md`, open work, carry-overs, things to fix
+- `VISION.md`, long-term direction and reference inspirations
 - Anything else that's *active* but not for public consumption: outlines, scratch notes, half-formed posts, planning docs
 
 ## What does NOT live here

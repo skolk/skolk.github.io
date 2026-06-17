@@ -15,11 +15,11 @@ I seek the cold, water, and mountains.
 
 My adventures and learning happen across three main areas:
 
-**[Sailing](/sailing)** — Charter expeditions around the world, from the Seychelles to Croatia. Leading Boatless Sailing community for 40+ people who don't own boats but love blue water adventures.
+**[Sailing](/sailing)**: Charter expeditions around the world, from the Seychelles to Croatia. Leading Boatless Sailing community for 40+ people who don't own boats but love blue water adventures.
 
-**[Making](/making)** — Building everything from brain-slicing robots to tiny houses. Hardware engineering, electronics design, and fabrication across biotech, climate technology, and ocean systems.
+**[Making](/making)**: Building everything from brain-slicing robots to tiny houses. Hardware engineering, electronics design, and fabrication across biotech, climate technology, and ocean systems.
 
-**[Mountaineering](/mountaineering)** — Peaks climbed from Yosemite to Uganda, including Mt. Kenya's technical routes and glaciated equatorial climbing. Teaching progression from follower to leader.
+**[Mountaineering](/mountaineering)**: Peaks climbed from Yosemite to Uganda, including Mt. Kenya's technical routes and glaciated equatorial climbing. Teaching progression from follower to leader.
 
 ## Professional Evolution
 
@@ -31,11 +31,11 @@ My career has evolved from hands-on hardware engineering (3Scan biotech, electro
 
 ## Community Building
 
-**Adventure Report** — Monthly storytelling breakfast running since 2014, bringing together people to share adventure experiences.
+**Adventure Report**: Monthly storytelling breakfast running since 2014, bringing together people to share adventure experiences.
 
-**Boatless Sailing** — Charter sailing expeditions for people who don't own boats, proving that shared adventures create lasting communities.
+**Boatless Sailing**: Charter sailing expeditions for people who don't own boats, proving that shared adventures create lasting communities.
 
-**Teaching and Mentoring** — Sharing skills in sailing, electronics, mountaineering, and community organizing.
+**Teaching and Mentoring**: Sharing skills in sailing, electronics, mountaineering, and community organizing.
 
 ---
 

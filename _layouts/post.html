@@ -8,7 +8,7 @@ layout: default
     <p class="post-meta">
       <time datetime="{{ page.date | date_to_xmlschema }}"
             itemprop="datePublished"
-            class="media-heading">{{ page.date | date: "%Y.%-m.%-d" }}</time>{% if page.location %} — {{ page.location }}{% endif %}
+            class="media-heading">{{ page.date | date: "%Y.%-m.%-d" }}</time>{% if page.location %}, {{ page.location }}{% endif %}
 
       {% if page.author %}
         <span itemprop="author" itemscope itemtype="http://schema.org/Person">

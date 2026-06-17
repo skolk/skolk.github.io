@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bin/lint — static pre-commit checks for skolk.github.io.
+# bin/lint, static pre-commit checks for skolk.github.io.
 # Catches the failure modes that have actually bitten this repo before.
 # Does not build, does not edit. Exits non-zero if any check fails.
 #
@@ -14,9 +14,9 @@ cd "$(dirname "$0")/.."
 
 fails=0
 
-pass() { printf 'PASS — %s\n' "$1"; }
+pass() { printf 'PASS, %s\n' "$1"; }
 fail() {
-  printf 'FAIL — %s\n' "$1"
+  printf 'FAIL, %s\n' "$1"
   if [ -n "${2:-}" ]; then
     printf '%s\n' "$2" | sed 's/^/  /'
   fi
@@ -74,7 +74,7 @@ else
 fi
 
 # 3. `categories:` doesn't use commas as separators
-#    Jekyll parses `categories: a, b, c` as three strings: "a,", "b,", "c" —
+#    Jekyll parses `categories: a, b, c` as three strings: "a,", "b,", "c", 
 #    the trailing commas leak into URLs (/sailing,/, /community,/, etc.).
 #    Allowed forms: `categories: a b c` (space-separated) or `[a, b, c]` (YAML list).
 bad=$(grep -nE '^categories:[^[]*,' _posts/*.md 2>/dev/null || true)
@@ -156,7 +156,7 @@ fi
 
 echo
 if [ "$fails" -eq 0 ]; then
-  printf 'OK — all checks passed.\n'
+  printf 'OK, all checks passed.\n'
   exit 0
 else
   printf '%d check(s) failed.\n' "$fails"

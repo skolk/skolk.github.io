@@ -15,18 +15,18 @@ All notable changes to this site are recorded here. Format loosely follows [Keep
 - Editorial consistency pass on the 2026 recaps (Jan–May), per `_backend/RECAP_CLEANUP_PLAN.md`: Jan/Feb spaced hyphens → em-dashes; Feb label bullets → colon style (Travel reworded); link parity (March "Warm Data" and Feb "Future Food Institute" now linked, matching the Apr/May convention); removed `reviewed_by_sean: false` from the Jan/Feb recaps.
 
 ### Added
-- `CLAUDE.md` — project notes for AI-assisted work (stack, commands, conventions).
-- `CHANGELOG.md` — this file.
-- `_archive/` — top-level folder for historical reference material not published by Jekyll. Includes `README.md`.
-- `_backend/` — top-level folder for active planning material (TODO, VISION, scratch notes). Includes `README.md`.
-- `_drafts/` — Jekyll-native location for posts in progress. Includes `README.md`.
-- `.gitignore` — covers `_site/`, `.DS_Store`, `vendor/bundle/`, `.jekyll-cache/`, editor cruft.
-- `_pages/` — standalone pages now live here (about, log, sailing, mountaineering, projects, portfolio, making, now, tags). Opted in via `include: [_pages]` in `_config.yml`.
-- `/now` page — current focus and preoccupations (placeholder copy; needs filling in).
-- `/tags` page — category index with post counts, anchored sections per category.
+- `CLAUDE.md`, project notes for AI-assisted work (stack, commands, conventions).
+- `CHANGELOG.md`, this file.
+- `_archive/`, top-level folder for historical reference material not published by Jekyll. Includes `README.md`.
+- `_backend/`, top-level folder for active planning material (TODO, VISION, scratch notes). Includes `README.md`.
+- `_drafts/`, Jekyll-native location for posts in progress. Includes `README.md`.
+- `.gitignore`, covers `_site/`, `.DS_Store`, `vendor/bundle/`, `.jekyll-cache/`, editor cruft.
+- `_pages/`, standalone pages now live here (about, log, sailing, mountaineering, projects, portfolio, making, now, tags). Opted in via `include: [_pages]` in `_config.yml`.
+- `/now` page, current focus and preoccupations (placeholder copy; needs filling in).
+- `/tags` page, category index with post counts, anchored sections per category.
 - Footer links to `/feed.xml`, `/now`, `/tags`.
-- `bin/lint` — static pre-commit checks (filenames, front matter, comma-categories, image refs, permalinks, tracked artifacts).
-- `.githooks/pre-commit` — calls `bin/lint --staged`. Opt in per clone with `git config core.hooksPath .githooks`.
+- `bin/lint`, static pre-commit checks (filenames, front matter, comma-categories, image refs, permalinks, tracked artifacts).
+- `.githooks/pre-commit`, calls `bin/lint --staged`. Opt in per clone with `git config core.hooksPath .githooks`.
 
 ### Fixed
 - 9 broken image references caught by `./bin/lint`. 3 swapped to real inline images (Seychelles, goal-setting, tiny-house). The other 6 were placeholder paths for posts whose photos were never added; commented out as `# image_preview (TODO: add photo): …` until the originals get dropped in.
@@ -53,12 +53,12 @@ All notable changes to this site are recorded here. Format loosely follows [Keep
   - `2022-5-30-onebag.md` → `2022-05-30-onebag.md` (zero-padded)
 
 ### Removed
-- Stopped tracking `_site/` (build output — Pages rebuilds it).
+- Stopped tracking `_site/` (build output, Pages rebuilds it).
 - Stopped tracking `vendor/bundle/` (Ruby deps).
 - Stopped tracking every `.DS_Store` in the repo.
-- Deleted `projects_page.md` — stale duplicate of `projects.md` (same `permalink: /projects`).
-- Deleted `docs.md` and `examples.html` — leftover theme demo pages.
-- Deleted `_posts/2014-12-20-Maker-Projects.md` — stale draft from the `/making` → `/projects` rename, never a real post (no `title:`/`date:` front matter, body was an about-style HTML page).
+- Deleted `projects_page.md`, stale duplicate of `projects.md` (same `permalink: /projects`).
+- Deleted `docs.md` and `examples.html`, leftover theme demo pages.
+- Deleted `_posts/2014-12-20-Maker-Projects.md`, stale draft from the `/making` → `/projects` rename, never a real post (no `title:`/`date:` front matter, body was an about-style HTML page).
 
 ## 2026-05-21
 ### Added

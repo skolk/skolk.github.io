@@ -1,10 +1,10 @@
 ---
-layout: post
+layout: recap
 type: recap
 title: November 2025 Recap
 date: 2025-11-30
 location: Pacific Ocean → San Francisco → Zihuatanejo → Seattle
-categories: [travel, sailing, mexico, wedding, conference]
+categories: [recap, travel, sailing, mexico, wedding, conference]
 reviewed_by_sean: false
 short_description: A 300 foot Norwegian barque from Seattle to San Francisco, K-Max's wedding in Zihuatanejo, then Pacific Marine Expo back home. A month of motion that ended at a desk in Ballard with Astraeus language sharper than it had ever been.
 ---

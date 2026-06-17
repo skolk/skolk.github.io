@@ -1,4 +1,4 @@
-# Editor's Pass on the Log — June 2026
+# Editor's Pass on the Log, June 2026
 
 Notes captured from an editor reviewing the log posts. A review, not a rewrite. Suggestions you can take or leave. The reviewer kept Sean's voice, dry humor, and unfinished edges intact on purpose. Where the notes push, they push toward focus and gravity, not polish.
 
@@ -29,7 +29,7 @@ Delete it. A "testing all the things" post on a live log reads as scaffolding le
 ### Seychelles 2018 (added)
 
 - Strong: the anchor-alarm night, the water rationing decision, the Hilton not knowing how to take your money. Specific and alive.
-- Gravity / focus: the real subject is resource discipline on a boat — water, alarms, theft, anchoring in shallow sand. Name that up top in two sentences and the day-log becomes evidence for a point instead of a diary.
+- Gravity / focus: the real subject is resource discipline on a boat, water, alarms, theft, anchoring in shallow sand. Name that up top in two sentences and the day-log becomes evidence for a point instead of a diary.
 - Image: your route map, Mahe to Praslin to La Digue to Silhouette. A photo of the SunSail 444 under reef would do, but the map is better.
 - Diagram: a tiny "alarms that cried wolf" note (anchor drag, then voltage) is a sticky little lesson about too many alarms. Could be a one-line callout.
 
@@ -42,7 +42,7 @@ Delete it. A "testing all the things" post on a live log reads as scaffolding le
 ### Sanivation (added)
 
 - Strong: the arc from solar ovens in Chile to a self-sustaining company in Naivasha is a strong story.
-- Gravity / focus: currently reads as a summary. The gravity is in the human detail you skip past — testing humidity in canine fecal matter to find where worm eggs die, visiting campamentos. Slow down on one or two concrete scenes and let the rest stay brief.
+- Gravity / focus: currently reads as a summary. The gravity is in the human detail you skip past, testing humidity in canine fecal matter to find where worm eggs die, visiting campamentos. Slow down on one or two concrete scenes and let the rest stay brief.
 - Image: a simple process diagram (sun, oven, dehydration, inert output) would explain the idea faster than prose, and it's the kind of small visual model you like making.
 
 ### Dar to Tanga Race (ready to add)
@@ -52,13 +52,13 @@ Delete it. A "testing all the things" post on a live log reads as scaffolding le
 - Image: route map around Zanzibar to Tanga. Plus, if you have it, the most-meritorious award, which is a perfect dry-humor artifact.
 - Diagram: the wind-vs-current lesson from the aftermath is a real mental model. A small "when wind dies, ride the current" sketch would make it stick.
 
-### One Step a Day — goal setting (ready to add)
+### One Step a Day, goal setting (ready to add)
 
 - Strong: Be-Do-Have backward planning, the $5000 escrow accountability trick, "quantity over quality leads to quality."
 - Gravity / focus: rambles in the middle. Two posts fighting: the Nairobi origin story and the system itself. Pick the system as the spine and let Nairobi be the cold open.
 - Image / diagram: this is the post that most needs your calendar-as-a-circle drawing. You reference it ("PDF of Calendar here") and it's missing. The circular year with solstices and equinoxes is the whole idea made visible. Highest-leverage diagram in the set.
 
-### Progression and Feedback — paragliding (ready to add)
+### Progression and Feedback, paragliding (ready to add)
 
 - Strong: Dominic's soft-hands active listening; "a pilot can fly 100 of the same hour, or 100 different hours." That line is the post.
 - Gravity / focus: lead with that line. Right now it arrives late. It's your thesis about experience versus repetition.
@@ -70,7 +70,7 @@ Delete it. A "testing all the things" post on a live log reads as scaffolding le
 - Gravity / focus: the most idea-dense post and the one closest to your current thinking about voluntary self-organizing groups. Could carry real weight if you let the inclusive-versus-exclusive spectrum be the backbone instead of a midpoint.
 - Diagram: a simple spectrum line, "too inclusive (no identity) ... too exclusive (calcifies)," with examples placed along it. A sticky model, exactly the visual decision tool you say AI content fills poorly.
 
-### Exploring Virtual Depths — Subnautica / comfort zone (ready to add)
+### Exploring Virtual Depths, Subnautica / comfort zone (ready to add)
 
 - Strong: type 2 fun, the comfort dial, the ice-climbing festival parallel. The Subnautica-as-real-life structure is genuinely good.
 - Gravity / focus: tight already. Trim the plot recap by a third so the model (normalize, then inch deeper, keep enough oxygen to get back) stays in focus.
