@@ -10,7 +10,8 @@
 # The companion `/test_local` skill drives the slower build-based checks.
 
 set -u
-cd "$(dirname "$0")/.."
+# This script lives at _backend/bin/lint, so repo root is two levels up.
+cd "$(dirname "$0")/../.."
 
 fails=0
 
@@ -168,6 +169,29 @@ if [ -z "$bad" ]; then
   pass "no em-dashes in published files"
 else
   fail "em-dash found (banned site-wide; use comma/colon/period, or &raquo;/&middot; as a separator)" "$bad"
+fi
+
+# 10. Placeholder inventory (informational, NEVER fails the build).
+#     Surfaces scaffolding left in the deployed tree so the project cycle can
+#     work it off: <!-- placeholder --> comments, `status: stub` project pages,
+#     "here's the placeholder" / "needs content" / "more to come" body markers,
+#     test-stub portfolio entries, and published:false posts. Does not touch
+#     $fails, so a placeholder is a to-do, not a commit blocker.
+ph=$(
+  {
+    grep -rinE '<!--[[:space:]]*placeholder' --include='*.md' --include='*.html' _posts/ _pages/ 2>/dev/null
+    grep -rnE '^status:[[:space:]]*stub\b' --include='*.md' _pages/ 2>/dev/null
+    grep -rinE "here'?s the placeholder|needs content|is a stub|stub page|consolidate.*next pass" --include='*.md' _posts/ _pages/ 2>/dev/null
+    grep -rliE '^name:[[:space:]]*test[[:space:]]*$' --include='*.md' _portfolio/ 2>/dev/null
+    grep -rlE '^published:[[:space:]]*false' --include='*.md' _posts/ 2>/dev/null
+  } | grep -v '^$' | sort -u
+)
+if [ -z "$ph" ]; then
+  pass "no placeholders left in the deployed tree"
+else
+  count=$(printf '%s\n' "$ph" | grep -c .)
+  printf 'NOTE, %d placeholder marker(s) to work off (informational, not a failure):\n' "$count"
+  printf '%s\n' "$ph" | sed 's/^/  /'
 fi
 
 echo
