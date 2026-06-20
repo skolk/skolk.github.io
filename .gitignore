@@ -22,3 +22,10 @@ vendor/bundle/
 
 # Local-only scratch (anything that should never leave the laptop)
 .scratch/
+
+# Squarespace .docx archive: heavy + redundant. The converted .md (text) is committed;
+# the source .docx and its 71 extracted images are kept locally but not versioned, the
+# images are renumbered/re-encoded copies of the photos already in images/blog_posts/ and
+# _backend/archive/squarespace-2024/images/. See _backend/archive/README.md.
+_backend/archive/squarespace-2024-docx/*.docx
+_backend/archive/squarespace-2024-docx/media/
