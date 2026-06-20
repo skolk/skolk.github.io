@@ -21,7 +21,7 @@ Acting Director of Grant Strategy, since 2024. I lead $12M+ in grant initiatives
 
 ## Status
 
-Ongoing. This page is a stub; more to come.
+Ongoing.
 
 ## Sources
 
