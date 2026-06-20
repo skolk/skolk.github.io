@@ -23,6 +23,10 @@ We were sleeping in a tent outside the container for at least a month, and on to
 
 <img src="/images/blog_posts/image16.jpg" width="100%" alt="OSB wall framing going up against the green container with a window opening cut out, string lights overhead">
 
+**Building on the build:** I built a tiny house on the tiny house while in the middle of construction between the sprinkler water lines! Had to remove it carefully due to fire inspection and logic. I did rent it out to a friend though - was a great 4 months.
+
+<img src="/images/blog_posts/image31.jpg" width="100%" alt="Wide shot of the build with a rooftop deck frame and plants built on top of the container">
+
 ## Key Learnings
 
 **Shipping containers aren't always ideal:** While I'm glad we used one originally, once we realized we weren't going to stack anything on it and could build inside, we basically built out what could have been a cheaper and more breathable wood house.
@@ -39,9 +43,11 @@ We were sleeping in a tent outside the container for at least a month, and on to
 
 ## The Build Process
 
-**Windows and doors:** We found windows and French doors we liked after much deliberation. The French doors made the center area well-lit and very open when we cleared all the construction materials.
+**Sleeping area:** A raised bed allowed for much-needed storage space. We separated the two areas and placed a cabinet below facing toward the living area.
 
-<img src="/images/blog_posts/image22.jpg" width="100%" alt="The finished exterior clad in reclaimed wood, French doors open onto a warm-lit interior, in the warehouse">
+<img src="/images/blog_posts/image1.jpg" width="100%" alt="The raised bed frame under construction on sawhorses against the multicolored plank wall, Kate standing alongside">
+
+<img src="/images/blog_posts/image43.jpg" width="100%" alt="The finished sleeping nook with green bedding, storage cubbies built in underneath, and the drop-down table folded down">
 
 **Kitchen:** The close side was redwood from a mill (no idea how we got that for free), the other side was strips of cedar I glued and pressed together. We later added a drop-in stove and finished the window lining.
 
@@ -49,21 +55,15 @@ We were sleeping in a tent outside the container for at least a month, and on to
 
 <img src="/images/blog_posts/image9.jpg" width="100%" alt="Interior looking toward the kitchen: the drop-down table and mirror in the foreground, stove, microwave, and green curtain beyond">
 
-**Sleeping area:** A raised bed allowed for much-needed storage space. We separated the two areas and placed a cabinet below facing toward the living area.
-
-<img src="/images/blog_posts/image1.jpg" width="100%" alt="The raised bed frame under construction on sawhorses against the multicolored plank wall, Kate standing alongside">
-
-<img src="/images/blog_posts/image43.jpg" width="100%" alt="The finished sleeping nook with green bedding, storage cubbies built in underneath, and the drop-down table folded down">
-
 **Table:** We built a drop-down table with swinging legs that functioned as both a bench for dinner and a guest bed, which it did several times.
 
 <img src="/images/blog_posts/image50.jpg" width="100%" alt="The drop-down table lowered over the built-in bench seating, a wooden stool tucked beneath it">
 
+**Windows and doors:** We found windows and French doors we liked after much deliberation. The French doors made the center area well-lit and very open when we cleared all the construction materials.
+
+<img src="/images/blog_posts/image22.jpg" width="100%" alt="The finished exterior clad in reclaimed wood, French doors open onto a warm-lit interior, in the warehouse">
+
 ## The Mistakes
-
-**Building on the build:** I built a tiny house on the tiny house while in the middle of construction between the sprinkler water lines! Had to remove it carefully due to fire inspection and logic. I did rent it out to a friend though - was a great 4 months.
-
-<img src="/images/blog_posts/image31.jpg" width="100%" alt="Wide shot of the build with a rooftop deck frame and plants built on top of the container">
 
 **Living in your construction project:** Turns out this is a bad idea. Getting doors, windows, and a bed in became a priority when you're trying to live there.
 
@@ -86,3 +86,5 @@ The warehouse community was incredible - sharing tools, knowledge, and the journ
 <img src="/images/blog_posts/image63.jpg" width="100%" alt="The finished bedroom at night, lit by string lights and a mason-jar lamp, clothes hanging along the reclaimed-wood wall">
 
 *The final colors reminded me of chocolate and peanut butter. We also built a deck on top where Kate sewed and we had extra storage.*
+</content>
+</invoke>
