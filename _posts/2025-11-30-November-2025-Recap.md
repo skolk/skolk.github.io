@@ -23,7 +23,7 @@ Back in Seattle on November 19 for [Pacific Marine Expo](https://www.pacificmari
 
 ## Projects
 
-**Astraeus language sharpening.** The line I wrote down on November 5 was the one I kept coming back to: resilience is too vague, climate is out there, the problem is that these items aren't actionable. I spent the rest of the month trying to write past it. By month-end I had a draft of what became the [Davos pitch guide](/2026/01/31/January-2026-Recap.html): aquaculture operators, ports, coastal communities, decisions, environmental stewardship, hyperlocal forecasting. Not perfect, but no longer vague.
+**Astraeus language sharpening.** The line I wrote down on November 5 was the one I kept coming back to: resilience is too vague, climate is out there, the problem is that these items aren't actionable. I spent the rest of the month trying to write past it. By month-end I had a draft of what became the [Davos pitch guide]({% post_url 2026-01-31-January-2026-Recap %}): aquaculture operators, ports, coastal communities, decisions, environmental stewardship, hyperlocal forecasting. Not perfect, but no longer vague.
 
 **REAP proposal.** Setting up the structure for the big grant proposal that ran through December with Jonathan, and that paid a useful chunk of the runway for the winter.
 
