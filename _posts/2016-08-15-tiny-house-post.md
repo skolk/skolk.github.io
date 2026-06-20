@@ -11,39 +11,67 @@ image_preview: /images/blog_posts/image64.jpg
 
 The Halfway House was built in a West Oakland 'Tiny House' construction warehouse. There were around 14 other houses being built in the space - ours was just one of them. We shared tools, knowledge, and resources. Some were all wood, some were on trailers, most, like ours, were shipping container buildouts.
 
+<img src="/images/blog_posts/image27.jpg" width="100%" alt="The raw green shipping container on pallets in the West Oakland warehouse before the build began">
+
 ## The Challenge
 
 This was our first house build, and our original location was outside in the SF rainy season. We hesitated for at least a month on window dimensions, location, and sourcing. In the end we opted to cut a wall out (really, rather than make the window decision).
 
+<img src="/images/blog_posts/image64.jpg" width="100%" alt="A hand-drawn floor plan of the build, with numbered steps for the metal frame, walls, floor, and side door">
+
 We were sleeping in a tent outside the container for at least a month, and on top of the container for maybe a week or so. Many of our neighbors had tents or easy-ups with tarps around them in a similar fashion.
+
+<img src="/images/blog_posts/image16.jpg" width="100%" alt="OSB wall framing going up against the green container with a window opening cut out, string lights overhead">
 
 ## Key Learnings
 
 **Shipping containers aren't always ideal:** While I'm glad we used one originally, once we realized we weren't going to stack anything on it and could build inside, we basically built out what could have been a cheaper and more breathable wood house.
 
+<img src="/images/blog_posts/image30.jpg" width="100%" alt="Reflective foil insulation lining the inside of the container walls, with a yellow drywall lift parked in the middle">
+
 **The right tools matter:** A drywall mounter was the best tool I bought - it turns 2-person jobs into 1-person jobs. Kate loves it for that reason too.
 
+<img src="/images/blog_posts/image55.jpg" width="100%" alt="The interior fully sheathed in OSB panels with the yellow drywall lift standing against the wall">
+
 **Side entry vs. container doors:** We chose French doors over the shipping container doors because side entry made the whole space feel less like a hallway. The corners are where lots of space can be filled with 'working spaces' like bathrooms and kitchen prep areas.
+
+<img src="/images/blog_posts/image34.jpg" width="100%" alt="Reclaimed wood planks part-way up the interior wall, with build plans taped to the container door">
 
 ## The Build Process
 
 **Windows and doors:** We found windows and French doors we liked after much deliberation. The French doors made the center area well-lit and very open when we cleared all the construction materials.
 
+<img src="/images/blog_posts/image22.jpg" width="100%" alt="The finished exterior clad in reclaimed wood, French doors open onto a warm-lit interior, in the warehouse">
+
 **Kitchen:** The close side was redwood from a mill (no idea how we got that for free), the other side was strips of cedar I glued and pressed together. We later added a drop-in stove and finished the window lining.
+
+<img src="/images/blog_posts/image67.jpg" width="100%" alt="The galley kitchen with a live-edge wood counter, open shelving stocked with food, and a window above">
+
+<img src="/images/blog_posts/image9.jpg" width="100%" alt="Interior looking toward the kitchen: the drop-down table and mirror in the foreground, stove, microwave, and green curtain beyond">
 
 **Sleeping area:** A raised bed allowed for much-needed storage space. We separated the two areas and placed a cabinet below facing toward the living area.
 
+<img src="/images/blog_posts/image1.jpg" width="100%" alt="The raised bed frame under construction on sawhorses against the multicolored plank wall, Kate standing alongside">
+
+<img src="/images/blog_posts/image43.jpg" width="100%" alt="The finished sleeping nook with green bedding, storage cubbies built in underneath, and the drop-down table folded down">
+
 **Table:** We built a drop-down table with swinging legs that functioned as both a bench for dinner and a guest bed, which it did several times.
+
+<img src="/images/blog_posts/image50.jpg" width="100%" alt="The drop-down table lowered over the built-in bench seating, a wooden stool tucked beneath it">
 
 ## The Mistakes
 
 **Building on the build:** I built a tiny house on the tiny house while in the middle of construction between the sprinkler water lines! Had to remove it carefully due to fire inspection and logic. I did rent it out to a friend though - was a great 4 months.
+
+<img src="/images/blog_posts/image31.jpg" width="100%" alt="Wide shot of the build with a rooftop deck frame and plants built on top of the container">
 
 **Living in your construction project:** Turns out this is a bad idea. Getting doors, windows, and a bed in became a priority when you're trying to live there.
 
 ## The Outcome
 
 We ended up selling the Halfway House for about what we paid to build it (minus labor) at $8,000. It was a great build project, and we met lots of great friends along the way.
+
+<img src="/images/blog_posts/image28.jpg" width="100%" alt="Two of us lying on the finished bed with laptops, storage bins stowed in the cubbies underneath">
 
 ## Reflections
 
@@ -54,5 +82,7 @@ I don't recommend the shipping container part, but building a house is absolutel
 - Appreciation for all the finishing work in any house
 
 The warehouse community was incredible - sharing tools, knowledge, and the journey with other builders made the whole experience worthwhile. Sometimes the process teaches you as much as the final product.
+
+<img src="/images/blog_posts/image63.jpg" width="100%" alt="The finished bedroom at night, lit by string lights and a mason-jar lamp, clothes hanging along the reclaimed-wood wall">
 
 *The final colors reminded me of chocolate and peanut butter. We also built a deck on top where Kate sewed and we had extra storage.*
