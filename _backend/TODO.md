@@ -4,6 +4,8 @@ Running backlog for the site. `/run-cycle` reads this, appends new items, and av
 
 Format: each item is one bullet. Optional tags in `[brackets]`, `[quick]`, `[medium]`, `[project]`, `[content]`, `[infra]`, `[design]`.
 
+> Chronological spine of Sean's life-in-projects (maps each chapter to existing pages vs gaps): [`LIFE_IN_PROJECTS.md`](LIFE_IN_PROJECTS.md). New writing candidates surfaced there: Nairobi-to-Cape-Town overland (2008), Georgia Tech Outdoor Recreation program, the Bus/RV build, the Kenya/KCB origin story, PickNik Robotics, and promoting the Sanivation + Adventure Report posts to `/projects` pages.
+
 ## Active
 
 ### Content fidelity

@@ -14,14 +14,26 @@ Detailed write-ups of the tools and groups I'm currently building. Each page cov
 - **[Island Lab]({{ '/projects/islandlab/' | prepend: site.baseurl }}) (2026-)**: A design group rethinking systems through small, generative voyages. Worked example: the September 2026 Sound Experience pilot.
 - **[Astraeus Ocean Systems](https://astraeusocean.com/) (2024-)**: Co-founding Astraeus and developing an Ocean Intelligence Platform: sustainable marine sensing and coastal monitoring infrastructure that turns raw ocean data into decisions for climate, conservation, and industry. Subprojects: [Ecosystem Agent]({{ '/projects/ecosystem-agent/' | prepend: site.baseurl }}), [Astraeus Tracker]({{ '/projects/astraeus-tracker/' | prepend: site.baseurl }}), [Long Watch]({{ '/projects/long-watch/' | prepend: site.baseurl }}).
 - **[REAP Climate Center]({{ '/projects/reap/' | prepend: site.baseurl }}) (2024-)**: Workforce development for bio-regenerative and climate-adjacent careers, with grant strategy work supporting the initiatives.
+- **[SV Petrichor]({{ '/projects/petrichor/' | prepend: site.baseurl }}) (2021-)**: Finding, fitting out, and living aboard a 1990 Catalina 36. Oakland to Mexico to Alaska, now home at Shilshole in Seattle. Voyages in the [Baja Ha-Ha]({% post_url 2021-11-01-baja-mexico-2021 %}), [Sea of Cortez]({% post_url 2022-04-01-mexico-2021-2022-cruise %}), and [Inside Passage]({% post_url 2026-05-15-alaska-petrichor %}) trip reports.
 - **[Race to Alaska (R2AK)]({{ '/projects/r2ak/' | prepend: site.baseurl }})**: Prep, build, and route work for the engineless 750-mile race. Project frame around the [2024 trip report]({% post_url 2024-06-20-r2ak2024 %}).
-- **[The Halfway House]({{ '/projects/halfway-house/' | prepend: site.baseurl }}) (2016)**: A shipping-container tiny house built in West Oakland. Backstory in [the post]({% post_url 2016-08-15-tiny-house-post %}).
-- **[Nairobi Communal House]({{ '/projects/nairobi-house/' | prepend: site.baseurl }})**: Communal living and shared infrastructure in Nairobi.
+- **[The Halfway House]({% post_url 2016-08-15-tiny-house-post %}) (2016)**: A shipping-container tiny house built in West Oakland.
+- **[Nairobi Communal House]({{ '/projects/nairobi-house/' | prepend: site.baseurl }}) (2018-2019)**: Communal living and shared infrastructure in Nairobi, with Kate.
 - **[Friday Morning Gatherings]({{ '/projects/friday-gatherings/' | prepend: site.baseurl }})**: A weekly convening practice. The good meetings you bring people to.
+- **[Adventure Report]({{ '/projects/adventure-report/' | prepend: site.baseurl }}) (2014-)**: A monthly adventure storytelling breakfast, running for over a decade.
 
 ## Earlier Major Projects
 
+**[PickNik Robotics]({{ '/projects/picknik/' | prepend: site.baseurl }}) (2020-2024)**: Director of Business Development. Robotics control-system software with NASA, the US Space Force, and terrestrial partners, alongside buying and learning Petrichor and the move to Seattle.
+
 **[Space ROS](https://space.ros.org/) (2022-2024)**: Convened a working group with NASA on Space ROS, the open-source robotics framework being adapted for spaceflight. Helped shape how the broader robotics community contributes to standards for in-space and surface operations.
+
+**[Sanivation]({{ '/projects/sanivation/' | prepend: site.baseurl }}) (2012)**: Co-founded a solar sanitation company through Start-Up Chile. Founded in Chile, it now operates in Kenya.
+
+**[The Bus]({{ '/projects/the-bus/' | prepend: site.baseurl }}) (2011)**: Bought a bus with friends and built it into a livable RV, then drove it to Yellowstone and the Boundary Waters.
+
+**[Georgia Tech Outdoor Recreation]({{ '/projects/gt-outdoor-rec/' | prepend: site.baseurl }}) (2006-2011)**: Student Director of ORGT, coordinating caving, climbing, whitewater, and backpacking, and the trips and fundraising behind them.
+
+**[Nairobi Interns House]({{ '/projects/nairobi-interns-house/' | prepend: site.baseurl }}) (2008)**: A co-living house and weekly meetups for interns in Nairobi, the first community-organizing experiment.
 
 **[Brain Slicing Robots at 3Scan]({% post_url 2018-06-01-Brain-Slicing-Robots %}) (2013-2018)**: First employee at a biotech startup building automated digital pathology systems. Designed liquid handling systems, PCB layouts, and manufacturing processes that scaled from Arduino prototypes to production biomedical equipment.
 

@@ -1,13 +1,14 @@
 ---
 layout: default
 title: Nairobi Communal House
-subtitle: A year-long group housing experiment Kate and I ran in Nairobi.
+subtitle: A year-long group housing experiment Kate and I ran in Nairobi (2018-2019).
 permalink: /projects/nairobi-house/
 categories: [project]
 project_tag: nairobi-house
 status: draft
 reviewed_by_sean: false
-last_updated: 2026-06-17
+last_updated: 2026-06-20
+dates: 2018-2019
 ---
 
 # Nairobi Communal House
@@ -32,5 +33,6 @@ Concluded after a year. Lessons still in active use.
 
 ## Sources
 
+- [Nairobi Interns House (2008)]({{ '/projects/nairobi-interns-house/' | prepend: site.baseurl }}) (the first Nairobi co-living house, ten years earlier)
 - [Nairobi Lamp post]({% post_url 2018-06-15-The-Nairobi-Lamp %}) (separate project from the same period)
 

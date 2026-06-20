@@ -12,11 +12,17 @@ All notable changes to this site are recorded here. Format loosely follows [Keep
 - `_pages/trip-reports.html`: two successive Liquid build errors that each failed the Pages build. First, a `where_exp` with a compound `or`/`nil` condition (`post.region == nil or post.region == ''`), `where_exp`'s single-expression parser can't take `or`; introduced in `7df2a24`. The follow-up fix (`f52248e`) was pushed unbuilt and introduced a second break: a literal `{% if %}` inside a `{% comment %}` block (Liquid still parses tags inside comments). Both resolved by collapsing to one `where_exp: "post", "post.region == empty"` (Liquid `empty` matches nil and `""`). See RISKS.md R-003 / R-010.
 
 ### Changed
+- Converted the Halfway House project page to a redirect: deleted the stub `_pages/projects/halfway-house.md` and added `_pages/projects/halfway-house.html` (manual meta-refresh to the 2016 post, built via `{% post_url %}`). `/projects` now links straight to the post.
+- `_pages/projects/r2ak.md`: rewrote the empty stub into a real project page (boat, human propulsion, route, crew model) drawn from the 2024 trip report.
+- `_pages/projects/nairobi-house.md`: dated 2018-2019 and cross-linked to the new 2008 interns house, disambiguating the two Kenya co-living houses.
+- `_pages/projects.md`: added the new project pages (Adventure Report under Active Projects; PickNik, Sanivation, the Bus, ORGT, and the 2008 Nairobi interns house under Earlier Major Projects); the Halfway House bullet now points to the post.
 - Renamed the REAP project page `_pages/projects/replant-center.md` → `reap.md`; permalink `/projects/replant-center/` → `/projects/reap/`, `project_tag` → `reap`. Left a redirect stub at `_pages/projects/replant-center.html` (manual meta-refresh, `jekyll-redirect-from` is not installed) and updated the link in `projects.md`. "Replant Center" was an erroneous name; the org is REAP Climate Center.
 - Moved `RISKS.md`, `NEXT_STEPS.md`, `DECISIONS.md`, `DEFINITION_OF_DONE.md` from repo root to `_backend/` (planning docs belong in the back-end per CLAUDE.md; at root Jekyll copied them as web-reachable static files). Updated path references in `.claude/agents/`.
 - Editorial consistency pass on the 2026 recaps (Jan–May), per `_backend/RECAP_CLEANUP_PLAN.md`: Jan/Feb spaced hyphens → comma/colon house style (this entry previously read "→ em-dashes"; corrected, the em-dash is banned site-wide and the conversion was reversed by the `80365d1` sweep); Feb label bullets → colon style (Travel reworded); link parity (March "Warm Data" and Feb "Future Food Institute" now linked, matching the Apr/May convention); removed `reviewed_by_sean: false` from the Jan/Feb recaps.
 
 ### Added
+- Seven `/projects` pages from Sean's life-in-projects walkthrough: `petrichor` (SV Petrichor), `sanivation`, `adventure-report`, `gt-outdoor-rec` (ORGT), `the-bus` (Bessy), `picknik`, and `nairobi-interns-house` (2008). Drafts with confirmed date ranges; each carries a commented-out photo slot (`/images/projects/<slug>.jpg`) and `Needs Sean's input` flags where detail is still pending.
+- `_backend/LIFE_IN_PROJECTS.md`, the chronological spine of Sean's projects mapping each life chapter to existing pages versus gaps, with a pointer added from `TODO.md`.
 - `CLAUDE.md`, project notes for AI-assisted work (stack, commands, conventions).
 - `CHANGELOG.md`, this file.
 - `_archive/`, top-level folder for historical reference material not published by Jekyll. Includes `README.md`.

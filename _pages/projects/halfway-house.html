@@ -1,0 +1,19 @@
+---
+layout: null
+permalink: /projects/halfway-house/
+sitemap: false
+---
+{% capture target %}{% post_url 2016-08-15-tiny-house-post %}{% endcapture %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting to the Halfway House post</title>
+  <link rel="canonical" href="{{ target }}">
+  <meta http-equiv="refresh" content="0; url={{ target }}">
+</head>
+<body>
+  <p>This page has moved to <a href="{{ target }}">the Halfway House post</a>.</p>
+  <script>location.replace({{ target | jsonify }});</script>
+</body>
+</html>
