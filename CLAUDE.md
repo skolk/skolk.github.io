@@ -71,6 +71,20 @@ Everything Jekyll *publishes* lives in the front-end. Everything that's for thin
 - **Changelog:** structural repo changes go in `CHANGELOG.md` (Keep-a-Changelog style). Update on renames, new sections, deletions.
 - **`log.html`:** auto-renders all posts in reverse-chrono. It is NOT a changelog.
 
+## Editorial pipeline (writing cadence)
+
+Targets an article-a-week cadence at the 100r.co / craigmod.com bar (worth a stranger's time, personal but broadly useful). The machinery:
+
+- `_backend/EDITORIAL_QUEUE.md`: the scored board (Ready · Want · Worth + Decay). One row per candidate (`idea` / `trip-report` / `edit` / `improvement`). Sean owns the `Want` column.
+- `./_backend/bin/ondeck`: ranks the queue, prints this week's pick + decaying list + cadence (days since the last `_posts` commit vs a 7-day target).
+- `_backend/IMAGE_GAPS.md`: posts missing a hero picture. `image_preview:` is dead metadata (renders nowhere), so a visible picture must be an inline `<img>` in the body (subject or location).
+- `_backend/SKOLK_VOICE.md`: how Sean writes and what he does. Read before drafting in his voice. Most of his raw input is voice-to-text: clean the homophones/run-ons/missing punctuation, keep the rhythm.
+- `_backend/WRITING_RULES.md`: the 36 rules for writing. Self-check drafts against it.
+- `.claude/agents/editor.md` + `/editor`: the managing editor. What to write, good-vs-unfinished, the one gap before publishing, series map, intention harvest, and a critical-eye review of the whole site against the reference bar.
+- `/morning`: the morning writing assignment. Pairs a trip report (material) with an idea (theme) into a walk-and-talk prompt; the voice-to-text transcript converts into a draft to review, edit, and add a picture to.
+
+**Project-cycle integration:** when running `/project-cycle:run-project-cycle`, spawn the `editor` agent as an additional parallel agent (alongside sprint-tracker / prd-auditor / risk-auditor). It is the editorial + site-management lens: not just repo health, but whether the site is becoming worth reading for other people.
+
 ## Gotchas
 - Don't commit `_site/`. It's gitignored now. If a tool re-stages it, drop it.
 - The site has both a curated `/projects` page and per-post auto-listing on it. Categories drive which posts appear, so keep them topical (`making`, `fabrication`, etc.), not generic (`log`).

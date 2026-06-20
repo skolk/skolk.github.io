@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# _backend/bin/ondeck — print the ranked editorial queue ("what's on deck to write").
+#
+# Reads _backend/EDITORIAL_QUEUE.md, ranks the "## Queue" table by Ready+Want+Worth
+# (Decay breaks ties), and shows this week's pick, the next few, decaying items, and
+# days since the last published post (the article-a-week cadence guardrail).
+#
+# Read-only. Does not edit the queue or anything else.
+
+set -u
+# This script lives at _backend/bin/ondeck, so repo root is two levels up.
+cd "$(dirname "$0")/../.."
+
+QUEUE="_backend/EDITORIAL_QUEUE.md"
+[ -f "$QUEUE" ] || { printf 'ondeck: %s not found\n' "$QUEUE" >&2; exit 1; }
+
+# Pull the rows of the "## Queue" table (between '## Queue' and the next '## ').
+rows=$(awk '
+  /^## Queue/ {inq=1; next}
+  /^## /      {inq=0}
+  inq && /^\|/ {print}
+' "$QUEUE")
+
+# Parse each row -> score<TAB>decay<TAB>want_missing<TAB>type<TAB>candidate
+# Skip the header row and the |---| separator. A "?" in a numeric cell counts as 0.
+parsed=$(printf '%s\n' "$rows" | awk -F'|' '
+  function trim(s){ gsub(/^[ \t]+|[ \t]+$/,"",s); return s }
+  {
+    cand=trim($2); type=trim($3); r=trim($4); w=trim($5); wo=trim($6); d=trim($7);
+    if (cand=="" || cand ~ /^-+$/ || tolower(cand)=="candidate") next;
+    miss=0;
+    if (r=="?"||r=="")  r=0;
+    if (w=="?"||w=="") {w=0; miss=1}
+    if (wo=="?"||wo=="") wo=0;
+    if (d=="?"||d=="")  d=0;
+    printf "%d\t%d\t%d\t%s\t%s\n", r+w+wo, d, miss, type, cand;
+  }
+')
+
+sorted=$(printf '%s\n' "$parsed" | grep -c . >/dev/null 2>&1 && printf '%s\n' "$parsed" | sort -t$'\t' -k1,1nr -k2,2nr)
+count=$(printf '%s\n' "$sorted" | grep -c . || true)
+
+printf 'ON DECK  (%s candidates, ranked by Ready+Want+Worth, Decay breaks ties)\n' "$count"
+printf '=====================================================================\n'
+
+if [ "$count" -eq 0 ]; then
+  printf '(queue is empty)\n'
+else
+  i=0
+  while IFS=$'\t' read -r score decay miss type cand; do
+    [ -z "${cand:-}" ] && continue
+    i=$((i+1))
+    flag=""; [ "$decay" -ge 2 ] && flag="  (urgent decay)"; [ "$decay" -eq 1 ] && flag="  (decaying)"
+    note=""; [ "$miss" -eq 1 ] && note="  [set Want]"
+    if [ "$i" -eq 1 ]; then
+      printf "THIS WEEK'S PICK:  %s\n                   %s, score %s%s%s\n\n" "$cand" "$type" "$score" "$flag" "$note"
+      printf 'NEXT UP:\n'
+    elif [ "$i" -le 5 ]; then
+      printf '  %d. %-42s %-12s score %s%s%s\n' "$i" "$cand" "$type" "$score" "$flag" "$note"
+    fi
+  done <<EOF
+$sorted
+EOF
+
+  decaying=$(printf '%s\n' "$sorted" | awk -F'\t' '$2>=1{printf "  - %s  (decay %s)\n", $5, $2}')
+  if [ -n "$decaying" ]; then
+    printf '\nDECAYING (write soon or consciously drop):\n%s\n' "$decaying"
+  fi
+fi
+
+# Cadence: last commit that touched _posts/ (reflects real publishing, even for backdated posts).
+printf '\n'
+last=$(git log -1 --format=%cd --date=short -- _posts/ 2>/dev/null || true)
+if [ -n "$last" ]; then
+  now=$(date +%s)
+  then=$(date -j -f "%Y-%m-%d" "$last" +%s 2>/dev/null || date -d "$last" +%s 2>/dev/null || true)
+  if [ -n "$then" ]; then
+    days=$(( (now - then) / 86400 ))
+    warn=""; [ "$days" -gt 7 ] && warn="   PAST the 7-day target"
+    printf 'LAST SHIPPED (git): %s  (%s days ago)%s\n' "$last" "$days" "$warn"
+  else
+    printf 'LAST SHIPPED (git): %s\n' "$last"
+  fi
+fi
