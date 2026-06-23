@@ -91,3 +91,7 @@ exclude:
   - README.md
   - .gitignore
   - .githooks/
+  # Raw Instagram export archive (binary media) lives under _drafts/ for the
+  # import work. Skip it so `jekyll serve --drafts` doesn't try to read .mp4/.webp
+  # blobs as text. Not for deploy either.
+  - _drafts/instagram-s.a.kolk-2026-06-22-l6dqQ6Ax/
