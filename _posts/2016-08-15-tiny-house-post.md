@@ -86,5 +86,3 @@ The warehouse community was incredible - sharing tools, knowledge, and the journ
 <img src="/images/blog_posts/image63.jpg" width="100%" alt="The finished bedroom at night, lit by string lights and a mason-jar lamp, clothes hanging along the reclaimed-wood wall">
 
 *The final colors reminded me of chocolate and peanut butter. We also built a deck on top where Kate sewed and we had extra storage.*
-</content>
-</invoke>

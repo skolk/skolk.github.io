@@ -59,5 +59,3 @@ Active. Home port Shilshole (Ballard, Seattle). This page is a draft; the findin
 - [Sea of Cortez 2021-2022 trip report]({% post_url 2022-04-01-mexico-2021-2022-cruise %})
 - [Sailing to Alaska on Petrichor]({% post_url 2026-05-15-alaska-petrichor %})
 - [First Time Out Sailing]({% post_url 2026-04-11-First-Time-Out-Sailing %})
-</content>
-</invoke>
