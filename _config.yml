@@ -14,6 +14,9 @@ url: https://skolk.github.io  # the base hostname & protocol for your site
 # Build settings
 markdown: kramdown
 
+# Dated permalinks without category segments (e.g. /2026/06/30/June-2026-Recap.html)
+permalink: /:year/:month/:day/:title:output_ext
+
 # Sass settings
 sass:
   style: compressed
