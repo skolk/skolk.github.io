@@ -21,6 +21,7 @@ function toggleTheme(){
 <script>window._OPEN_WATER_SITE = true;</script>
 <script src="coastal-geometry.js"></script>
 <script src="forage-model.js"></script>
+<script src="reported-sightings.js"></script>
 <style>
   /* Dedicated open-water bundle: hide the seagrass-monitoring chrome the orca
      map does not use (right-hand control panels, playback timeline, diagnostic
@@ -4111,6 +4112,11 @@ async function renderOpenWaterGrid() {
   // the map's thesis layer; self-contained, no network.
   if (window.ForageModel && window.ForageModel.mount) {
     window.ForageModel.mount({ map: map, cells: cells, config: cfg, isLight: light });
+  }
+  // Reported sightings (iNaturalist), rate-limited. Ground truth over the model,
+  // toward the whale-alert system. Feature-branch layer, opt-in via its toggle.
+  if (window.ReportedSightings && window.ReportedSightings.mount) {
+    window.ReportedSightings.mount({ map: map, config: cfg });
   }
 
   const b = cfg.context_bounds;

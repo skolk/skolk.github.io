@@ -1,0 +1,338 @@
+/* Reported sightings (iNaturalist) for the Salish Sea orca map.
+ *
+ * Real, recent citizen-science observations dropped on top of the modeled
+ * forage web as ground truth. iNaturalist's public API needs no key and sends
+ * Access-Control-Allow-Origin:*, so the published page fetches it directly.
+ *
+ * BANDWIDTH GUARD (the important part): a self-imposed rate limiter keeps this
+ * page a polite API citizen and un-blockable. Ceiling is 20 requests per rolling
+ * 60s (well under iNat's ~60/min and the 30/min target), with a hard 2.5s min
+ * gap, a 10-minute response cache, in-flight de-duplication, and 429 handling
+ * that honours Retry-After, backs off exponentially, and trips a circuit breaker
+ * after repeated failures. In practice the page makes ~1 request per species you
+ * toggle; the limiter only matters if something misbehaves. Its live counter is
+ * shown in the panel so the guard is auditable, not just asserted.
+ *
+ * Exposes window.ReportedSightings.mount({ map, config }).
+ */
+(function (global) {
+  'use strict';
+
+  // ---- rate limiter ------------------------------------------------------
+  function createLimiter(opts) {
+    opts = opts || {};
+    var maxPerWindow = opts.maxPerWindow || 20;   // ceiling per rolling window (< 30/min target)
+    var windowMs = opts.windowMs || 60000;
+    var minGapMs = opts.minGapMs || 2500;         // >= 2.5s between calls => <= 24/min anyway
+    var cacheTtl = opts.cacheTtl || 600000;       // 10 min
+    var maxFailures = opts.maxFailures || 3;
+    var breakerMs = opts.breakerMs || 300000;     // 5 min cool-down once tripped
+
+    var scheduled = [];    // ascending fire times already reserved (incl. future)
+    var inflight = {};     // url -> Promise (de-dupe identical concurrent calls)
+    var mem = {};          // url -> { t, data }
+    var failures = 0;
+    var blockedUntil = 0;
+
+    function now() { return Date.now(); }          // browser context: Date is fine
+
+    function stats() {
+      var t = now();
+      var inWindow = 0;
+      for (var i = 0; i < scheduled.length; i++) if (scheduled[i] <= t && scheduled[i] > t - windowMs) inWindow++;
+      return {
+        inWindow: inWindow,
+        max: maxPerWindow,
+        blocked: t < blockedUntil,
+        blockedForMs: Math.max(0, blockedUntil - t)
+      };
+    }
+
+    // Reserve the next legal fire time SYNCHRONOUSLY, so a burst of concurrent
+    // calls serialises instead of all reading an empty window at once. Enforces
+    // the min gap, the rolling-window ceiling, and any active cool-down.
+    function reserve() {
+      var t = now();
+      var byGap = scheduled.length ? scheduled[scheduled.length - 1] + minGapMs : t;
+      var byWindow = scheduled.length >= maxPerWindow
+        ? scheduled[scheduled.length - maxPerWindow] + windowMs : 0;
+      var fire = Math.max(t, byGap, byWindow, blockedUntil);
+      scheduled.push(fire);
+      while (scheduled.length > maxPerWindow * 3) scheduled.shift();
+      return fire;
+    }
+
+    function getCache(url) {
+      if (mem[url] && now() - mem[url].t < cacheTtl) return mem[url].data;
+      try {
+        var raw = localStorage.getItem('inat:' + url);
+        if (raw) { var o = JSON.parse(raw); if (now() - o.t < cacheTtl) { mem[url] = o; return o.data; } }
+      } catch (e) { /* private mode / quota: fall through */ }
+      return null;
+    }
+    function setCache(url, data) {
+      var rec = { t: now(), data: data };
+      mem[url] = rec;
+      try { localStorage.setItem('inat:' + url, JSON.stringify(rec)); } catch (e) { /* ignore */ }
+    }
+
+    // Resolves { data, cached }. Rejects on HTTP/network/breaker error.
+    function fetchJson(url) {
+      var cached = getCache(url);
+      if (cached) return Promise.resolve({ data: cached, cached: true });
+      if (inflight[url]) return inflight[url];
+
+      var fire = reserve();               // reserve a legal slot synchronously
+      var delay = Math.max(0, fire - now());
+      var p = new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          global.fetch(url, { headers: { Accept: 'application/json' } })
+            .then(function (r) {
+              if (r.status === 429) {
+                failures++;
+                var ra = parseInt(r.headers.get('Retry-After') || '0', 10);
+                blockedUntil = now() + (ra > 0 ? ra * 1000 : Math.min(breakerMs, 5000 * Math.pow(2, failures)));
+                throw new Error('rate-limited by iNaturalist (429)');
+              }
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              return r.json();
+            })
+            .then(function (j) { failures = 0; setCache(url, j); resolve({ data: j, cached: false }); })
+            .catch(function (e) {
+              if (failures >= maxFailures) blockedUntil = Math.max(blockedUntil, now() + breakerMs);
+              reject(e);
+            })
+            .then(function () { delete inflight[url]; });
+        }, delay);
+      });
+      inflight[url] = p;
+      return p;
+    }
+
+    return { fetchJson: fetchJson, stats: stats, reserve: reserve };
+  }
+
+  // ---- species -----------------------------------------------------------
+  var API = 'https://api.inaturalist.org/v1/observations';
+  var SPECIES = [
+    { key: 'orca',   label: 'Orca',            taxon: 41521, color: '#e0a24d', ecotype: true },
+    { key: 'seal',   label: 'Harbor seal',     taxon: 41708, color: '#a58f63' },
+    { key: 'steller', label: 'Steller sea lion', taxon: 41755, color: '#b5653a' },
+    { key: 'chinook', label: 'Chinook salmon', taxon: 54191, color: '#c85a2c' }
+  ];
+  var PER_PAGE = 10;   // "last 10" per the brief
+
+  // Orca ecotype from the observed taxon name.
+  function orcaTint(name) {
+    if (!name) return '#e0a24d';
+    if (name.indexOf('rectipinnus') >= 0) return '#8a5cb8';  // Bigg's / transient (purple, matches model)
+    if (name.indexOf('ater') >= 0) return '#3f8f86';         // Southern Resident (teal, matches model)
+    return '#e0a24d';                                        // ecotype not recorded (amber)
+  }
+  function orcaEcotypeLabel(name) {
+    if (!name) return '';
+    if (name.indexOf('rectipinnus') >= 0) return "Bigg's / transient";
+    if (name.indexOf('ater') >= 0) return 'Southern Resident';
+    return 'ecotype not recorded';
+  }
+
+  // ---- state -------------------------------------------------------------
+  var _map, _cfg, limiter;
+  var layer;                 // L.layerGroup of markers
+  var active = 'orca';
+  var on = false;
+  var statusEl, latestEl;
+
+  function bboxParams() {
+    var b = (_cfg && _cfg.context_bounds) || { north: 49.2, south: 47.0, east: -122.0, west: -125.5 };
+    return 'nelat=' + b.north + '&nelng=' + b.east + '&swlat=' + b.south + '&swlng=' + b.west;
+  }
+  function urlFor(sp) {
+    return API + '?taxon_id=' + sp.taxon + '&' + bboxParams() +
+      '&order_by=observed_on&order=desc&per_page=' + PER_PAGE + '&geo=true';
+  }
+
+  function fmtDate(o) { return o.observed_on || (o.time_observed_at || '').slice(0, 10) || '?'; }
+  function photoSmall(o) {
+    var p = (o.photos || [])[0];
+    return p && p.url ? p.url.replace('square', 'small') : null;
+  }
+
+  // ---- render ------------------------------------------------------------
+  function render(observations) {
+    if (layer) { _map.removeLayer(layer); layer = null; }
+    layer = global.L.layerGroup();
+    var sp = SPECIES.filter(function (s) { return s.key === active; })[0];
+    var n = observations.length;
+
+    observations.forEach(function (o, i) {
+      var g = o.geojson;
+      if (!g || !g.coordinates) return;
+      var lng = g.coordinates[0], lat = g.coordinates[1];
+      var color = (sp.ecotype ? orcaTint((o.taxon || {}).name) : sp.color);
+      var recency = n > 1 ? 1 - (i / (n - 1)) : 1;          // newest = 1
+      var fill = 0.45 + 0.5 * recency;                       // fade older reports
+      var obscured = !!o.obscured;
+
+      if (obscured) {
+        // Location is randomised ~0.2deg by iNaturalist privacy: draw an
+        // uncertainty ring, never a precise dot.
+        global.L.circle([lat, lng], {
+          radius: 9000, color: color, weight: 1, opacity: 0.55,
+          dashArray: '4,4', fillColor: color, fillOpacity: 0.06, interactive: false
+        }).addTo(layer);
+      }
+      var m = global.L.circleMarker([lat, lng], {
+        radius: obscured ? 4.5 : 6, fillColor: color, color: '#f7f4ee',
+        weight: 1.5, fillOpacity: fill, opacity: 0.9
+      });
+      var photo = photoSmall(o);
+      var eco = sp.ecotype ? orcaEcotypeLabel((o.taxon || {}).name) : '';
+      var title = ((o.taxon || {}).preferred_common_name) || sp.label;
+      var link = o.uri || ('https://www.inaturalist.org/observations/' + (o.id || ''));
+      m.bindPopup(
+        '<div style="font:13px/1.4 \'DM Sans\',sans-serif;max-width:210px">' +
+        '<a href="' + link + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">' +
+        '<strong>' + title + '</strong></a>' +
+        (eco ? '<br><span style="color:' + color + '">' + eco + '</span>' : '') +
+        '<br>' + fmtDate(o) + ' &middot; #' + (i + 1) + ' most recent' +
+        (obscured ? '<br><small style="opacity:.7">location approximate (privacy)</small>' : '') +
+        (photo ? '<br><a href="' + link + '" target="_blank" rel="noopener">' +
+          '<img src="' + photo + '" style="width:100%;border-radius:6px;margin-top:5px" alt="observation photo"></a>' : '') +
+        '<br><small style="opacity:.7">by ' + (((o.user || {}).login) || 'observer') + '</small>' +
+        '<br><a href="' + link + '" target="_blank" rel="noopener" ' +
+        'style="display:inline-block;margin-top:6px;font-size:12px;font-weight:600;color:#2d6a8f">' +
+        'Open on iNaturalist &#8599;</a></div>',
+        { className: 'sighting-pop' });
+      m.bindTooltip(fmtDate(o) + (eco ? ' &middot; ' + eco : ''), { direction: 'top', offset: [0, -4] });
+      m.addTo(layer);
+    });
+
+    layer.addTo(_map);
+    var latest = observations.length ? fmtDate(observations[0]) : null;
+    if (latestEl) latestEl.textContent = observations.length
+      ? observations.length + ' reports · ' + latest + ' latest' : 'no recent reports in view';
+    updateStatus();
+  }
+
+  function updateStatus(msg) {
+    if (!statusEl) return;
+    var s = limiter.stats();
+    var base = 'req ' + s.inWindow + '/' + s.max + ' this min';
+    if (s.blocked) base = 'cooling down ' + Math.ceil(s.blockedForMs / 1000) + 's · ' + base;
+    statusEl.textContent = msg ? msg + ' · ' + base : base;
+  }
+
+  function load() {
+    var sp = SPECIES.filter(function (s) { return s.key === active; })[0];
+    updateStatus('loading ' + sp.label + '…');
+    limiter.fetchJson(urlFor(sp)).then(function (res) {
+      render((res.data && res.data.results) || []);
+      if (res.cached) updateStatus('cached');
+    }).catch(function (e) {
+      if (latestEl) latestEl.textContent = 'could not load: ' + e.message;
+      updateStatus();
+    });
+  }
+
+  // ---- controls ----------------------------------------------------------
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+
+  function buildControls() {
+    var host = document.querySelector('.forage-panel');   // dock inside the forage panel if present
+    var box = el('div', 'reported-box');
+    box.innerHTML =
+      '<div class="reported-head">Reported sightings <small>live</small></div>' +
+      '<div class="reported-note">Real recent reports from iNaturalist, newest first. ' +
+      'Ground truth over the model. Dashed ring = privacy-obscured location.</div>';
+
+    var row = el('label', 'reported-toggle');
+    row.innerHTML = '<input type="checkbox"><span>Show last ' + PER_PAGE + ' on the map</span>';
+    row.querySelector('input').addEventListener('change', function (e) {
+      on = e.target.checked;
+      speciesRow.style.display = on ? 'flex' : 'none';
+      statusRow.style.display = on ? 'block' : 'none';
+      if (on) load();
+      else if (layer) { _map.removeLayer(layer); layer = null; if (latestEl) latestEl.textContent = ''; }
+    });
+    box.appendChild(row);
+
+    var speciesRow = el('div', 'reported-species');
+    speciesRow.style.display = 'none';
+    SPECIES.forEach(function (s) {
+      var b = el('button', 'reported-sp-btn' + (s.key === active ? ' on' : ''),
+        '<span class="reported-dot" style="background:' + s.color + '"></span>' + s.label);
+      b.addEventListener('click', function () {
+        if (s.key === active) return;
+        active = s.key;
+        speciesRow.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+        if (on) load();
+      });
+      speciesRow.appendChild(b);
+    });
+    box.appendChild(speciesRow);
+
+    var statusRow = el('div', 'reported-status');
+    statusRow.style.display = 'none';
+    latestEl = el('div', 'reported-latest', '');
+    statusEl = el('div', 'reported-rate', '');
+    statusRow.appendChild(latestEl);
+    statusRow.appendChild(statusEl);
+    box.appendChild(statusRow);
+
+    box.appendChild(el('div', 'reported-credit',
+      'Sightings: <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a> (CC, per observer)'));
+
+    if (host) host.appendChild(box); else { box.classList.add('reported-standalone'); document.body.appendChild(box); }
+  }
+
+  function injectCss() {
+    if (document.getElementById('reported-css')) return;
+    var s = el('style'); s.id = 'reported-css';
+    s.textContent = [
+      '.reported-box{margin-top:10px;padding-top:10px;border-top:1px solid rgba(10,37,64,0.12);}',
+      'body.dark-theme .reported-box{border-top-color:rgba(94,162,230,0.18);}',
+      '.reported-standalone{position:absolute;top:64px;right:12px;z-index:1200;width:236px;',
+      'background:rgba(247,244,238,0.96);border:1px solid rgba(10,37,64,0.15);border-radius:12px;',
+      'padding:12px 13px;font-family:"DM Sans",sans-serif;color:#0a2540;box-shadow:0 6px 24px rgba(10,37,64,0.16);}',
+      '.reported-head{font-family:"Fraunces",Georgia,serif;font-size:14px;font-weight:600;}',
+      '.reported-head small{font-family:"JetBrains Mono",monospace;font-size:9px;font-weight:500;text-transform:uppercase;',
+      'letter-spacing:.08em;color:#c8553a;margin-left:5px;}',
+      '.reported-note{font-size:10.5px;line-height:1.35;opacity:.62;margin:3px 0 8px;}',
+      '.reported-toggle{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;}',
+      '.reported-toggle input{cursor:pointer;}',
+      '.reported-species{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}',
+      '.reported-sp-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 7px;border-radius:20px;',
+      'border:1px solid rgba(10,37,64,0.2);background:transparent;color:inherit;cursor:pointer;font-family:inherit;}',
+      '.reported-sp-btn.on{background:#0a2540;color:#f7f4ee;border-color:#0a2540;}',
+      'body.dark-theme .reported-sp-btn.on{background:#5ea2e6;color:#0a1a24;border-color:#5ea2e6;}',
+      '.reported-dot{width:8px;height:8px;border-radius:50%;display:inline-block;border:1px solid rgba(255,255,255,0.6);}',
+      '.reported-status{margin-top:8px;font-family:"JetBrains Mono",monospace;font-size:10px;line-height:1.5;opacity:.75;}',
+      '.reported-rate{opacity:.6;}',
+      '.reported-credit{margin-top:8px;font-size:9.5px;opacity:.55;}',
+      '.reported-credit a{color:inherit;}',
+      '.sighting-pop .leaflet-popup-content{margin:10px 12px;}'
+    ].join('');
+    document.head.appendChild(s);
+  }
+
+  // ---- mount -------------------------------------------------------------
+  function mount(opts) {
+    _map = opts.map;
+    _cfg = opts.config;
+    if (!_map || !global.L) return;
+    limiter = createLimiter(opts.limiter || {});
+    injectCss();
+    buildControls();
+    // keep the live counter ticking down while a cool-down is active
+    setInterval(function () { if (on) updateStatus(); }, 1000);
+  }
+
+  global.ReportedSightings = { mount: mount, _createLimiter: createLimiter };
+})(window);
