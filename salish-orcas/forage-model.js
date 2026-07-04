@@ -299,7 +299,8 @@
   function buildControls() {
     var panel = el('div', 'forage-panel');
     panel.innerHTML =
-      '<div class="forage-head">Forage web <small>modeled</small></div>' +
+      '<div class="forage-head"><span>Forage web <small>modeled</small></span>' +
+      '<button class="forage-collapse" aria-label="Collapse panel">&minus;</button></div>' +
       '<div class="forage-note">Deterministic seasonal models (calendar &times; place). ' +
       'Synthetic, not live. Orcas are derived from their prey.</div>';
 
@@ -340,6 +341,20 @@
     panel.appendChild(runRow);
 
     document.body.appendChild(panel);
+
+    // Collapse toggle: on a phone the panel would cover the map, so start
+    // collapsed on narrow screens and let a tap on the header expand it.
+    var collapseBtn = panel.querySelector('.forage-collapse');
+    function setCollapsed(c) {
+      panel.classList.toggle('collapsed', c);
+      collapseBtn.innerHTML = c ? '&#43;' : '&minus;';
+      collapseBtn.setAttribute('aria-label', c ? 'Expand panel' : 'Collapse panel');
+    }
+    collapseBtn.addEventListener('click', function (e) { e.stopPropagation(); setCollapsed(!panel.classList.contains('collapsed')); });
+    panel.querySelector('.forage-head').addEventListener('click', function () {
+      if (panel.classList.contains('collapsed')) setCollapsed(false);
+    });
+    if (window.innerWidth <= 640) setCollapsed(true);
 
     // Week scrubber (bottom).
     var bar = el('div', 'forage-scrub');
@@ -418,13 +433,21 @@
     var s = el('style'); s.id = 'forage-css';
     s.textContent = [
       '.forage-panel{position:absolute;top:64px;right:12px;z-index:1200;width:236px;',
+      'max-height:calc(100vh - 84px);overflow-y:auto;-webkit-overflow-scrolling:touch;',
       'background:rgba(247,244,238,0.96);border:1px solid rgba(10,37,64,0.15);border-radius:12px;',
       'padding:12px 13px;font-family:"DM Sans",system-ui,sans-serif;color:#0a2540;',
       'box-shadow:0 6px 24px rgba(10,37,64,0.16);backdrop-filter:blur(6px);}',
       'body.dark-theme .forage-panel{background:rgba(14,26,36,0.94);color:#e6eef5;border-color:rgba(94,162,230,0.2);}',
-      '.forage-head{font-family:"Fraunces",Georgia,serif;font-size:15px;font-weight:600;margin-bottom:4px;}',
+      '.forage-head{display:flex;align-items:center;justify-content:space-between;gap:8px;',
+      'font-family:"Fraunces",Georgia,serif;font-size:15px;font-weight:600;margin-bottom:4px;cursor:pointer;}',
       '.forage-head small{font-family:"JetBrains Mono",monospace;font-size:9px;font-weight:500;text-transform:uppercase;',
       'letter-spacing:.08em;opacity:.55;margin-left:5px;}',
+      '.forage-collapse{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid rgba(10,37,64,0.2);',
+      'background:transparent;color:inherit;font-size:15px;line-height:1;cursor:pointer;font-family:inherit;}',
+      'body.dark-theme .forage-collapse{border-color:rgba(94,162,230,0.25);}',
+      '.forage-panel.collapsed{width:auto;overflow:visible;}',
+      '.forage-panel.collapsed>*:not(.forage-head){display:none !important;}',   // beat inline display:flex on run/species rows
+      '.forage-panel.collapsed .forage-head{margin-bottom:0;}',
       '.forage-note{font-size:10.5px;line-height:1.35;opacity:.62;margin-bottom:10px;}',
       '.forage-row{display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;}',
       '.forage-row input{cursor:pointer;}',
@@ -468,7 +491,17 @@
       '.forage-legend-scale{display:flex;justify-content:space-between;font-size:9px;opacity:.5;margin-top:4px;',
       'font-family:"JetBrains Mono",monospace;}',
       '.forage-tip{font-family:"DM Sans",sans-serif !important;}',
-      '@media(max-width:640px){.forage-panel{width:200px;top:58px;}.forage-scrub{width:92vw;}}'
+      '@media(max-width:640px){',
+      '.forage-panel{width:min(74vw,250px);top:54px;right:8px;max-height:60vh;}',
+      '.forage-panel.collapsed{width:auto;}',
+      '.forage-legend{display:none !important;}',                       // beat inline display:block; collides with scrubber on phones
+      '.forage-scrub{width:calc(100vw - 16px);bottom:12px;gap:8px;padding:7px 12px;}',
+      '.forage-date{width:52px;font-size:12px;}',
+      '.forage-play{width:34px;height:34px;}',                          // bigger tap target
+      '.forage-today-btn{padding:5px 10px;}',
+      '.forage-row{padding:6px 0;}',                                    // roomier taps
+      '.forage-run-btn{padding:4px 9px;}',
+      '}'
     ].join('');
     document.head.appendChild(s);
   }
