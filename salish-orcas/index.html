@@ -3,24 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <script>
-// Theme + collapsed-chrome state: applied before paint to avoid a flash.
-// Day/night follows the project dashboard's shared setting: localStorage
-// 'astraeus.pm.theme' (day|night). day -> light, night -> dark. Legacy
-// 'pollica_theme' (light|dark) is a fallback when the shared key is unset.
-// Same-origin only: both pages must be served from the same host to share it.
+// Theme state, applied before paint to avoid a flash. Defaults to day (light);
+// the toggle persists the choice in localStorage 'salish.theme' (light|dark).
 (function(){try{
-  var pm = localStorage.getItem('astraeus.pm.theme');
-  var mode = pm ? (pm === 'day' ? 'light' : 'dark')
-                : (localStorage.getItem('pollica_theme') || 'dark');
+  var mode = localStorage.getItem('salish.theme') || 'light';   // default: day
   document.documentElement.setAttribute('data-theme', mode);
-}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();
+}catch(e){document.documentElement.setAttribute('data-theme','light');}})();
 function __isLight(){return document.documentElement.getAttribute('data-theme')==='light';}
 function toggleTheme(){
   var next = __isLight() ? 'dark' : 'light';
-  try{
-    localStorage.setItem('astraeus.pm.theme', next === 'light' ? 'day' : 'night'); // shared source of truth
-    localStorage.setItem('pollica_theme', next);                                   // keep legacy key in sync
-  }catch(e){}
+  try{ localStorage.setItem('salish.theme', next); }catch(e){}
   location.reload();
 }
 </script>

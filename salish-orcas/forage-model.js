@@ -178,13 +178,20 @@
     var dayInto = Math.round((week - MONTH_START_WK[m]) * 7) + 1;
     return MONTHS[m] + ' ' + dayInto;
   }
+  // Week index [0,51] for today's date, so the scrubber opens on now.
+  function todayWeek() {
+    var d = new Date();
+    var doy = Math.floor((d - new Date(d.getFullYear(), 0, 1)) / 86400000);
+    return Math.max(0, Math.min(51, Math.floor(doy / 7)));
+  }
 
   // ---- state -------------------------------------------------------------
   var _map, _cells, _isLight;
   var layerGroups = {};       // key -> L.layerGroup
   var layerOn = {};           // key -> bool
   var salmonRun = 'Chinook';  // active salmon calendar
-  var week = 30;              // late July: SRKW summer peak, everything lit
+  var TODAY_WK = todayWeek(); // fixed reference for the "today" marker
+  var week = TODAY_WK;        // scrubber opens on today
 
   // Per-cell static priors, computed once. cell._fp = { salmon, herring, seal, srkw, biggs }
   function precompute() {
@@ -336,16 +343,30 @@
 
     // Week scrubber (bottom).
     var bar = el('div', 'forage-scrub');
+    var todayPct = (TODAY_WK / 51) * 100;
     bar.innerHTML =
       '<button class="forage-play" id="foragePlay" aria-label="Play">&#9654;</button>' +
       '<div class="forage-date" id="forageDate">' + weekLabel(week) + '</div>' +
-      '<input type="range" class="forage-slider" id="forageSlider" min="0" max="51" value="' + week + '" step="1">';
+      '<div class="forage-slider-wrap">' +
+        '<input type="range" class="forage-slider" id="forageSlider" min="0" max="51" value="' + week + '" step="1">' +
+        '<span class="forage-today" style="left:' + todayPct.toFixed(1) + '%" title="today"></span>' +
+        '<span class="forage-today-lbl" style="left:' + todayPct.toFixed(1) + '%">today</span>' +
+      '</div>' +
+      '<button class="forage-today-btn" id="forageTodayBtn" title="Jump to today">today</button>';
     document.body.appendChild(bar);
 
     var slider = bar.querySelector('#forageSlider');
     var dateEl = bar.querySelector('#forageDate');
     slider.addEventListener('input', function () {
       week = parseInt(slider.value, 10);
+      dateEl.textContent = weekLabel(week);
+      paintAll();
+      updateLegend();
+    });
+
+    bar.querySelector('#forageTodayBtn').addEventListener('click', function () {
+      week = TODAY_WK;
+      slider.value = week;
       dateEl.textContent = weekLabel(week);
       paintAll();
       updateLegend();
@@ -427,7 +448,15 @@
       'body.dark-theme .forage-play{background:#5ea2e6;color:#0a1a24;}',
       '.forage-date{flex:none;width:66px;font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:500;',
       'color:#0a2540;}body.dark-theme .forage-date{color:#e6eef5;}',
-      '.forage-slider{flex:1;accent-color:#2d6a8f;}',
+      '.forage-slider-wrap{position:relative;flex:1;display:flex;align-items:center;}',
+      '.forage-slider{width:100%;accent-color:#2d6a8f;position:relative;z-index:2;}',
+      '.forage-today{position:absolute;top:-3px;bottom:-3px;width:2px;background:#c8553a;',
+      'transform:translateX(-1px);pointer-events:none;z-index:1;border-radius:1px;opacity:.85;}',
+      '.forage-today-lbl{position:absolute;top:-15px;transform:translateX(-50%);font-size:9px;',
+      'font-family:"JetBrains Mono",monospace;color:#c8553a;pointer-events:none;letter-spacing:.03em;}',
+      '.forage-today-btn{flex:none;font-size:11px;padding:3px 9px;border-radius:20px;cursor:pointer;',
+      'border:1px solid #c8553a;background:transparent;color:#c8553a;font-family:inherit;font-weight:600;}',
+      '.forage-today-btn:hover{background:#c8553a;color:#f7f4ee;}',
       '.forage-legend{position:absolute;left:12px;bottom:18px;z-index:1200;',
       'background:rgba(247,244,238,0.96);border:1px solid rgba(10,37,64,0.15);border-radius:10px;padding:9px 11px;',
       'font-family:"DM Sans",sans-serif;font-size:11.5px;color:#0a2540;box-shadow:0 4px 16px rgba(10,37,64,0.14);',
