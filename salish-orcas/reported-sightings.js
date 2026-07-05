@@ -120,18 +120,24 @@
     return { fetchJson: fetchJson, stats: stats, reserve: reserve };
   }
 
-  // ---- species -----------------------------------------------------------
-  var API = 'https://api.inaturalist.org/v1/observations';
-  var SPECIES = [
+  // ---- sources -----------------------------------------------------------
+  // Acartia is the primary, whale-specific feed: the Salish Sea data cooperative
+  // that aggregates Orca Network, Ocean Wise WhaleReport, the Whale Museum and
+  // more. Public, keyless, CORS-open. iNaturalist stays as a secondary source
+  // (broader species, photo-rich) selectable in the panel.
+  var ACARTIA_API = 'https://acartia.io/api/v1/sightings/current';  // all sightings, past 7 days
+  var ACARTIA_MAX = 60;      // cap markers drawn from Acartia
+  var INAT_API = 'https://api.inaturalist.org/v1/observations';
+  var INAT_SPECIES = [
     { key: 'orca',   label: 'Orca',            taxon: 41521, color: '#e0a24d', ecotype: true },
     { key: 'seal',   label: 'Harbor seal',     taxon: 41708, color: '#a58f63' },
     { key: 'steller', label: 'Steller sea lion', taxon: 41755, color: '#b5653a' },
     { key: 'chinook', label: 'Chinook salmon', taxon: 54191, color: '#c85a2c' }
   ];
-  var PER_PAGE = 10;   // "last 10" per the brief
+  var PER_PAGE = 10;         // iNaturalist "last 10" per the brief
   var REFRESH_MS = 300000;   // auto-refresh cadence while on + tab visible (5 min)
 
-  // Orca ecotype from the observed taxon name.
+  // Orca ecotype from the observed iNaturalist taxon name.
   function orcaTint(name) {
     if (!name) return '#e0a24d';
     if (name.indexOf('rectipinnus') >= 0) return '#8a5cb8';  // Bigg's / transient (purple, matches model)
@@ -144,91 +150,141 @@
     if (name.indexOf('ater') >= 0) return 'Southern Resident';
     return 'ecotype not recorded';
   }
+  // Acartia reports a plain species string ("Orca", "Humpback", ...); colour by it.
+  function acartiaColor(type) {
+    var t = (type || '').toLowerCase();
+    if (t.indexOf('orca') >= 0 || t.indexOf('killer') >= 0) return '#e0a24d';
+    if (t.indexOf('humpback') >= 0) return '#3f6f9d';
+    if (t.indexOf('gray') >= 0 || t.indexOf('grey') >= 0) return '#8a8f7a';
+    if (t.indexOf('minke') >= 0) return '#6f9f8a';
+    if (t.indexOf('fin') >= 0) return '#7a6f9d';
+    if (t.indexOf('porpoise') >= 0 || t.indexOf('dolphin') >= 0) return '#5aa0b5';
+    return '#b5653a';
+  }
 
   // ---- state -------------------------------------------------------------
   var _map, _cfg, limiter;
   var layer;                 // L.layerGroup of markers
-  var active = 'orca';
+  var activeSource = 'acartia';   // 'acartia' (primary) | 'inaturalist'
+  var active = 'orca';            // iNaturalist active species
   var on = false;
-  var statusEl, latestEl;
+  var statusEl, latestEl, noteEl, creditEl, speciesRow;
   var lastLoadedAt = 0;      // ms of the last successful load (0 = never / off)
-  var seenByKey = {};        // species key -> { obsId: true } shown last poll
+  var seenByKey = {};        // source(+species) -> { id: true } shown last poll
 
-  function bboxParams() {
-    var b = (_cfg && _cfg.context_bounds) || { north: 49.2, south: 47.0, east: -122.0, west: -125.5 };
-    return 'nelat=' + b.north + '&nelng=' + b.east + '&swlat=' + b.south + '&swlng=' + b.west;
+  function bbox() {
+    return (_cfg && _cfg.context_bounds) || { north: 50.3, south: 46.9, east: -122.0, west: -126.5 };
   }
-  function urlFor(sp) {
-    return API + '?taxon_id=' + sp.taxon + '&' + bboxParams() +
+  function inWater(lat, lng) {
+    var b = bbox();
+    return lat >= b.south && lat <= b.north && lng >= b.west && lng <= b.east;
+  }
+  function inatUrl(sp) {
+    var b = bbox();
+    return INAT_API + '?taxon_id=' + sp.taxon +
+      '&nelat=' + b.north + '&nelng=' + b.east + '&swlat=' + b.south + '&swlng=' + b.west +
       '&order_by=observed_on&order=desc&per_page=' + PER_PAGE + '&geo=true';
   }
+  function activeINat() { return INAT_SPECIES.filter(function (s) { return s.key === active; })[0]; }
+  function sourceKey() { return activeSource === 'inaturalist' ? 'inat:' + active : 'acartia'; }
 
-  function fmtDate(o) { return o.observed_on || (o.time_observed_at || '').slice(0, 10) || '?'; }
+  // ---- normalize each source into one marker shape -----------------------
+  // { id, lat, lng, color, eco, title, dateStr, ts, photo, link, linkLabel,
+  //   byline, obscured }
   function photoSmall(o) {
     var p = (o.photos || [])[0];
     return p && p.url ? p.url.replace('square', 'small') : null;
   }
+  function mapINat(o) {
+    var g = o.geojson;
+    if (!g || !g.coordinates) return null;
+    var sp = activeINat();
+    var name = (o.taxon || {}).name;
+    var date = o.observed_on || (o.time_observed_at || '').slice(0, 10) || '?';
+    return {
+      id: o.id, lat: g.coordinates[1], lng: g.coordinates[0],
+      color: sp.ecotype ? orcaTint(name) : sp.color,
+      eco: sp.ecotype ? orcaEcotypeLabel(name) : '',
+      title: ((o.taxon || {}).preferred_common_name) || sp.label,
+      dateStr: date, ts: Date.parse(o.time_observed_at || o.observed_on || 0) || 0,
+      photo: photoSmall(o),
+      link: o.uri || ('https://www.inaturalist.org/observations/' + (o.id || '')),
+      linkLabel: 'Open on iNaturalist',
+      byline: 'by ' + (((o.user || {}).login) || 'observer'),
+      obscured: !!o.obscured
+    };
+  }
+  function mapAcartia(o) {
+    var lat = parseFloat(o.latitude), lng = parseFloat(o.longitude);
+    if (isNaN(lat) || isNaN(lng) || !inWater(lat, lng)) return null;
+    var count = parseInt(o.no_sighted, 10);
+    var trusted = o.trusted === true || o.trusted === 'true';
+    return {
+      id: o.ssemmi_id || o.entry_id, lat: lat, lng: lng,
+      color: acartiaColor(o.type),
+      eco: '',
+      title: (o.type || 'Marine mammal') + (count > 1 ? ' ×' + count : ''),
+      dateStr: (o.created || '').slice(0, 10) || '?',
+      ts: Date.parse((o.created || '').replace(' ', 'T')) || 0,
+      photo: o.photo_url || null,
+      link: 'https://acartia.io',
+      linkLabel: 'Acartia',
+      byline: (o.data_source_name || 'reporter') + (trusted ? ' · verified' : ''),
+      obscured: false
+    };
+  }
 
-  // ---- render ------------------------------------------------------------
-  function render(observations, newIds) {
+  // ---- render (source-agnostic) -----------------------------------------
+  function render(list, newIds) {
     newIds = newIds || {};
     if (layer) { _map.removeLayer(layer); layer = null; }
     layer = global.L.layerGroup();
-    var sp = SPECIES.filter(function (s) { return s.key === active; })[0];
-    var n = observations.length;
+    var n = list.length;
 
-    observations.forEach(function (o, i) {
-      var g = o.geojson;
-      if (!g || !g.coordinates) return;
-      var lng = g.coordinates[0], lat = g.coordinates[1];
-      var color = (sp.ecotype ? orcaTint((o.taxon || {}).name) : sp.color);
+    list.forEach(function (o, i) {
       var recency = n > 1 ? 1 - (i / (n - 1)) : 1;          // newest = 1
       var fill = 0.45 + 0.5 * recency;                       // fade older reports
-      var obscured = !!o.obscured;
-      var isNew = !!(o.id && newIds[o.id]);                  // arrived since last poll
+      var isNew = !!(o.id != null && newIds[o.id]);          // arrived since last poll
 
-      if (obscured) {
-        // Location is randomised ~0.2deg by iNaturalist privacy: draw an
+      if (o.obscured) {
+        // iNaturalist randomises location ~0.2deg for sensitive taxa: draw an
         // uncertainty ring, never a precise dot.
-        global.L.circle([lat, lng], {
-          radius: 9000, color: color, weight: 1, opacity: 0.55,
-          dashArray: '4,4', fillColor: color, fillOpacity: 0.06, interactive: false
+        global.L.circle([o.lat, o.lng], {
+          radius: 9000, color: o.color, weight: 1, opacity: 0.55,
+          dashArray: '4,4', fillColor: o.color, fillOpacity: 0.06, interactive: false
         }).addTo(layer);
       }
-      var m = global.L.circleMarker([lat, lng], {
-        radius: obscured ? 4.5 : 6, fillColor: color, color: '#f7f4ee',
+      var m = global.L.circleMarker([o.lat, o.lng], {
+        radius: o.obscured ? 4.5 : 6, fillColor: o.color, color: '#f7f4ee',
         weight: 1.5, fillOpacity: fill, opacity: 0.9,
         className: isNew ? 'sighting-new' : ''             // CSS pulse on fresh reports
       });
-      var photo = photoSmall(o);
-      var eco = sp.ecotype ? orcaEcotypeLabel((o.taxon || {}).name) : '';
-      var title = ((o.taxon || {}).preferred_common_name) || sp.label;
-      var link = o.uri || ('https://www.inaturalist.org/observations/' + (o.id || ''));
       m.bindPopup(
         '<div style="font:13px/1.4 \'DM Sans\',sans-serif;max-width:210px">' +
-        '<a href="' + link + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">' +
-        '<strong>' + title + '</strong></a>' +
-        (eco ? '<br><span style="color:' + color + '">' + eco + '</span>' : '') +
-        '<br>' + fmtDate(o) + ' &middot; #' + (i + 1) + ' most recent' +
-        (obscured ? '<br><small style="opacity:.7">location approximate (privacy)</small>' : '') +
-        (photo ? '<br><a href="' + link + '" target="_blank" rel="noopener">' +
-          '<img src="' + photo + '" style="width:100%;border-radius:6px;margin-top:5px" alt="observation photo"></a>' : '') +
-        '<br><small style="opacity:.7">by ' + (((o.user || {}).login) || 'observer') + '</small>' +
-        '<br><a href="' + link + '" target="_blank" rel="noopener" ' +
+        '<a href="' + o.link + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">' +
+        '<strong>' + o.title + '</strong></a>' +
+        (o.eco ? '<br><span style="color:' + o.color + '">' + o.eco + '</span>' : '') +
+        '<br>' + o.dateStr + ' &middot; #' + (i + 1) + ' most recent' +
+        (o.obscured ? '<br><small style="opacity:.7">location approximate (privacy)</small>' : '') +
+        (o.photo ? '<br><a href="' + o.link + '" target="_blank" rel="noopener">' +
+          '<img src="' + o.photo + '" style="width:100%;border-radius:6px;margin-top:5px" alt="sighting photo"></a>' : '') +
+        '<br><small style="opacity:.7">' + o.byline + '</small>' +
+        '<br><a href="' + o.link + '" target="_blank" rel="noopener" ' +
         'style="display:inline-block;margin-top:6px;font-size:12px;font-weight:600;color:#2d6a8f">' +
-        'Open on iNaturalist &#8599;</a></div>',
+        o.linkLabel + ' &#8599;</a></div>',
         { className: 'sighting-pop' });
-      m.bindTooltip(fmtDate(o) + (eco ? ' &middot; ' + eco : ''), { direction: 'top', offset: [0, -4] });
+      m.bindTooltip(o.dateStr + (o.eco ? ' &middot; ' + o.eco : ' &middot; ' + o.title),
+        { direction: 'top', offset: [0, -4] });
       m.addTo(layer);
     });
 
     layer.addTo(_map);
-    var latest = observations.length ? fmtDate(observations[0]) : null;
+    var latest = list.length ? list[0].dateStr : null;
     var freshCount = 0;
     for (var k in newIds) if (newIds[k]) freshCount++;
-    if (latestEl) latestEl.textContent = observations.length
+    if (latestEl) latestEl.textContent = list.length
       ? (freshCount ? freshCount + ' new · ' : '') +
-        observations.length + ' reports · ' + latest + ' latest'
+        list.length + ' reports · ' + latest + ' latest'
       : 'no recent reports in view';
     updateStatus();
   }
@@ -253,29 +309,55 @@
     statusEl.textContent = (msg ? msg + ' · ' : '') + parts.join(' · ');
   }
 
-  function load(isRefresh) {
-    var sp = SPECIES.filter(function (s) { return s.key === active; })[0];
-    var key = sp.key;
-    updateStatus((isRefresh ? 'refreshing ' : 'loading ') + sp.label + '…');
-    limiter.fetchJson(urlFor(sp)).then(function (res) {
-      if (active !== key) return;                       // species switched mid-flight
-      var results = (res.data && res.data.results) || [];
-      var prev = seenByKey[key];                         // undefined on first load
-      var newIds = {}, seen = {};
-      results.forEach(function (o) {
-        if (!o.id) return;
-        seen[o.id] = true;
-        if (prev && !prev[o.id]) newIds[o.id] = true;    // first load marks nothing new
-      });
-      seenByKey[key] = seen;
-      render(results, newIds);
+  // Diff against what was shown last poll (per source), mark the new ones, render.
+  function diffAndRender(key, list) {
+    var prev = seenByKey[key];                           // undefined on first load
+    var newIds = {}, seen = {};
+    list.forEach(function (m) {
+      if (m.id == null) return;
+      seen[m.id] = true;
+      if (prev && !prev[m.id]) newIds[m.id] = true;      // first load marks nothing new
+    });
+    seenByKey[key] = seen;
+    render(list, newIds);
+  }
+  function loadError(key, e) {
+    if (sourceKey() !== key) return;                     // source switched mid-flight
+    if (latestEl) latestEl.textContent = 'could not load: ' + e.message;
+    updateStatus();
+  }
+
+  function loadAcartia(isRefresh) {
+    var key = 'acartia';
+    updateStatus((isRefresh ? 'refreshing ' : 'loading ') + 'Acartia…');
+    limiter.fetchJson(ACARTIA_API).then(function (res) {
+      if (sourceKey() !== key) return;
+      var list = [];
+      (res.data || []).forEach(function (o) { var m = mapAcartia(o); if (m) list.push(m); });
+      list.sort(function (a, b) { return b.ts - a.ts; });   // newest first
+      list = list.slice(0, ACARTIA_MAX);
+      diffAndRender(key, list);
       lastLoadedAt = Date.now();
       if (res.cached) updateStatus('cached');
-    }).catch(function (e) {
-      if (active !== key) return;
-      if (latestEl) latestEl.textContent = 'could not load: ' + e.message;
-      updateStatus();
-    });
+    }).catch(function (e) { loadError(key, e); });
+  }
+
+  function loadINat(isRefresh) {
+    var sp = activeINat(), key = 'inat:' + sp.key;
+    updateStatus((isRefresh ? 'refreshing ' : 'loading ') + sp.label + '…');
+    limiter.fetchJson(inatUrl(sp)).then(function (res) {
+      if (sourceKey() !== key) return;                   // species/source switched mid-flight
+      var list = [];
+      ((res.data && res.data.results) || []).forEach(function (o) { var m = mapINat(o); if (m) list.push(m); });
+      diffAndRender(key, list);
+      lastLoadedAt = Date.now();
+      if (res.cached) updateStatus('cached');
+    }).catch(function (e) { loadError(key, e); });
+  }
+
+  function load(isRefresh) {
+    if (activeSource === 'acartia') loadAcartia(isRefresh);
+    else loadINat(isRefresh);
   }
 
   // ---- controls ----------------------------------------------------------
@@ -286,20 +368,31 @@
     return e;
   }
 
+  // Per-source panel copy (note + credit line).
+  function refreshCopy() {
+    if (noteEl) noteEl.innerHTML = activeSource === 'acartia'
+      ? 'Live whale sightings from the <b>Acartia</b> cooperative (Orca Network, Ocean Wise, ' +
+        'the Whale Museum and more), newest first. Auto-refreshes every 5 min; new reports pulse.'
+      : 'Recent reports from <b>iNaturalist</b>, newest first. Auto-refreshes every 5 min; ' +
+        'new reports pulse. Dashed ring = privacy-obscured location.';
+    if (creditEl) creditEl.innerHTML = activeSource === 'acartia'
+      ? 'Sightings: <a href="https://acartia.io" target="_blank" rel="noopener">Acartia</a> data cooperative'
+      : 'Sightings: <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a> (CC, per observer)';
+  }
+
   function buildControls() {
     var host = document.querySelector('.forage-panel');   // dock inside the forage panel if present
     var box = el('div', 'reported-box');
-    box.innerHTML =
-      '<div class="reported-head">Reported sightings <small>live</small></div>' +
-      '<div class="reported-note">Real recent reports from iNaturalist, newest first. ' +
-      'Auto-refreshes every 5 min; new reports pulse. ' +
-      'Ground truth over the model. Dashed ring = privacy-obscured location.</div>';
+    box.appendChild(el('div', 'reported-head', 'Reported sightings <small>live</small>'));
+    noteEl = el('div', 'reported-note');
+    box.appendChild(noteEl);
 
     var row = el('label', 'reported-toggle');
-    row.innerHTML = '<input type="checkbox"><span>Show last ' + PER_PAGE + ' on the map</span>';
+    row.innerHTML = '<input type="checkbox"><span>Show recent sightings on the map</span>';
     row.querySelector('input').addEventListener('change', function (e) {
       on = e.target.checked;
-      speciesRow.style.display = on ? 'flex' : 'none';
+      sourceRow.style.display = on ? 'flex' : 'none';
+      speciesRow.style.display = (on && activeSource === 'inaturalist') ? 'flex' : 'none';
       statusRow.style.display = on ? 'block' : 'none';
       if (on) load();
       else {
@@ -311,9 +404,28 @@
     });
     box.appendChild(row);
 
-    var speciesRow = el('div', 'reported-species');
+    // Source selector: Acartia (primary) | iNaturalist.
+    var sourceRow = el('div', 'reported-species reported-sources');
+    sourceRow.style.display = 'none';
+    [{ k: 'acartia', label: 'Acartia' }, { k: 'inaturalist', label: 'iNaturalist' }].forEach(function (s) {
+      var b = el('button', 'reported-sp-btn' + (s.k === activeSource ? ' on' : ''), s.label);
+      b.addEventListener('click', function () {
+        if (s.k === activeSource) return;
+        activeSource = s.k;
+        sourceRow.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+        speciesRow.style.display = (on && activeSource === 'inaturalist') ? 'flex' : 'none';
+        refreshCopy();
+        if (on) load();
+      });
+      sourceRow.appendChild(b);
+    });
+    box.appendChild(sourceRow);
+
+    // iNaturalist species picker (only visible when that source is active).
+    speciesRow = el('div', 'reported-species');
     speciesRow.style.display = 'none';
-    SPECIES.forEach(function (s) {
+    INAT_SPECIES.forEach(function (s) {
       var b = el('button', 'reported-sp-btn' + (s.key === active ? ' on' : ''),
         '<span class="reported-dot" style="background:' + s.color + '"></span>' + s.label);
       b.addEventListener('click', function () {
@@ -335,8 +447,9 @@
     statusRow.appendChild(statusEl);
     box.appendChild(statusRow);
 
-    box.appendChild(el('div', 'reported-credit',
-      'Sightings: <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a> (CC, per observer)'));
+    creditEl = el('div', 'reported-credit');
+    box.appendChild(creditEl);
+    refreshCopy();
 
     if (host) host.appendChild(box); else { box.classList.add('reported-standalone'); document.body.appendChild(box); }
   }
