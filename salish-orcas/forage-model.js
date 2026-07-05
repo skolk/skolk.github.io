@@ -243,7 +243,16 @@
     var ramp = SPECIES[key].ramp;
     grp.eachLayer(function (poly) {
       var v = valueFor(poly._cell, key);
-      if (v < 0.06) { poly.setStyle({ fillOpacity: 0, opacity: 0, weight: 0 }); return; }
+      // Floor: every water cell in the grid gets painted, so unmodeled / near-zero
+      // cells still read as the ramp's 0.00 color instead of dropping out to bare
+      // basemap. The modeled field then rises out of a continuous low-end wash.
+      if (v < 0.06) {
+        poly.setStyle({
+          fillColor: rampColor(ramp, 0), fillOpacity: 0.28,
+          color: rampColor(ramp, 0), weight: 0, opacity: 0
+        });
+        return;
+      }
       poly.setStyle({
         fillColor: rampColor(ramp, v),
         fillOpacity: 0.15 + 0.75 * v,
@@ -525,5 +534,24 @@
     updateLegend();
   }
 
-  global.ForageModel = { mount: mount };
+  // Swap the underlying hex grid in place (e.g. a finer resolution on zoom-in)
+  // without rebuilding the panel/scrubber. Tears down the built species layers,
+  // recomputes priors on the new cells, and re-paints whatever is toggled on.
+  function setCells(cells) {
+    if (!cells || !cells.length) return;
+    Object.keys(layerGroups).forEach(function (k) {
+      if (layerGroups[k]) _map.removeLayer(layerGroups[k]);
+    });
+    layerGroups = {};
+    _cells = cells;
+    precompute();
+    Object.keys(layerOn).forEach(function (k) {
+      if (!layerOn[k]) return;
+      layerGroups[k] = buildLayer(k);
+      layerGroups[k].addTo(_map);
+      paintLayer(k);
+    });
+  }
+
+  global.ForageModel = { mount: mount, setCells: setCells };
 })(window);

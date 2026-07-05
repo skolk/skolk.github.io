@@ -14,7 +14,7 @@
 
   "_grid_note": "LOCKED DECISION: dual grid. The engine's default single nearshore band (res 10, bathymetry-subdivided to 11) is kept for shoreline ecology but scoped to named zones only (herring spawn beaches, seal haul-outs) so it does not explode over hundreds of km of coastline. A coarse open-water grid (res 6-7, zoom-bump to 8) fills the channels and straits for the pelagic/migration layers (salmon, orca) and for bucketing sightings, because orcas and migrating Chinook travel open mid-channel water the nearshore band never covers. Each layer declares which grid it renders on.",
   "grid": {
-    "open_water": { "h3_res": 7, "zoom_bump_res": 8, "fill": "water-masked channels + straits across context_bounds", "carries": ["salmon", "orca_srkw", "orca_biggs", "sightings"] },
+    "open_water": { "h3_res": 7, "zoom_bump_res": 8, "zoom_bump_at": 10, "fill": "water-masked channels + straits across context_bounds", "carries": ["salmon", "orca_srkw", "orca_biggs", "sightings"] },
     "nearshore":  { "h3_res": 10, "subdiv_res": 11, "scope": "named zones only (spawn beaches, haul-outs), not the whole coastline", "carries": ["herring", "seal"] }
   },
   "time": { "step": "week", "span": "annual", "note": "Weekly scrubber; salmon/herring run timing turns over inside a month." },

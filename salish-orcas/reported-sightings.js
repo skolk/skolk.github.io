@@ -4,14 +4,22 @@
  * forage web as ground truth. iNaturalist's public API needs no key and sends
  * Access-Control-Allow-Origin:*, so the published page fetches it directly.
  *
+ * LIVE: while the layer is on and the tab is visible, it auto-refreshes every
+ * 5 minutes, detects observations that are new since the last poll and pulses
+ * them, and shows how fresh the data is ("updated 2m ago · next 3m"). It pauses
+ * when the tab is hidden and catches up on return, so a backgrounded tab never
+ * polls. Whale reports arrive on a scale of minutes, not seconds; 5 min is live
+ * enough and keeps the request rate trivial.
+ *
  * BANDWIDTH GUARD (the important part): a self-imposed rate limiter keeps this
  * page a polite API citizen and un-blockable. Ceiling is 20 requests per rolling
  * 60s (well under iNat's ~60/min and the 30/min target), with a hard 2.5s min
- * gap, a 10-minute response cache, in-flight de-duplication, and 429 handling
- * that honours Retry-After, backs off exponentially, and trips a circuit breaker
- * after repeated failures. In practice the page makes ~1 request per species you
- * toggle; the limiter only matters if something misbehaves. Its live counter is
- * shown in the panel so the guard is auditable, not just asserted.
+ * gap, a response cache tuned just under the refresh cadence, in-flight
+ * de-duplication, and 429 handling that honours Retry-After, backs off
+ * exponentially, and trips a circuit breaker after repeated failures. In
+ * practice the page makes ~1 request per active species per 5 minutes; the
+ * limiter only matters if something misbehaves. Its live counter is shown in the
+ * panel so the guard is auditable, not just asserted.
  *
  * Exposes window.ReportedSightings.mount({ map, config }).
  */
@@ -121,6 +129,7 @@
     { key: 'chinook', label: 'Chinook salmon', taxon: 54191, color: '#c85a2c' }
   ];
   var PER_PAGE = 10;   // "last 10" per the brief
+  var REFRESH_MS = 300000;   // auto-refresh cadence while on + tab visible (5 min)
 
   // Orca ecotype from the observed taxon name.
   function orcaTint(name) {
@@ -142,6 +151,8 @@
   var active = 'orca';
   var on = false;
   var statusEl, latestEl;
+  var lastLoadedAt = 0;      // ms of the last successful load (0 = never / off)
+  var seenByKey = {};        // species key -> { obsId: true } shown last poll
 
   function bboxParams() {
     var b = (_cfg && _cfg.context_bounds) || { north: 49.2, south: 47.0, east: -122.0, west: -125.5 };
@@ -159,7 +170,8 @@
   }
 
   // ---- render ------------------------------------------------------------
-  function render(observations) {
+  function render(observations, newIds) {
+    newIds = newIds || {};
     if (layer) { _map.removeLayer(layer); layer = null; }
     layer = global.L.layerGroup();
     var sp = SPECIES.filter(function (s) { return s.key === active; })[0];
@@ -173,6 +185,7 @@
       var recency = n > 1 ? 1 - (i / (n - 1)) : 1;          // newest = 1
       var fill = 0.45 + 0.5 * recency;                       // fade older reports
       var obscured = !!o.obscured;
+      var isNew = !!(o.id && newIds[o.id]);                  // arrived since last poll
 
       if (obscured) {
         // Location is randomised ~0.2deg by iNaturalist privacy: draw an
@@ -184,7 +197,8 @@
       }
       var m = global.L.circleMarker([lat, lng], {
         radius: obscured ? 4.5 : 6, fillColor: color, color: '#f7f4ee',
-        weight: 1.5, fillOpacity: fill, opacity: 0.9
+        weight: 1.5, fillOpacity: fill, opacity: 0.9,
+        className: isNew ? 'sighting-new' : ''             // CSS pulse on fresh reports
       });
       var photo = photoSmall(o);
       var eco = sp.ecotype ? orcaEcotypeLabel((o.taxon || {}).name) : '';
@@ -210,26 +224,55 @@
 
     layer.addTo(_map);
     var latest = observations.length ? fmtDate(observations[0]) : null;
+    var freshCount = 0;
+    for (var k in newIds) if (newIds[k]) freshCount++;
     if (latestEl) latestEl.textContent = observations.length
-      ? observations.length + ' reports · ' + latest + ' latest' : 'no recent reports in view';
+      ? (freshCount ? freshCount + ' new · ' : '') +
+        observations.length + ' reports · ' + latest + ' latest'
+      : 'no recent reports in view';
     updateStatus();
+  }
+
+  function fmtAgo(ms) {
+    var s = Math.round(ms / 1000);
+    if (s < 60) return s + 's';
+    return Math.round(s / 60) + 'm';
   }
 
   function updateStatus(msg) {
     if (!statusEl) return;
     var s = limiter.stats();
-    var base = 'req ' + s.inWindow + '/' + s.max + ' this min';
-    if (s.blocked) base = 'cooling down ' + Math.ceil(s.blockedForMs / 1000) + 's · ' + base;
-    statusEl.textContent = msg ? msg + ' · ' + base : base;
+    var parts = [];
+    if (on && lastLoadedAt) {
+      var age = Date.now() - lastLoadedAt;
+      parts.push('updated ' + fmtAgo(age) + ' ago');
+      parts.push(global.document.hidden ? 'paused' : 'next ' + fmtAgo(Math.max(0, REFRESH_MS - age)));
+    }
+    parts.push('req ' + s.inWindow + '/' + s.max);
+    if (s.blocked) parts.unshift('cooling ' + Math.ceil(s.blockedForMs / 1000) + 's');
+    statusEl.textContent = (msg ? msg + ' · ' : '') + parts.join(' · ');
   }
 
-  function load() {
+  function load(isRefresh) {
     var sp = SPECIES.filter(function (s) { return s.key === active; })[0];
-    updateStatus('loading ' + sp.label + '…');
+    var key = sp.key;
+    updateStatus((isRefresh ? 'refreshing ' : 'loading ') + sp.label + '…');
     limiter.fetchJson(urlFor(sp)).then(function (res) {
-      render((res.data && res.data.results) || []);
+      if (active !== key) return;                       // species switched mid-flight
+      var results = (res.data && res.data.results) || [];
+      var prev = seenByKey[key];                         // undefined on first load
+      var newIds = {}, seen = {};
+      results.forEach(function (o) {
+        if (!o.id) return;
+        seen[o.id] = true;
+        if (prev && !prev[o.id]) newIds[o.id] = true;    // first load marks nothing new
+      });
+      seenByKey[key] = seen;
+      render(results, newIds);
+      lastLoadedAt = Date.now();
       if (res.cached) updateStatus('cached');
     }).catch(function (e) {
+      if (active !== key) return;
       if (latestEl) latestEl.textContent = 'could not load: ' + e.message;
       updateStatus();
     });
@@ -249,6 +292,7 @@
     box.innerHTML =
       '<div class="reported-head">Reported sightings <small>live</small></div>' +
       '<div class="reported-note">Real recent reports from iNaturalist, newest first. ' +
+      'Auto-refreshes every 5 min; new reports pulse. ' +
       'Ground truth over the model. Dashed ring = privacy-obscured location.</div>';
 
     var row = el('label', 'reported-toggle');
@@ -258,7 +302,12 @@
       speciesRow.style.display = on ? 'flex' : 'none';
       statusRow.style.display = on ? 'block' : 'none';
       if (on) load();
-      else if (layer) { _map.removeLayer(layer); layer = null; if (latestEl) latestEl.textContent = ''; }
+      else {
+        lastLoadedAt = 0;
+        if (layer) { _map.removeLayer(layer); layer = null; }
+        if (latestEl) latestEl.textContent = '';
+        updateStatus();
+      }
     });
     box.appendChild(row);
 
@@ -317,7 +366,12 @@
       '.reported-rate{opacity:.6;}',
       '.reported-credit{margin-top:8px;font-size:9.5px;opacity:.55;}',
       '.reported-credit a{color:inherit;}',
-      '.sighting-pop .leaflet-popup-content{margin:10px 12px;}'
+      '.sighting-pop .leaflet-popup-content{margin:10px 12px;}',
+      '.reported-head small::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;',
+      'background:#c8553a;margin-right:4px;vertical-align:middle;animation:reportedblink 2s ease-in-out infinite;}',
+      '@keyframes reportedblink{0%,100%{opacity:1;}50%{opacity:.25;}}',
+      '.sighting-new{animation:sightingpulse 1.4s ease-out 3;}',
+      '@keyframes sightingpulse{0%{stroke-width:1.5;}45%{stroke-width:6;}100%{stroke-width:1.5;}}'
     ].join('');
     document.head.appendChild(s);
   }
@@ -327,11 +381,29 @@
     _map = opts.map;
     _cfg = opts.config;
     if (!_map || !global.L) return;
-    limiter = createLimiter(opts.limiter || {});
+    // Cache TTL sits just under the refresh cadence so a scheduled poll always
+    // re-fetches (cache just expired) while manual re-clicks inside the window
+    // stay cached. Ceiling of 20 req / rolling 60s keeps us well under 30/min.
+    limiter = createLimiter(opts.limiter || { cacheTtl: REFRESH_MS - 30000 });
     injectCss();
     buildControls();
-    // keep the live counter ticking down while a cool-down is active
-    setInterval(function () { if (on) updateStatus(); }, 1000);
+    // One 1s heartbeat: drive the auto-refresh when due (on, visible, past the
+    // cadence) and keep the freshness + cool-down counters ticking.
+    setInterval(function () {
+      if (!on) return;
+      if (!global.document.hidden && lastLoadedAt &&
+          Date.now() - lastLoadedAt >= REFRESH_MS) {
+        load(true);
+      }
+      updateStatus();
+    }, 1000);
+    // Snap back to fresh data the moment a backgrounded tab returns.
+    global.document.addEventListener('visibilitychange', function () {
+      if (on && !global.document.hidden && lastLoadedAt &&
+          Date.now() - lastLoadedAt >= REFRESH_MS) {
+        load(true);
+      }
+    });
   }
 
   global.ReportedSightings = { mount: mount, _createLimiter: createLimiter };

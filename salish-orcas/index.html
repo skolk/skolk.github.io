@@ -177,7 +177,9 @@ function toggleTheme(){
     --shadow: 0 4px 16px rgba(10,37,64,0.10);
     --shadow-lg: 0 12px 32px rgba(10,37,64,0.14);
   }
-  :root[data-theme="light"] .leaflet-tile-pane { filter: none; }
+  /* Day basemap: knock the CARTO land tint from near-white to a soft grey so the
+     coast reads as land, not paper. Water is covered by the hex field anyway. */
+  :root[data-theme="light"] .leaflet-tile-pane { filter: brightness(0.9) saturate(0.85); }
   .chart-plot-bg { fill: var(--chart-bg); }
   /* Theme toggle: styled to clearly read as a button */
   .theme-toggle {
@@ -4090,22 +4092,44 @@ async function renderOpenWaterGrid() {
     debugLog('AstraeusGeo.openWaterGrid unavailable — coastal-geometry.js not loaded');
     return;
   }
-  const cells = window.AstraeusGeo.openWaterGrid(cfg.context_bounds, mask, { resolution: res });
-  window._openWaterCells = cells;
-
-  const renderer = L.canvas({ padding: 0.5 });
-  const grp = L.layerGroup();
+  const baseRes = res;                                 // config h3_res: coarse whole-basin grid
+  const bumpRes = ow.zoom_bump_res || (baseRes + 1);   // finer grid when zoomed in (~half the hex)
+  const bumpZoom = ow.zoom_bump_at || 10;              // zoom at which to refine
   const light = __isLight();
   const stroke = light ? '#2d5a87' : '#5ea2e6';
   const fill = light ? '#3a7bc8' : '#2d5a87';
-  cells.forEach(c => {
-    L.polygon(c.boundary, {
-      renderer, color: stroke, weight: 0.4, opacity: 0.35,
-      fillColor: fill, fillOpacity: 0.16,
-    }).addTo(grp);
-  });
-  grp.addTo(map);
-  window._openWaterLayer = grp;
+
+  // Base res grids the whole context_bounds; the finer (bump) res is clipped to
+  // the padded viewport so the cell count stays bounded however far you zoom.
+  function boundsFor(resolution) {
+    if (resolution <= baseRes) return cfg.context_bounds;
+    const vb = map.getBounds().pad(0.25), cb = cfg.context_bounds;
+    return {
+      north: Math.min(cb.north, vb.getNorth()), south: Math.max(cb.south, vb.getSouth()),
+      east:  Math.min(cb.east,  vb.getEast()),  west:  Math.max(cb.west,  vb.getWest())
+    };
+  }
+  function buildCells(resolution) {
+    return window.AstraeusGeo.openWaterGrid(boundsFor(resolution), mask, { resolution: resolution });
+  }
+  function drawBaseGrid(gcells) {
+    if (window._openWaterLayer) map.removeLayer(window._openWaterLayer);
+    const renderer = L.canvas({ padding: 0.5 });
+    const grp = L.layerGroup();
+    gcells.forEach(c => {
+      L.polygon(c.boundary, {
+        renderer, color: stroke, weight: 0.4, opacity: 0.35,
+        fillColor: fill, fillOpacity: 0.16,
+      }).addTo(grp);
+    });
+    grp.addTo(map);
+    window._openWaterLayer = grp;
+  }
+
+  let curRes = baseRes;
+  const cells = buildCells(baseRes);
+  window._openWaterCells = cells;
+  drawBaseGrid(cells);
 
   // Modeled forage web (salmon / herring / seal -> derived orca) painted on the
   // same open-water grid, with its own layer toggles + weekly scrubber. This is
@@ -4119,9 +4143,33 @@ async function renderOpenWaterGrid() {
     window.ReportedSightings.mount({ map: map, config: cfg });
   }
 
+  // Zoom-responsive resolution: past bumpZoom, refine to the finer grid (roughly
+  // halving the hex size) and rebuild the viewport-clipped fine grid on pan while
+  // zoomed. Debounced so a drag doesn't thrash the per-cell model recompute.
+  function applyGrid(resolution) {
+    const nc = buildCells(resolution);
+    if (!nc.length) return;
+    window._openWaterCells = nc;
+    drawBaseGrid(nc);
+    if (window.ForageModel && window.ForageModel.setCells) window.ForageModel.setCells(nc);
+  }
+  let _refineTimer = null;
+  function onView() {
+    const want = map.getZoom() >= bumpZoom ? bumpRes : baseRes;
+    if (want === baseRes) {
+      if (curRes !== baseRes) { curRes = baseRes; applyGrid(baseRes); }
+      return;
+    }
+    clearTimeout(_refineTimer);
+    _refineTimer = setTimeout(function () { curRes = bumpRes; applyGrid(bumpRes); }, 160);
+  }
+  map.on('zoomend', onView);
+  map.on('moveend', onView);
+
   const b = cfg.context_bounds;
   map.fitBounds([[b.south, b.west], [b.north, b.east]], { padding: [12, 12] });
-  debugLog('Open-water grid: ' + cells.length + ' sea cells at res ' + res +
+  debugLog('Open-water grid: ' + cells.length + ' sea cells at res ' + baseRes +
+           ' (bump res ' + bumpRes + ' @ z' + bumpZoom + ')' +
            (mask ? (' (mask ' + mask.cols + 'x' + mask.rows + ', sea ' +
              Math.round((mask.sea_fraction || 0) * 100) + '%' +
              (mask.complete === false ? ', partial' : '') + ')') : ' (unmasked)'));
