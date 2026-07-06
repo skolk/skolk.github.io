@@ -14,7 +14,7 @@ dates: 2020-present
 
 <img src="/images/blog_posts/SVP/PXL_20250205_143038880.NIGHT.jpg" width="100%" alt="Petrichor at her Shilshole slip on a winter night, a green cover over the boom and cockpit, snow on the dock and coamings">
 
-People ask about her a lot, so here she is. *Petrichor* is our 1990 Catalina 36, home berth Shilshole Marina in Ballard, Seattle. She is our first cruising boat, our home on the water, and the platform for two seasons in Mexico and a run up the Inside Passage to Southeast Alaska. The word *petrichor* is the smell of rain on dry earth, which is about right for a boat that lives where it rains.
+People ask about her a lot, so here she is. *Petrichor* is our 1990 [Catalina 36](https://en.wikipedia.org/wiki/Catalina_36), home berth [Shilshole Bay Marina](https://en.wikipedia.org/wiki/Shilshole_Bay_Marina) in Ballard, Seattle. She is our first cruising boat, our home on the water, and the platform for two seasons in Mexico and a run up the Inside Passage to Southeast Alaska. The word *petrichor* is the smell of rain on dry earth, which is about right for a boat that lives where it rains.
 
 ## The short version
 
@@ -22,7 +22,7 @@ People ask about her a lot, so here she is. *Petrichor* is our 1990 Catalina 36,
 - **Built:** 1990, fiberglass masthead sloop
 - **Length:** 36 feet, about 12 meters
 - **Sleeps:** four comfortably, six uncomfortably
-- **Home port:** Shilshole Marina, Ballard, Seattle
+- **Home port:** [Shilshole Bay Marina](https://en.wikipedia.org/wiki/Shilshole_Bay_Marina), Ballard, Seattle. Her slip sits at [47.631208° N, 122.496521° W](https://www.openstreetmap.org/?mlat=47.631208&mlon=-122.496521#map=17/47.631208/-122.496521)
 - **Ours since:** August 2020. Our full-time home since 2024, and lived aboard off and on before that, including the 2021-2022 season in Mexico
 - **Where she has been:** San Francisco Bay, the Baja Ha-Ha down to Cabo, a season in the Sea of Cortez, and the Inside Passage to Southeast Alaska
 
