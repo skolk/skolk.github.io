@@ -17,7 +17,7 @@ dates: 2020-2024
 <!-- Photo slot: drop a file at /images/projects/picknik.jpg, then delete the comment markers on the next line. -->
 <!-- <img src="/images/projects/picknik.jpg" width="100%" alt="Robotics work at PickNik"> -->
 
-From 2020 to 2024 I was Director of Business Development at [PickNik Robotics](https://picknik.ai/), working with NASA, the US Space Force, and terrestrial companies on robotics control system software. It ran alongside buying and learning [Petrichor]({{ '/projects/petrichor/' | prepend: site.baseurl }}), the season in Mexico, and the move toward Seattle, and it connects to the NASA and Space ROS work that also sits on this page.
+From 2020 to 2024 I was Director of Business Development at [PickNik Robotics](https://picknik.ai/), working with NASA, the US Space Force, and terrestrial companies on robotics control system software. It ran alongside buying and learning [Petrichor]({{ '/petrichor' | prepend: site.baseurl }}), the season in Mexico, and the move toward Seattle, and it connects to the NASA and Space ROS work that also sits on this page.
 
 ## What I did
 
