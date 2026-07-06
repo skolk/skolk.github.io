@@ -1,0 +1,99 @@
+<svg width="760" height="3300" viewBox="0 0 380 1650" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>How to sharpen a kitchen knife on a mug</title>
+<desc>Four panel instructional comic: flip a mug to expose the unglazed ring, hold the blade at about 23 degrees, pull the sharp edge along one spot of the ring backwards at 45 degrees to the blade with firm but not hard finger pressure, raising a burr that flakes off when you flip, then check the metal dust and bevel, and test with the knife held at 90 degrees on a nail tilted 30 degrees: a sharp point digs in, a dull rounded tip slides down.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#D85A30" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<style>
+text { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.th { font-size: 15px; font-weight: 600; fill: #1A1A1A; }
+.ts { font-size: 12px; fill: #55565A; }
+.leader { stroke: #909298; stroke-width: 0.75; stroke-dasharray: 3 3; fill: none; }
+</style>
+</defs>
+<rect x="0" y="0" width="380" height="1650" fill="#FFFFFF"/>
+
+<rect x="10" y="10" width="360" height="340" rx="12" fill="none" stroke="#C9CAD0" stroke-width="0.75"/>
+<text class="th" x="24" y="38">1. Flip a mug upside down</text>
+<text class="ts" x="205" y="112">the unglazed ring</text>
+<text class="ts" x="205" y="128">= your stone</text>
+<line x1="200" y1="134" x2="172" y2="150" class="leader"/>
+<rect x="25" y="280" width="330" height="8" rx="2" fill="#A89F91"/>
+<rect x="78" y="148" width="94" height="12" rx="4" fill="#C4713B"/>
+<rect x="70" y="158" width="110" height="122" rx="6" fill="#4A7BA6"/>
+<path d="M70 190 C 38 190 38 252 70 252" fill="none" stroke="#4A7BA6" stroke-width="10"/>
+<polygon points="242,262 348,276 242,278" fill="#B8BDC4" stroke="#8A8F96" stroke-width="0.5"/>
+<rect x="206" y="262" width="38" height="14" rx="4" fill="#3A3A3A"/>
+<text class="ts" x="190" y="316" text-anchor="middle">The rough, unglazed ring on the bottom</text>
+<text class="ts" x="190" y="332" text-anchor="middle">of a mug or plate is a free sharpening stone.</text>
+
+<rect x="10" y="364" width="360" height="340" rx="12" fill="none" stroke="#C9CAD0" stroke-width="0.75"/>
+<text class="th" x="24" y="392">2. Find the angle</text>
+<line x1="80" y1="618" x2="80" y2="440" stroke="#55565A" stroke-width="0.75" stroke-dasharray="4 4"/>
+<text class="ts" x="88" y="450">90</text>
+<line x1="80" y1="618" x2="200" y2="498" stroke="#55565A" stroke-width="0.75" stroke-dasharray="4 4"/>
+<text class="ts" x="206" y="494">45</text>
+<rect x="40" y="620" width="300" height="14" rx="3" fill="#C4713B"/>
+<line x1="86" y1="616" x2="300" y2="528" stroke="#B8BDC4" stroke-width="8" stroke-linecap="round"/>
+<line x1="300" y1="528" x2="338" y2="512" stroke="#3A3A3A" stroke-width="12" stroke-linecap="round"/>
+<path d="M 150 620 A 70 70 0 0 0 145 593" fill="none" stroke="#55565A" stroke-width="0.75"/>
+<text class="th" x="176" y="606">about 23</text>
+<text class="ts" x="190" y="668" text-anchor="middle">Start at straight up, halve it to 45,</text>
+<text class="ts" x="190" y="684" text-anchor="middle">then halve again. Edge sits almost flat.</text>
+
+<rect x="10" y="718" width="360" height="460" rx="12" fill="none" stroke="#C9CAD0" stroke-width="0.75"/>
+<text class="th" x="24" y="746">3. The countdown strokes</text>
+<circle cx="130" cy="880" r="82" fill="#EFE9DE" stroke="#B8AFA0" stroke-width="0.5"/>
+<circle cx="130" cy="880" r="68" fill="none" stroke="#C4713B" stroke-width="18"/>
+<path d="M 227 848 L 103 982 Q 185 935 239 860 Z" fill="#B8BDC4" stroke="#8A8F96" stroke-width="0.5"/>
+<line x1="233" y1="854" x2="271" y2="816" stroke="#3A3A3A" stroke-width="13" stroke-linecap="round"/>
+<line x1="164" y1="940" x2="168" y2="943" stroke="#6B6F75" stroke-width="1.5"/>
+<line x1="178" y1="928" x2="182" y2="931" stroke="#6B6F75" stroke-width="1.5"/>
+<line x1="191" y1="916" x2="195" y2="919" stroke="#6B6F75" stroke-width="1.5"/>
+<line x1="170" y1="900" x2="170" y2="818" stroke="#D85A30" stroke-width="2" marker-end="url(#arrow)"/>
+<text class="ts" x="182" y="812">move at 45</text>
+<text class="th" x="190" y="1012" text-anchor="middle">20 &#8594; 19 &#8594; 18 &#8594; &#8230; &#8594; 2 &#8594; 1</text>
+<text class="ts" x="190" y="1038" text-anchor="middle">Pull the sharp side backwards at 45 to</text>
+<text class="ts" x="190" y="1054" text-anchor="middle">the blade. Never cut into the ceramic.</text>
+<text class="ts" x="190" y="1070" text-anchor="middle">20 per side, then 19, 18, down to 1.</text>
+<text class="ts" x="190" y="1090" text-anchor="middle">Press with a finger to speed it up:</text>
+<text class="ts" x="190" y="1106" text-anchor="middle">firm pressure, not hard.</text>
+<text class="ts" x="190" y="1126" text-anchor="middle">A burr, tiny metal curls, forms on the</text>
+<text class="ts" x="190" y="1142" text-anchor="middle">other side. Good. It flakes off on the flip.</text>
+
+<rect x="10" y="1192" width="360" height="440" rx="12" fill="none" stroke="#C9CAD0" stroke-width="0.75"/>
+<text class="th" x="24" y="1220">4. Wipe, test, then slice</text>
+<polygon points="60,1260 270,1260 270,1272 60,1300" fill="#B8BDC4" stroke="#8A8F96" stroke-width="0.5"/>
+<circle cx="90" cy="1308" r="2" fill="#6B6F75"/>
+<circle cx="112" cy="1314" r="2" fill="#6B6F75"/>
+<circle cx="138" cy="1307" r="2" fill="#6B6F75"/>
+<circle cx="160" cy="1315" r="2" fill="#6B6F75"/>
+<circle cx="186" cy="1308" r="2" fill="#6B6F75"/>
+<circle cx="210" cy="1313" r="2" fill="#6B6F75"/>
+<circle cx="232" cy="1307" r="2" fill="#6B6F75"/>
+<text class="ts" x="60" y="1342">gray metal dust = it is working</text>
+<circle cx="315" cy="1280" r="40" fill="none" stroke="#55565A" stroke-width="0.75" stroke-dasharray="4 4"/>
+<polygon points="300,1255 330,1255 315,1305" fill="#B8BDC4" stroke="#8A8F96" stroke-width="0.5"/>
+<line x1="315" y1="1305" x2="314" y2="1319" stroke="#6B6F75" stroke-width="1.5"/>
+<line x1="262" y1="1276" x2="278" y2="1280" class="leader"/>
+<text class="ts" x="315" y="1340" text-anchor="middle">the bevel</text>
+
+<g transform="rotate(-30 100 1500)">
+<rect x="40" y="1495" width="120" height="10" rx="2" fill="#F2D7C0" stroke="#C9A182" stroke-width="0.5"/>
+</g>
+<polygon points="85,1434 115,1434 100,1498" fill="#B8BDC4" stroke="#8A8F96" stroke-width="0.5"/>
+<line x1="93" y1="1490" x2="89" y2="1484" stroke="#6B6F75" stroke-width="1.5"/>
+<line x1="107" y1="1488" x2="111" y2="1482" stroke="#6B6F75" stroke-width="1.5"/>
+<text class="ts" x="100" y="1552" text-anchor="middle">sharp: digs in,</text>
+<text class="ts" x="100" y="1568" text-anchor="middle">stays put</text>
+
+<g transform="rotate(-30 272 1500)">
+<rect x="212" y="1495" width="120" height="10" rx="2" fill="#F2D7C0" stroke="#C9A182" stroke-width="0.5"/>
+</g>
+<path d="M 257 1434 L 287 1434 L 279 1482 Q 272 1495 265 1482 Z" fill="#B8BDC4" stroke="#8A8F96" stroke-width="0.5"/>
+<line x1="252" y1="1494" x2="224" y2="1510" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="ts" x="272" y="1552" text-anchor="middle">dull: slides down,</text>
+<text class="ts" x="272" y="1568" text-anchor="middle">keep sharpening</text>
+
+<text class="ts" x="190" y="1600" text-anchor="middle">Knife straight up at 90, nail tilted 30.</text>
+<text class="ts" x="190" y="1616" text-anchor="middle">Grip means sharp. Slide means dull.</text>
+</svg>

@@ -8,6 +8,13 @@ Format: each item is one bullet. Optional tags in `[brackets]`, `[quick]`, `[med
 
 ## Active
 
+### Review before push (Claude-drafted 2026-07-05, `reviewed_by_sean: false`)
+- [ ] **Voice-review the three new 2026-07-05 posts**, bodies drafted by Claude without a dictated transcript. Check the framing lines asserted on Sean's behalf, then clear the `reviewed_by_sean: false` flag and push. [content] [medium]
+  - `_posts/2026-07-05-Community-Economic-Simulator.md` (`type: project`, hero screenshot, links `/community-simulator/`).
+  - `_posts/2026-07-05-The-Facilitator.md` (`type: project`, hero screenshot, links `/facilitator/`).
+  - `_posts/2026-07-05-Sharpen-a-Knife-on-a-Mug.md` (`type: update`, embeds `knife-sharpening-mug-comic.svg`).
+- [ ] Decide whether the two sims belong in `/drafts` vs `/_posts` and whether the Pollica framing on the sim posts overclaims (they're described as teaching tools for the engagement work, not a shipped deployment). [content] [quick]
+
 ### Content fidelity
 - [ ] Merge or delete one of `2014-11-10-one-small-step.md` and `2014-11-20-Taking-Action-Environmental-Issues.md`, same Gasland / micro-adventures topic. [content] [quick]
 - [ ] Spot-check posts with no Squarespace source, fidelity unknown, possibly LLM-puffed. [content] [project]

@@ -115,6 +115,29 @@
     { lat: 48.20, lng: -122.65, km: 16, w: 0.9 },  // Whidbey / Admiralty / south
     { lat: 48.70, lng: -122.75, km: 12, w: 0.7 }   // Bellingham / Georgia approach
   ];
+  // Baleen whales, modeled as seasonal presence fields (not derived from a prey
+  // layer). Priors reflect where each is actually seen in the Salish Sea.
+  // Humpback: the big comeback story. Feed spring-fall widely, concentrating at
+  // the west entrance, Boundary Pass / San Juans, and the Strait of Georgia.
+  var HUMPBACK = [
+    { lat: 48.30, lng: -124.60, km: 20, w: 0.9 },  // Swiftsure / outer Juan de Fuca
+    { lat: 48.28, lng: -123.70, km: 18, w: 0.8 },  // eastern Juan de Fuca
+    { lat: 48.72, lng: -123.05, km: 16, w: 1.0 },  // Boundary Pass / San Juans
+    { lat: 49.20, lng: -123.70, km: 20, w: 0.8 }   // Strait of Georgia
+  ];
+  // Gray whale: the North Puget Sound "Sounders" detour off the migration to
+  // feed on ghost shrimp Mar-May; plus the outer-coast migration corridor.
+  var GRAY = [
+    { lat: 48.05, lng: -122.35, km: 12, w: 1.0 },  // Saratoga Passage / Possession Sound
+    { lat: 48.18, lng: -122.55, km: 10, w: 0.8 },  // Whidbey / Camano flats
+    { lat: 48.28, lng: -124.40, km: 18, w: 0.5 }   // outer Juan de Fuca migration
+  ];
+  // Minke: summer regulars over the tide-rip banks around the San Juans.
+  var MINKE = [
+    { lat: 48.40, lng: -123.05, km: 12, w: 1.0 },  // Salmon Bank / San Juan banks
+    { lat: 48.34, lng: -123.20, km: 10, w: 0.8 },  // Hein Bank
+    { lat: 48.30, lng: -123.55, km: 12, w: 0.6 }   // eastern Juan de Fuca
+  ];
 
   // week 0 = first week of January. Peaks below reflect Salish run/spawn timing.
   var SPECIES = {
@@ -142,6 +165,21 @@
       label: "Orca (Bigg's / transient)", grid: 'open_water', kind: 'derived',
       ramp: ['#e6d3ef', '#8a5cb8', '#3a2258'],
       derived: true
+    },
+    humpback: {
+      label: 'Humpback whale', grid: 'open_water', kind: 'model',
+      ramp: ['#cfdbe6', '#5a7f9e', '#243b52'],
+      hotspots: HUMPBACK, season: bump(38, 9, 0.05)        // spring-fall, peak late Sep
+    },
+    gray: {
+      label: 'Gray whale', grid: 'open_water', kind: 'model',
+      ramp: ['#dcdcc8', '#8a8f6f', '#494d33'],
+      hotspots: GRAY, season: bump(16, 4, 0.02)            // Mar-May Sounders detour
+    },
+    minke: {
+      label: 'Minke whale', grid: 'open_water', kind: 'model',
+      ramp: ['#cfe6df', '#5aa08a', '#20493d'],
+      hotspots: MINKE, season: bump(31, 9, 0.08)           // summer over the banks
     }
   };
   // Secondary Chinook-family calendars, surfaced as sub-toggles on the salmon layer.
@@ -205,7 +243,10 @@
         herring: priorAt(c.lat, c.lng, HERRING),
         seal:    priorAt(c.lat, c.lng, SEAL),
         srkw:    srkwSpatial,
-        biggs:   biggsSpatial
+        biggs:   biggsSpatial,
+        humpback: priorAt(c.lat, c.lng, HUMPBACK),
+        gray:     priorAt(c.lat, c.lng, GRAY),
+        minke:    priorAt(c.lat, c.lng, MINKE)
       };
     });
   }
@@ -233,6 +274,10 @@
       var sealF = p.seal * SPECIES.seal.season(week);
       return Math.pow(Math.min(1, sealF * 0.6 + p.biggs * 0.6), 0.9);
     }
+    // Baleen whales: seasonal presence = spatial prior x seasonal calendar.
+    if (key === 'humpback') return p.humpback * SPECIES.humpback.season(week);
+    if (key === 'gray')     return p.gray     * SPECIES.gray.season(week);
+    if (key === 'minke')    return p.minke    * SPECIES.minke.season(week);
     return 0;
   }
 
@@ -314,7 +359,7 @@
       'Synthetic, not live. Orcas are derived from their prey.</div>';
 
     var list = el('div', 'forage-list');
-    var order = ['salmon', 'herring', 'seal', 'orca_srkw', 'orca_biggs'];
+    var order = ['salmon', 'herring', 'seal', 'orca_srkw', 'orca_biggs', 'humpback', 'gray', 'minke'];
     order.forEach(function (key) {
       var row = el('label', 'forage-row');
       var swatch = 'linear-gradient(90deg,' + SPECIES[key].ramp[0] + ',' + SPECIES[key].ramp[2] + ')';
@@ -446,14 +491,14 @@
       'background:rgba(247,244,238,0.96);border:1px solid rgba(10,37,64,0.15);border-radius:12px;',
       'padding:12px 13px;font-family:"DM Sans",system-ui,sans-serif;color:#0a2540;',
       'box-shadow:0 6px 24px rgba(10,37,64,0.16);backdrop-filter:blur(6px);}',
-      'body.dark-theme .forage-panel{background:rgba(14,26,36,0.94);color:#e6eef5;border-color:rgba(94,162,230,0.2);}',
+      ':root[data-theme="dark"] .forage-panel{background:rgba(14,26,36,0.94);color:#e6eef5;border-color:rgba(94,162,230,0.2);}',
       '.forage-head{display:flex;align-items:center;justify-content:space-between;gap:8px;',
       'font-family:"Fraunces",Georgia,serif;font-size:15px;font-weight:600;margin-bottom:4px;cursor:pointer;}',
       '.forage-head small{font-family:"JetBrains Mono",monospace;font-size:9px;font-weight:500;text-transform:uppercase;',
       'letter-spacing:.08em;opacity:.55;margin-left:5px;}',
       '.forage-collapse{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid rgba(10,37,64,0.2);',
       'background:transparent;color:inherit;font-size:15px;line-height:1;cursor:pointer;font-family:inherit;}',
-      'body.dark-theme .forage-collapse{border-color:rgba(94,162,230,0.25);}',
+      ':root[data-theme="dark"] .forage-collapse{border-color:rgba(94,162,230,0.25);}',
       '.forage-panel.collapsed{width:auto;overflow:visible;}',
       '.forage-panel.collapsed>*:not(.forage-head){display:none !important;}',   // beat inline display:flex on run/species rows
       '.forage-panel.collapsed .forage-head{margin-bottom:0;}',
@@ -469,17 +514,17 @@
       '.forage-run-btn{font-size:11px;padding:2px 7px;border-radius:20px;border:1px solid rgba(10,37,64,0.2);',
       'background:transparent;color:inherit;cursor:pointer;font-family:inherit;}',
       '.forage-run-btn.on{background:#0a2540;color:#f7f4ee;border-color:#0a2540;}',
-      'body.dark-theme .forage-run-btn.on{background:#5ea2e6;color:#0a1a24;border-color:#5ea2e6;}',
+      ':root[data-theme="dark"] .forage-run-btn.on{background:#5ea2e6;color:#0a1a24;border-color:#5ea2e6;}',
       '.forage-scrub{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;z-index:1200;',
       'display:flex;align-items:center;gap:12px;width:min(560px,86vw);',
       'background:rgba(247,244,238,0.96);border:1px solid rgba(10,37,64,0.15);border-radius:30px;',
       'padding:8px 18px;box-shadow:0 6px 24px rgba(10,37,64,0.18);backdrop-filter:blur(6px);}',
-      'body.dark-theme .forage-scrub{background:rgba(14,26,36,0.94);border-color:rgba(94,162,230,0.2);}',
+      ':root[data-theme="dark"] .forage-scrub{background:rgba(14,26,36,0.94);border-color:rgba(94,162,230,0.2);}',
       '.forage-play{flex:none;width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;',
       'background:#0a2540;color:#f7f4ee;font-size:12px;line-height:1;}',
-      'body.dark-theme .forage-play{background:#5ea2e6;color:#0a1a24;}',
+      ':root[data-theme="dark"] .forage-play{background:#5ea2e6;color:#0a1a24;}',
       '.forage-date{flex:none;width:66px;font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:500;',
-      'color:#0a2540;}body.dark-theme .forage-date{color:#e6eef5;}',
+      'color:#0a2540;}:root[data-theme="dark"] .forage-date{color:#e6eef5;}',
       '.forage-slider-wrap{position:relative;flex:1;display:flex;align-items:center;}',
       '.forage-slider{width:100%;accent-color:#2d6a8f;position:relative;z-index:2;}',
       '.forage-today{position:absolute;top:-3px;bottom:-3px;width:2px;background:#c8553a;',
@@ -492,7 +537,7 @@
       '.forage-legend{position:absolute;left:12px;bottom:18px;z-index:1200;',
       'background:rgba(247,244,238,0.96);border:1px solid rgba(10,37,64,0.15);border-radius:10px;padding:9px 11px;',
       'font-family:"DM Sans",sans-serif;font-size:11.5px;color:#0a2540;box-shadow:0 4px 16px rgba(10,37,64,0.14);',
-      'max-width:190px;}body.dark-theme .forage-legend{background:rgba(14,26,36,0.94);color:#e6eef5;',
+      'max-width:190px;}:root[data-theme="dark"] .forage-legend{background:rgba(14,26,36,0.94);color:#e6eef5;',
       'border-color:rgba(94,162,230,0.2);}',
       '.forage-legend-wk{font-family:"JetBrains Mono",monospace;font-size:10px;opacity:.6;margin-bottom:5px;}',
       '.forage-legend-row{display:flex;align-items:center;gap:6px;padding:2px 0;}',
@@ -501,15 +546,24 @@
       'font-family:"JetBrains Mono",monospace;}',
       '.forage-tip{font-family:"DM Sans",sans-serif !important;}',
       '@media(max-width:640px){',
-      '.forage-panel{width:min(74vw,250px);top:54px;right:8px;max-height:60vh;}',
+      // Wider, taller expanded panel so labels stop wrapping and every control is
+      // a comfortable tap; it is collapsible, so covering the map when open is fine.
+      '.forage-panel{width:min(88vw,320px);top:52px;right:8px;max-height:calc(100vh - 150px);font-size:14px;}',
       '.forage-panel.collapsed{width:auto;}',
+      '.forage-collapse{width:32px;height:32px;font-size:18px;}',       // bigger open/close tap target
       '.forage-legend{display:none !important;}',                       // beat inline display:block; collides with scrubber on phones
-      '.forage-scrub{width:calc(100vw - 16px);bottom:12px;gap:8px;padding:7px 12px;}',
-      '.forage-date{width:52px;font-size:12px;}',
-      '.forage-play{width:34px;height:34px;}',                          // bigger tap target
-      '.forage-today-btn{padding:5px 10px;}',
-      '.forage-row{padding:6px 0;}',                                    // roomier taps
-      '.forage-run-btn{padding:4px 9px;}',
+      '.forage-scrub{width:calc(100vw - 16px);bottom:12px;gap:10px;padding:9px 14px;}',
+      '.forage-date{width:58px;font-size:13px;}',
+      '.forage-play{width:42px;height:42px;}',                          // bigger tap target
+      '.forage-slider{height:26px;}',                                   // fatter touch strip
+      '.forage-today-btn{padding:7px 12px;font-size:12px;}',
+      '.forage-row{padding:9px 0;}',                                    // roomier taps
+      '.forage-row input{width:20px;height:20px;}',                     // bigger checkboxes
+      '.forage-lbl{font-size:14px;}',
+      '.forage-run-btn{padding:6px 12px;font-size:12px;}',
+      '.reported-toggle{font-size:14px;}',
+      '.reported-sp-btn{padding:6px 12px;font-size:12px;}',             // bigger source/species taps
+      '.reported-note,.reported-latest,.reported-rate{font-size:12px;}',
       '}'
     ].join('');
     document.head.appendChild(s);

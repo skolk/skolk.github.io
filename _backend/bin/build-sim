@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# build-sim: compile a single-file React sim (.jsx) into a self-contained
+# static directory that GitHub Pages can serve with no build step and no
+# runtime CDN. Vendors React UMD locally and precompiles the JSX with esbuild.
+#
+# Usage: ./_backend/bin/build-sim <source.jsx> <ComponentName> <out-dir> "<Page Title>"
+#   <source.jsx>     path to the sim source (import React + export default)
+#   <ComponentName>  the default-exported component to mount (e.g. CommunitySim)
+#   <out-dir>        directory to (re)generate, relative to repo root (e.g. community-simulator)
+#   <Page Title>     browser tab / heading title
+#
+# The source is expected to `import React ... from "react"` and end with an
+# `export default <Component>` (or `export default function <Component>`).
+# Those two lines are stripped; a mount call is appended; esbuild transpiles
+# the JSX to app.js referencing the global React/ReactDOM UMD builds.
+set -euo pipefail
+
+SRC="${1:?source jsx required}"
+COMP="${2:?component name required}"
+OUTDIR="${3:?out dir required}"
+TITLE="${4:?title required}"
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT"
+
+[ -f "$SRC" ] || { echo "source not found: $SRC" >&2; exit 1; }
+
+mkdir -p "$OUTDIR"
+
+# Vendor React UMD (only fetch if missing).
+fetch() { # url dest
+  if [ ! -f "$2" ]; then
+    echo "fetching $(basename "$2")"
+    curl -sfL -o "$2" "$1"
+  fi
+}
+fetch "https://unpkg.com/react@18/umd/react.production.min.js"     "$OUTDIR/react.js"
+fetch "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" "$OUTDIR/react-dom.js"
+
+# Rewrite the React import and the export default, append a mount call.
+TMP="$(mktemp -t sim-src-XXXX).jsx"
+# 1) the UMD build only exposes a global `React`; the source destructures hooks
+#    from its import, so replace the `import ... from "react";` line with a
+#    destructure off the global (broad set, harmless if a hook is unused).
+# 2) `export default function Name(` -> `function Name(`
+# 3) drop a standalone `export default Name;` line
+sed -E \
+  -e 's/^[[:space:]]*import[[:space:]].*from[[:space:]]*"react";?[[:space:]]*$/const { useState, useMemo, useEffect, useRef, useCallback, useReducer, useContext, useLayoutEffect, Fragment } = React;/' \
+  -e 's/^[[:space:]]*export[[:space:]]+default[[:space:]]+function/function/' \
+  -e '/^[[:space:]]*export[[:space:]]+default[[:space:]]+[A-Za-z_$][A-Za-z0-9_$]*;[[:space:]]*$/d' \
+  "$SRC" > "$TMP"
+
+cat >> "$TMP" <<EOF
+
+ReactDOM.createRoot(document.getElementById("root")).render(<${COMP} />);
+EOF
+
+# Transpile JSX -> app.js (classic transform, global React). No bundling.
+npx --yes esbuild@0.24.0 "$TMP" \
+  --loader:.jsx=jsx \
+  --jsx=transform \
+  --format=iife \
+  --outfile="$OUTDIR/app.js" \
+  --log-level=warning
+rm -f "$TMP"
+
+# Emit index.html.
+cat > "$OUTDIR/index.html" <<EOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>${TITLE}</title>
+<style>
+  html, body { margin: 0; padding: 0; }
+  body { background: #fdf6e3; font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  #root { min-height: 100vh; }
+  .sim-loading { padding: 40px; text-align: center; color: #7a6a4a; font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="sim-loading">Loading the simulator&#8230;</div></div>
+<script src="react.js"></script>
+<script src="react-dom.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
+EOF
+
+echo "built $OUTDIR ($(wc -c < "$OUTDIR/app.js") bytes app.js)"

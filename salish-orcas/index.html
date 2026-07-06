@@ -180,6 +180,16 @@ function toggleTheme(){
   /* Day basemap: knock the CARTO land tint from near-white to a soft grey so the
      coast reads as land, not paper. Water is covered by the hex field anyway. */
   :root[data-theme="light"] .leaflet-tile-pane { filter: brightness(0.9) saturate(0.85); }
+  /* Night mode: Leaflet popups + tooltips default to white (bright windows on a
+     dark map). Darken them to match the panels. */
+  :root[data-theme="dark"] .leaflet-popup-content-wrapper,
+  :root[data-theme="dark"] .leaflet-popup-tip { background: #0e1a24; color: #e6eef5; box-shadow: 0 3px 16px rgba(0,0,0,0.5); }
+  :root[data-theme="dark"] .leaflet-popup a { color: #7bc0ff !important; }
+  :root[data-theme="dark"] .leaflet-tooltip { background: #0e1a24; color: #e6eef5; border-color: rgba(94,162,230,0.25); }
+  :root[data-theme="dark"] .leaflet-tooltip-top:before { border-top-color: #0e1a24; }
+  :root[data-theme="dark"] .leaflet-tooltip-bottom:before { border-bottom-color: #0e1a24; }
+  :root[data-theme="dark"] .leaflet-tooltip-left:before { border-left-color: #0e1a24; }
+  :root[data-theme="dark"] .leaflet-tooltip-right:before { border-right-color: #0e1a24; }
   .chart-plot-bg { fill: var(--chart-bg); }
   /* Theme toggle: styled to clearly read as a button */
   .theme-toggle {
