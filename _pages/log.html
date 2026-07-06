@@ -6,7 +6,8 @@ permalink: /log
 <section>
   <h2>Log</h2>
 
-  {% for post in site.posts %}
+  {% assign visible = site.posts | where_exp: "post", "post.needs_review != true" %}
+  {% for post in visible %}
     <div class="media t-hackcss-media">
       <div class="media-body">
         <div class="media-heading">
@@ -29,3 +30,28 @@ permalink: /log
     </div>
   {% endfor %}
 </section>
+
+{% assign in_review = site.posts | where_exp: "post", "post.needs_review == true" %}
+{% if in_review.size > 0 %}
+<section>
+  <h2>Needs review</h2>
+  <p>Live at their URLs, held out of the log above until reviewed.</p>
+
+  {% for post in in_review %}
+    <div class="media t-hackcss-media">
+      <div class="media-body">
+        <div class="media-heading">
+          <span>{{ post.date | date: "%Y.%-m.%-d" }} &raquo;
+            <a href="{{ post.url | prepend: site.baseurl }}" title="{{ post.title }}">
+              {{ post.title }}
+            </a>
+          </span>
+        </div>
+        <div class="media-content">
+          {{ post.short_description }}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</section>
+{% endif %}

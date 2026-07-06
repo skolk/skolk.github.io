@@ -6,6 +6,7 @@ date: 2026-07-05
 categories: [community, systems]
 tags: [community-economics, systems, development, pollica, teaching-tools]
 reviewed_by_sean: false
+needs_review: true
 short_description: A single-screen simulator for running a small place through twenty turns of choices, to see where the value it makes ends up staying, and who ends up owning it.
 ---
 

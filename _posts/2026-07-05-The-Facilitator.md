@@ -6,6 +6,7 @@ date: 2026-07-05
 categories: [community, systems]
 tags: [game-theory, cooperation, ostrom, community, teaching-tools, pollica]
 reviewed_by_sean: false
+needs_review: true
 short_description: A browser game where you sit between a rural community and an urban one for twenty turns of shocks, and try to build enough trust and shared institutions to keep them from breaking apart.
 ---
 

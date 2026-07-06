@@ -6,6 +6,7 @@ date: 2026-07-05
 categories: [making]
 tags: [skills, knives, how-to, galley]
 reviewed_by_sean: false
+needs_review: true
 short_description: The rough unglazed ring on the bottom of a mug is a free sharpening stone. A four-panel guide to using it, with a nail test to tell sharp from dull.
 ---
 

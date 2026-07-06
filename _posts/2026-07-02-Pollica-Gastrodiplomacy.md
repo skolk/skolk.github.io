@@ -8,6 +8,7 @@ tags: [gastrodiplomacy, mediterranean-diet, food-systems, blue-economy, resilien
 place: "Pollica, Cilento, Italy"
 region: "Mediterranean"
 reviewed_by_sean: false
+needs_review: true
 short_description: A week in Pollica for the Future Food Institute's gastrodiplomacy gathering, and why Kate and I are staying to build environmental engagement systems with the community, not around it.
 ---
 

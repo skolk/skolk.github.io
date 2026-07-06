@@ -11,7 +11,7 @@ layout: default
 
   <section>
     <h2 class="home-section-heading">Recent log</h2>
-    {% assign recent = site.posts | where_exp: "p", "p.type != 'recap'" | slice: 0, 3 %}
+    {% assign recent = site.posts | where_exp: "p", "p.type != 'recap'" | where_exp: "p", "p.needs_review != true" | slice: 0, 3 %}
     <ul>
     {% for post in recent %}
       <li><strong>{{ post.date | date: "%Y.%-m.%-d" }}</strong> &raquo; <a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>{% if post.short_description %} &middot; {{ post.short_description }}{% endif %}</li>
@@ -19,6 +19,19 @@ layout: default
     </ul>
     <p><a href="/log">All log entries →</a></p>
   </section>
+
+  {% assign in_review = site.posts | where_exp: "p", "p.needs_review == true" %}
+  {% if in_review.size > 0 %}
+  <section>
+    <h2 class="home-section-heading">Needs review</h2>
+    <p>Drafts that are live at their URLs but held out of the log until reviewed.</p>
+    <ul>
+    {% for post in in_review %}
+      <li><strong>{{ post.date | date: "%Y.%-m.%-d" }}</strong> &raquo; <a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>{% if post.short_description %} &middot; {{ post.short_description }}{% endif %}</li>
+    {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
 
   <section>
     <h2 class="home-section-heading">Recent recaps</h2>
