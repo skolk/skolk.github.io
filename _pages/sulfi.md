@@ -12,7 +12,7 @@ dates: 2020-present
 
 # Sulfi
 
-<img src="/images/blog_posts/SVP/IMG_7236.jpg" width="100%" alt="Sulfi, a yellow Portland Pudgy dinghy, pulled up on a gravel river bank in Southeast Alaska, forested mountains and a snow-streaked peak behind">
+<img src="/images/blog_posts/SVP/IMG_7236.jpg" style="width:100%; max-width:760px; height:auto; display:block; margin:1.5em 0; border-radius:4px;" alt="Sulfi, a yellow Portland Pudgy dinghy, pulled up on a gravel river bank in Southeast Alaska, forested mountains and a snow-streaked peak behind">
 
 *Sulfi* is [Petrichor]({{ '/petrichor' | prepend: site.baseurl }})'s dinghy, a yellow [Portland Pudgy](https://www.portlandpudgy.com/). She is the small boat that makes the big boat useful: the way we get from the anchor to the beach, run a stern line ashore, or go poke into a river mouth the mothership cannot reach.
 
