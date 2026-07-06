@@ -14,6 +14,9 @@ short_description: A long Inside Passage run on Petrichor, Shilshole to Southeas
 
 This one is a long blog in itself. Stub for now, marked with a `needs-expansion` tag so I remember to come back to it.
 
+<img src="/images/blog_posts/petrichor-inside-passage-2024.jpg" width="100%" alt="Petrichor's bow and Kate at the helm in a snow-walled fjord on the Inside Passage, forested slopes and snow above the waterline">
+
+
 The arc, in outline.
 
 *Petrichor*, my 1990 Catalina 36 Mk I, has been my floating home in Shilshole Marina. After three seasons in Puget Sound and a delivery back from Ketchikan in 2024, the boat was due for a proper season north under her own keel and crew. The Inside Passage from Seattle to Southeast Alaska is the great Pacific Northwest cruising apprenticeship: tide gates, narrow passes, fjord weather, remote anchorages a long way from any chandlery, and a wildlife density that's hard to overstate once you're north of Cape Caution.

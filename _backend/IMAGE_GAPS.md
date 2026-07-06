@@ -9,6 +9,17 @@
 > `2026-04-21-Math-Induced-Sailing-Doubt.md`, `2026-07-02-Pollica-Gastrodiplomacy.md` (the last is
 > currently `needs_review: true`). Note: `2026-05-20-bahamas-green-coco-expeditions.md` is already a
 > trip-report row below.
+>
+> **2026-07-06 Instagram backfill.** Cross-referenced the IG export against these gaps and added
+> hero images (from IG, resized) to three: `2019-06-15-greece-kos...` (`kos-2019-charter.jpg`),
+> `2024-06-20-r2ak2024.md` (`r2ak-2024-start.jpg`), and `2026-05-15-alaska-petrichor.md`
+> (`petrichor-inside-passage-2024.jpg`, a spring-2024 Desolation Sound shot of *Petrichor*). The IG
+> export has **no usable scene photo** for Sea of Cortez, Baja Ha-Ha, Round the County, or Swiftsure
+> (text only), and **nothing at all** for VanIsle 360 (2025) or Bahamas/Green Coco (2026). The Kenya
+> dhow and Dar-to-Tanga race IG posts are dated **2018**, not 2019. Kos and Alaska remain stubs
+> (content still needed); the r2ak2024 hero clears its `# image_preview` TODO line.
+> **Cleanup flag:** `images/blog_posts/instagram/` (548 files) is committed and web-published, the raw
+> IG media mirror. Recommend `git rm --cached` that folder and keep only curated copies.
 
 
 Working checklist from the 2026-06-20 gap sweep. Scope (Sean's call): **trip reports +

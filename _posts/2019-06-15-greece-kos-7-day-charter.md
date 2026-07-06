@@ -13,6 +13,9 @@ short_description: A 7-day charter out of Kos through the Dodecanese, two weeks 
 
 Seven days out of Kos in the Dodecanese, a Boatless Sailing charter sandwiched between time in Mauritius and the rest of a long 2019 traveling stretch.
 
+<img src="/images/blog_posts/kos-2019-charter.jpg" width="100%" alt="The charter boat's cockpit at dusk, twin wheels and a table of wine, the hills of Kos across the flat Aegean water">
+
+
 The Aegean rewards a different kind of sailing than the Pacific. Reliable summer winds, short hops between islands, harbors stacked with charter boats Mediterranean-mooring stern-to. We worked the line of islands east and south of Kos, anchoring in coves, eating long dinners ashore, and letting the wind set the day's plan more than any itinerary did.
 
 This one is a stub. The full account is still in notebooks and on cameras. I'll come back and fill it in.
