@@ -587,10 +587,10 @@
     injectCss();
     precompute();
     buildControls();
-    // Start with the thesis layers on: Chinook + Southern Residents.
+    // Start with just salmon on; the user turns on orcas / whales as they like.
     document.querySelectorAll('.forage-row input').forEach(function (input) {
       var k = input.getAttribute('data-key');
-      if (k === 'salmon' || k === 'orca_srkw') { input.checked = true; setLayer(k, true); }
+      if (k === 'salmon') { input.checked = true; setLayer(k, true); }
     });
     var runRow = document.querySelector('.forage-runs');
     if (runRow && layerOn.salmon) runRow.style.display = 'flex';

@@ -25,7 +25,7 @@ function toggleTheme(){
 }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Salish Sea Orca Map</title>
+<title>Salish Migration Map</title>
 <script>window._OPEN_WATER_SITE = true;</script>
 <script src="coastal-geometry.js"></script>
 <script src="forage-model.js"></script>
@@ -1946,7 +1946,7 @@ function toggleTheme(){
       <div class="brand">
         <div class="brand-mark"></div>
         <div class="brand-text">
-          <div class="brand-name">Salish Sea Orca Map</div>
+          <div class="brand-name">Salish Migration Map</div>
           <div class="brand-sub" id="headerContext">Lower Salish Sea</div>
           <div class="brand-coords" id="headerCoords" style="display:none"></div>
         </div>
@@ -2120,7 +2120,7 @@ function toggleTheme(){
       </div>
     </div>
 
-    <div class="footer-credit">Basemap: OpenStreetMap/CARTO. Forage-web and orca layers are deterministic seasonal models (calendar &times; place), explicitly synthetic, not live data. Run/spawn/haul-out timing parameterized from WDFW, DFO, and NOAA Fisheries sources.</div>
+    <div class="footer-credit">Basemap: OpenStreetMap/CARTO. Forage-web and migration layers are deterministic seasonal models (calendar &times; place), explicitly synthetic, not live data. Run/spawn/haul-out timing parameterized from WDFW, DFO, and NOAA Fisheries sources.</div>
 
     <!-- v9.17: shared sea-temperature ramp legend, shown when either temp layer is on -->
     <div class="temp-legend" id="tempLegend" style="display:none;">
@@ -4051,7 +4051,7 @@ function applyParams() {
     const cfg = window.SITE_CONFIG;
     const name = cfg && cfg.name ? cfg.name
       : (site ? site.charAt(0).toUpperCase() + site.slice(1) : 'Pollica');
-    const label = subtitle || (cfg && cfg.grid && cfg.grid.open_water ? 'Forage-web + orca'
+    const label = subtitle || (cfg && cfg.grid && cfg.grid.open_water ? 'Forage web + migration'
       : (cfg && cfg.subject) || 'Posidonia Monitor');
     ctx.textContent = name + ' · ' + label;
   }
@@ -4184,8 +4184,9 @@ async function renderOpenWaterGrid() {
   map.on('zoomend', onView);
   map.on('moveend', onView);
 
-  // Restore the pre-toggle view after a theme reload; otherwise fit the region.
-  const b = cfg.context_bounds;
+  // Restore the pre-toggle view after a theme reload; otherwise fit the initial
+  // frame (the core Salish Sea), falling back to the full grid extent.
+  const b = cfg.initial_bounds || cfg.context_bounds;
   let restored = false;
   try {
     const raw = sessionStorage.getItem('salish.view');
