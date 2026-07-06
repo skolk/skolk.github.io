@@ -20,17 +20,17 @@ dates: 2020-present
 
 <img src="/images/blog_posts/SVP/IMG_7350.jpg" style="width:100%; max-width:760px; height:auto; display:block; margin:1.5em 0; border-radius:4px;" alt="Petrichor anchored alone in a Southeast Alaska fjord, a snow-streaked peak and forested mountainside rising behind her">
 
-People ask about her a lot, so here she is. *Petrichor* is our 1990 [Catalina 36](https://en.wikipedia.org/wiki/Catalina_36), home berth [Shilshole Bay Marina](https://en.wikipedia.org/wiki/Shilshole_Bay_Marina) in Ballard, Seattle. She is our first cruising boat, our home on the water, and the platform for two seasons in Mexico and a run up the Inside Passage to Southeast Alaska. The word *petrichor* is the smell of rain on dry earth, which is about right for a boat that lives where it rains.
+People ask about her a lot, so here she is. *Petrichor* is our 1990 [Catalina 36](https://en.wikipedia.org/wiki/Catalina_36), home berth [Shilshole Bay Marina](https://en.wikipedia.org/wiki/Shilshole_Bay_Marina) in Ballard, Seattle. She is our first cruising boat, our home on the water, and the platform for two seasons in Mexico and a run up the Inside Passage to Southeast Alaska. The word *petrichor* means the scent at the start of the rain, a Greek combination of *petra*, rock, and *ichor*, the blood of the gods. It is one of the most sensitive odors mammals can smell, because it signals moisture, and it sat well with our mix of water and land.
 
 <img src="/images/blog_posts/SVP/PXL_20221230_002827656.jpg" style="width:100%; max-width:760px; height:auto; display:block; margin:1.5em 0; border-radius:4px;" alt="Us hanging out in Petrichor's cockpit at sunset, four of us in the evening light with the water behind">
 
 ## The short version
 
-- **Make:** Catalina 36 Mk I
+- **Make:** [Catalina 36 Mk I](https://en.wikipedia.org/wiki/Catalina_36)
 - **Built:** 1990, fiberglass masthead sloop
 - **Length:** 36 feet, about 12 meters
 - **Sleeps:** four comfortably, six uncomfortably
-- **Home port:** [Shilshole Bay Marina](https://en.wikipedia.org/wiki/Shilshole_Bay_Marina), Ballard, Seattle. Her slip sits at [47.631208° N, 122.496521° W](https://www.openstreetmap.org/?mlat=47.631208&mlon=-122.496521#map=17/47.631208/-122.496521)
+- **Home port:** [Shilshole Bay Marina](https://en.wikipedia.org/wiki/Shilshole_Bay_Marina), Ballard, Seattle. Her slip sits at [47.680696° N, 122.405087° W](https://www.openstreetmap.org/?mlat=47.680696&mlon=-122.405087#map=16/47.680696/-122.405087)
 - **Ours since:** August 2020. Our full-time home since 2024, and lived aboard off and on before that, including the 2021-2022 season in Mexico
 - **Where she has been:** San Francisco Bay, the Baja Ha-Ha down to Cabo, a season in the Sea of Cortez, and the Inside Passage to Southeast Alaska
 
