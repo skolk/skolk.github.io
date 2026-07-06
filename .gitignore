@@ -34,3 +34,6 @@ _drafts/instagram-s.a.kolk-2026-06-22-l6dqQ6Ax/
 # _backend/archive/squarespace-2024/images/. See _backend/archive/README.md.
 _backend/archive/squarespace-2024-docx/*.docx
 _backend/archive/squarespace-2024-docx/media/
+
+# Raw Instagram media mirror (kept local, not published). Curated copies live in images/blog_posts/.
+images/blog_posts/instagram/
