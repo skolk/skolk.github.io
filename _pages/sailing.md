@@ -13,19 +13,23 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 **Days At Sea:** 370+ &nbsp;&nbsp;&nbsp;&nbsp; **Days Skippered:** 233
 
-**Vessels owned:** 1990 Catalina 36 Mk I • 1969 Coronado 25 • 2000 Hobie 18
+**Vessels owned:** [1990 Catalina 36 Mk I *Petrichor*]({{ '/petrichor' | relative_url }}) • 1969 Coronado 25 • 2000 Hobie 18
 
 ---
 
 ### Certifications & Skills
 
-**Certifications:** ASA BareBoat • ASA Catamaran • RYA Yachtmaster Offshore (2026) • Wilderness First Responder • ACA Swift Water Rescue • Licensed HAM Radio Operator (KK6DFO)
+**Certifications:** ASA BareBoat • ASA Catamaran • [RYA Yachtmaster Offshore (2026)]({% post_url 2026-06-16-RYA-Yachtmaster %}) • Wilderness First Responder • ACA Swift Water Rescue • Licensed HAM Radio Operator (KK6DFO)
 
 **Skills:** Electro-mechanical Engineer • PADI Advanced Open Water Diver • Expedition Planning • French Onion Soup Underway
 
 ---
 
 ## Recent Highlights (2024-2026)
+
+**[RYA Yachtmaster Offshore (2026)]({% post_url 2026-06-16-RYA-Yachtmaster %})**: Passed the RYA Yachtmaster Offshore exam over two days and nights on the Solent out of Hamble, UK, the international benchmark for offshore skippering. Reflections on the prep and the assessment.
+
+**[Bahamas with Green Coco (2026)]({% post_url 2026-05-20-bahamas-green-coco-expeditions %})**: A week off Exuma on the 60-foot catamaran *SV Nesi*, blue holes and loggerheads through the Hog Cut. Best charter I've been on.
 
 **[VanIsle 360 (2025)]({% post_url 2025-06-20-vanisle-360 %})**: Crew on SV Golux BM50, finishing 5th place in this challenging 580-nautical-mile race around Vancouver Island. Three weeks of intense racing through variable Pacific Northwest conditions.
 
@@ -41,27 +45,27 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 **2023: Swiftsure Race**: Crew (bow/helm) on Catalina Mark II *Mata Hari*, racing from Victoria to Clallam Bay in 13 hours. Classic Pacific Northwest offshore race with strong currents and variable winds.
 
-**2019: Dar es Salaam to Tanga Race**: Four-day coastal race around Zanzibar, Tanzania. Awarded Most Meritorious for completing the 250-mile course without an engine. Pure sailing, learning about East African wind patterns and current management.
+**2019: [Dar es Salaam to Tanga Race]({% post_url 2019-01-21-dar-tanga-post %})**: Four-day coastal race around Zanzibar, Tanzania. Awarded Most Meritorious for completing the 250-mile course without an engine. Pure sailing, learning about East African wind patterns and current management.
 
 ---
 
 ## Charter Expeditions & International Trips
 
-**The Seychelles (2018)**: 10-day expedition through pristine granite islands with 10 crew. Encountered dolphins, whale sharks, and some of the world's most beautiful anchorages. Storm challenges taught weather management and flexible planning.
+**[The Seychelles (2018)]({% post_url 2018-10-07-Seychelles-post %})**: 10-day expedition through pristine granite islands with 10 crew. Encountered dolphins, whale sharks, and some of the world's most beautiful anchorages. Storm challenges taught weather management and flexible planning.
 
 **Croatia (2018)**: 7-day exploration of the Dalmatian coast during World Cup finals. Mediterranean mooring, crowded anchorages, and navigation through hundreds of Croatian islands.
 
 **Kenya Coast (2019)**: Crewed on traditional dhows with local fishermen along the Indian Ocean. Learning Swahili phrases and alternative methods of harnessing wind with no metal rigging, pure traditional sailing techniques.
 
-**Greece, Kos (2019)**: 7-day charter through the Dodecanese out of Kos. Aegean trade winds, island hops, and stern-to mooring along ancient harbors.
+**[Greece, Kos (2019)]({% post_url 2019-06-15-greece-kos-7-day-charter %})**: 7-day charter through the Dodecanese out of Kos. Aegean trade winds, island hops, and stern-to mooring along ancient harbors.
 
-**Baja, Mexico (2021)**: Captained my Catalina 36 *Petrichor* from Oakland, CA to Cabo San Lucas in the annual Baja Ha-Ha rally. First major offshore passage as captain, 750+ miles of Pacific coast.
+**[Baja, Mexico (2021)]({% post_url 2021-11-01-baja-mexico-2021 %})**: Captained my Catalina 36 [*Petrichor*]({{ '/petrichor' | relative_url }}) from Oakland, CA to Cabo San Lucas in the annual Baja Ha-Ha rally. First major offshore passage as captain, 750+ miles of Pacific coast.
 
-**Mexico (2021-2022)**: A long season cruising the Sea of Cortez out of Cabo into La Paz and back, capped by a double-handed engineless run from Loreto to La Paz.
+**[Mexico (2021-2022)]({% post_url 2022-04-01-mexico-2021-2022-cruise %})**: A long season cruising the Sea of Cortez out of Cabo into La Paz and back, capped by a double-handed engineless run from Loreto to La Paz.
 
-**Bahamas with Green Coco Expeditions (2026)**: A week off Exuma on the 60-foot catamaran *SV Nesi*, blue holes and loggerheads through the Hog Cut to Stone Cay, Water Cay, and Flamingo Key. Best charter I've been on.
+**[Bahamas with Green Coco Expeditions (2026)]({% post_url 2026-05-20-bahamas-green-coco-expeditions %})**: A week off Exuma on the 60-foot catamaran *SV Nesi*, blue holes and loggerheads through the Hog Cut to Stone Cay, Water Cay, and Flamingo Key. Best charter I've been on.
 
-**Alaska on Petrichor (2026)**: A long Inside Passage run from Shilshole to Southeast Alaska aboard *Petrichor*. A long blog in itself, full writeup still in progress.
+**[Alaska on Petrichor (2026)]({% post_url 2026-05-15-alaska-petrichor %})**: A long Inside Passage run from Shilshole to Southeast Alaska aboard [*Petrichor*]({{ '/petrichor' | relative_url }}). A long blog in itself, full writeup still in progress.
 
 ---
 
