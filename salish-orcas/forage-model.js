@@ -292,8 +292,13 @@
       // cells still read as the ramp's 0.00 color instead of dropping out to bare
       // basemap. The modeled field then rises out of a continuous low-end wash.
       if (v < 0.06) {
+        // Floor: paint every water cell at the ramp's 0.00 colour so the day map
+        // reads as a continuous field. That colour is light (tuned for the cream
+        // basemap); on the near-black night basemap it glares white as a tint
+        // across every hex, so skip the floor at night and let the dark base grid
+        // carry the water. Only actual modeled signal paints in dark mode.
         poly.setStyle({
-          fillColor: rampColor(ramp, 0), fillOpacity: 0.28,
+          fillColor: rampColor(ramp, 0), fillOpacity: _isLight ? 0.28 : 0,
           color: rampColor(ramp, 0), weight: 0, opacity: 0
         });
         return;
