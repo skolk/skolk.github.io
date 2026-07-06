@@ -52,15 +52,15 @@ We converted the galley to electric, and we cook almost anything you would think
 
 ## Where she has been
 
-- **[Baja Ha-Ha 2021, Oakland to Cabo]({% post_url 2021-11-01-baja-mexico-2021 %})**: My first major offshore passage as captain of my own boat. Down the California coast and into the rally flotilla south along Baja into warm water.
-- **[A season in the Sea of Cortez, 2021-2022]({% post_url 2022-04-01-mexico-2021-2022-cruise %})**: Months working north into the Cortez and back, capped by double-handing *Petrichor* engineless from Loreto to La Paz, anchoring entirely under sail.
-- **[The Inside Passage to Southeast Alaska]({% post_url 2026-05-15-alaska-petrichor %})**: Shilshole to Southeast Alaska under her own keel, through tide gates, fjord weather, remote anchorages, and the wildlife density of the route north of Cape Caution.
+- **[Baja Ha-Ha 2021, Oakland to Cabo]({% post_url 2021-11-01-baja-mexico-2021 %})**: My first offshore passage as captain of my own boat. I sailed *Petrichor* out of Oakland with crew, down the California coast to San Diego, and joined the Baja Ha-Ha, the annual rally that runs a couple hundred boats down the outside of the peninsula to Cabo San Lucas. The lessons piled up fast: provisioning a crew on a small boat, downwind sail combinations in the trades, and fixing what breaks when the next anchorage is still two days out.
+- **[A season in the Sea of Cortez, 2021-2022]({% post_url 2022-04-01-mexico-2021-2022-cruise %})**: After the Ha-Ha dropped us into Cabo, *Petrichor* and I spent several months working north into the Sea of Cortez and back, anchoring at Bahia de los Muertos, Isla Espiritu Santo, La Paz, and Loreto. The capstone was double-handing her engineless from Loreto down to La Paz, anchoring entirely under sail. The Cortez teaches self-reliance the way few places do: the nearest chandlery is a long way off when your impeller goes.
+- **[The Inside Passage to Southeast Alaska]({% post_url 2026-05-15-alaska-petrichor %})**: Shilshole to Southeast Alaska under her own keel, north through the San Juans into Canadian waters, up Desolation Sound and Johnstone Strait and the Broughtons, around Cape Caution, and across Dixon Entrance into the Alexander Archipelago. It is the Pacific Northwest cruising apprenticeship: tide gates like Seymour Narrows and Wrangell Narrows where seamanship has to actually be seamanship, fjord weather, remote anchorages, and humpbacks bubble-net feeding once you are north.
 
 ## Living aboard
 
 *Petrichor* is home. We moved aboard full time in 2024, and day-to-day life happens on her: work from the boat, sunset sails on Puget Sound, and a steady stream of friends taken out for their [first time on the water]({% post_url 2026-04-11-First-Time-Out-Sailing %}). Living aboard is its own discipline, the same self-reliance the passages teach, applied to every ordinary day.
 
-## More of her
+## Petrichor Gallery
 
 <div style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin:1em 0; -webkit-overflow-scrolling:touch;">
   <img src="/images/blog_posts/SVP/PXL_20250205_143038880.NIGHT.jpg" style="height:240px; width:auto; flex:0 0 auto; border-radius:4px;" alt="Petrichor at her Shilshole slip on a winter night, a green cover over the boom and cockpit, snow on the dock and coamings">
@@ -74,6 +74,8 @@ We converted the galley to electric, and we cook almost anything you would think
 ## Sulfi, her dinghy
 
 *Petrichor* carries a dinghy: **[Sulfi]({{ '/sulfi' | prepend: site.baseurl }})**, a yellow Portland Pudgy. She is how we get from the anchor to the beach, and she has her [own page]({{ '/sulfi' | prepend: site.baseurl }}).
+
+<img src="/images/blog_posts/SVP/PXL_20200930_175046647.jpg" style="width:100%; max-width:760px; height:auto; display:block; margin:1.5em 0; border-radius:4px;" alt="Sulfi, the yellow Portland Pudgy dinghy, on a boat ramp beside the water on a clear day">
 
 ## More
 

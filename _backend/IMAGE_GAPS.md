@@ -1,5 +1,16 @@
 # Image gaps: posts missing a hero picture
 
+> **2026-07-06 re-scan.** A fresh sweep (no inline `<img>` and no markdown image in the body)
+> found **46 of 71 posts** with no visible picture: 21 monthly recaps (out of scope, text is fine)
+> and 25 real posts. Beyond the rows already tracked below, these newer posts are also missing a
+> picture and are not yet listed here: `2026-04-11-First-Time-Out-Sailing.md`,
+> `2026-04-11-Book-List-and-Reviews.md`, `2026-04-11-Reconciling-Abundance-and-Scarcity.md`,
+> `2026-04-11-The-Generative-Spark.md`, `2026-04-13-Capabilities-First-Aid-and-Risk-for-Your-Trips.md`,
+> `2026-04-21-Math-Induced-Sailing-Doubt.md`, `2026-07-02-Pollica-Gastrodiplomacy.md` (the last is
+> currently `needs_review: true`). Note: `2026-05-20-bahamas-green-coco-expeditions.md` is already a
+> trip-report row below.
+
+
 Working checklist from the 2026-06-20 gap sweep. Scope (Sean's call): **trip reports +
 narrative posts** get an inline hero image (a subject or a location). Recaps and essays
 are out of scope for now. `image_preview:` is currently dead metadata (rendered nowhere),

@@ -38,6 +38,7 @@ Format: each item is one bullet. Optional tags in `[brackets]`, `[quick]`, `[med
 - [x] Typo `costal` → `coastal` in `_posts/2026-02-23-Coastal-Systems.md:5` (`categories: ecosystem, costal, …`) and `_pages/about.md:10` ("costal resilience"). [content] [quick] — done, verified 2026-06-17 (both now read "coastal").
 
 ### Site structure / nav
+- [ ] Give *Petrichor* her own tag to group all Petrichor-related posts (trip reports, first-time-out, recaps that feature her, etc.) so `/petrichor` can auto-list them. The `/petrichor` and `/sulfi` pages already carry `project_tag: petrichor`; add a matching `petrichor` tag/category to the relevant posts and surface a "Aboard Petrichor" list on the page (mirror the `/sailing` auto-listing block). [content] [medium]
 - [ ] Refresh `_pages/about.md` to reflect 2026 context, broken out from LinkedIn diff (2026-05-22):
   - Title: "Co-Founder" → "Co-Founder and Chief Strategy Officer" at Astraeus.
   - Add Greater Seattle Area as location.
