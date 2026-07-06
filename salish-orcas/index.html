@@ -13,6 +13,14 @@ function __isLight(){return document.documentElement.getAttribute('data-theme')=
 function toggleTheme(){
   var next = __isLight() ? 'dark' : 'light';
   try{ localStorage.setItem('salish.theme', next); }catch(e){}
+  // Theme swap needs a reload (basemap + grid colours are set at load), but the
+  // frame should not jump: stash the current view and restore it after reload.
+  try{
+    if (map) {
+      var c = map.getCenter();
+      sessionStorage.setItem('salish.view', JSON.stringify({ lat: c.lat, lng: c.lng, z: map.getZoom() }));
+    }
+  }catch(e){}
   location.reload();
 }
 </script>
@@ -4176,8 +4184,21 @@ async function renderOpenWaterGrid() {
   map.on('zoomend', onView);
   map.on('moveend', onView);
 
+  // Restore the pre-toggle view after a theme reload; otherwise fit the region.
   const b = cfg.context_bounds;
-  map.fitBounds([[b.south, b.west], [b.north, b.east]], { padding: [12, 12] });
+  let restored = false;
+  try {
+    const raw = sessionStorage.getItem('salish.view');
+    if (raw) {
+      sessionStorage.removeItem('salish.view');
+      const v = JSON.parse(raw);
+      if (v && isFinite(v.lat) && isFinite(v.lng) && isFinite(v.z)) {
+        map.setView([v.lat, v.lng], v.z);
+        restored = true;
+      }
+    }
+  } catch (e) {}
+  if (!restored) map.fitBounds([[b.south, b.west], [b.north, b.east]], { padding: [12, 12] });
   debugLog('Open-water grid: ' + cells.length + ' sea cells at res ' + baseRes +
            ' (bump res ' + bumpRes + ' @ z' + bumpZoom + ')' +
            (mask ? (' (mask ' + mask.cols + 'x' + mask.rows + ', sea ' +
