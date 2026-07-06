@@ -55,7 +55,7 @@ I've been organizing sailing expeditions since 2012, proving that you don't need
 
 **Croatia (2018)**: 7-day exploration of the Dalmatian coast during World Cup finals. Mediterranean mooring, crowded anchorages, and navigation through hundreds of Croatian islands.
 
-**Kenya Coast (2019)**: Crewed on traditional dhows with local fishermen along the Indian Ocean. Learning Swahili phrases and alternative methods of harnessing wind with no metal rigging, pure traditional sailing techniques.
+**Kenya Coast (2018)**: Crewed on traditional dhows with local fishermen along the Indian Ocean. Learning Swahili phrases and alternative methods of harnessing wind with no metal rigging, pure traditional sailing techniques.
 
 **[Greece, Kos (2019)]({% post_url 2019-06-15-greece-kos-7-day-charter %})**: 7-day charter through the Dodecanese out of Kos. Aegean trade winds, island hops, and stern-to mooring along ancient harbors.
 
