@@ -141,8 +141,8 @@
 
   // week 0 = first week of January. Peaks below reflect Salish run/spawn timing.
   var SPECIES = {
-    salmon: {   // Chinook is the primary; toggles are other species' calendars
-      label: 'Salmon (Chinook)', grid: 'open_water', kind: 'model',
+    salmon: {   // label stays generic; the run selector picks the species/calendar
+      label: 'Salmon', grid: 'open_water', kind: 'model',
       ramp: ['#f6e2b3', '#c85a2c', '#8a2f1e'],
       hotspots: CHINOOK, season: bump2(16, 4, 30, 6, 0.18)  // spring + big summer run
     },
@@ -364,7 +364,9 @@
       'Synthetic, not live. Orcas are derived from their prey.</div>';
 
     var list = el('div', 'forage-list');
-    var order = ['salmon', 'herring', 'seal', 'orca_srkw', 'orca_biggs', 'humpback', 'gray', 'minke'];
+    // Harbor seal is resident (doesn't migrate), so it's not shown as a layer;
+    // its prior still feeds the Bigg's-orca derivation internally.
+    var order = ['salmon', 'herring', 'orca_srkw', 'orca_biggs', 'humpback', 'gray', 'minke'];
     order.forEach(function (key) {
       var row = el('label', 'forage-row');
       var swatch = 'linear-gradient(90deg,' + SPECIES[key].ramp[0] + ',' + SPECIES[key].ramp[2] + ')';
@@ -464,12 +466,10 @@
   }
 
   // ---- legend ------------------------------------------------------------
+  // The bottom-left legend box was removed; the panel's own colour swatches carry
+  // the key. legendEl stays undefined so updateLegend() is a no-op everywhere.
   var legendEl;
-  function buildLegendPanel() {
-    legendEl = el('div', 'forage-legend');
-    legendEl.style.display = 'none';
-    document.body.appendChild(legendEl);
-  }
+  function buildLegendPanel() { /* removed: panel swatches are the legend now */ }
   function updateLegend() {
     if (!legendEl) return;
     var on = Object.keys(layerOn).filter(function (k) { return layerOn[k]; });
@@ -491,8 +491,11 @@
     if (document.getElementById('forage-css')) return;
     var s = el('style'); s.id = 'forage-css';
     s.textContent = [
-      '.forage-panel{position:absolute;top:64px;right:12px;z-index:1200;width:236px;',
-      'max-height:calc(100vh - 84px);overflow-y:auto;-webkit-overflow-scrolling:touch;',
+      // Fixed to the viewport (never pushed off by map/ancestor width) and width-
+      // capped, so the sidebar is always fully on-screen; overflow-x hidden + a
+      // wrapping label keep long species names from spilling past the edge.
+      '.forage-panel{position:fixed;top:64px;right:12px;z-index:1200;width:236px;max-width:calc(100vw - 24px);',
+      'max-height:calc(100vh - 84px);overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;',
       'background:rgba(247,244,238,0.96);border:1px solid rgba(10,37,64,0.15);border-radius:12px;',
       'padding:12px 13px;font-family:"DM Sans",system-ui,sans-serif;color:#0a2540;',
       'box-shadow:0 6px 24px rgba(10,37,64,0.16);backdrop-filter:blur(6px);}',
@@ -509,7 +512,8 @@
       '.forage-panel.collapsed .forage-head{margin-bottom:0;}',
       '.forage-note{font-size:10.5px;line-height:1.35;opacity:.62;margin-bottom:10px;}',
       '.forage-row{display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;}',
-      '.forage-row input{cursor:pointer;}',
+      '.forage-row input{cursor:pointer;flex:none;}',
+      '.forage-lbl{flex:1;min-width:0;overflow-wrap:break-word;}',   // wrap long names, never spill
       '.forage-sw{width:26px;height:11px;border-radius:3px;flex:none;border:1px solid rgba(10,37,64,0.2);}',
       '.forage-lbl em{font-style:normal;font-size:9px;font-family:"JetBrains Mono",monospace;opacity:.5;',
       'text-transform:uppercase;letter-spacing:.05em;margin-left:3px;}',
