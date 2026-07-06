@@ -10,6 +10,12 @@ last_updated: 2026-07-06
 dates: 2020-present
 ---
 
+<style>
+  main { max-width: 820px; min-width: 0; }
+  main img { max-width: 100%; height: auto; }
+  main div[style*="overflow-x"] { max-width: 100%; }
+</style>
+
 # Sulfi
 
 <img src="/images/blog_posts/SVP/IMG_7236.jpg" style="width:100%; max-width:760px; height:auto; display:block; margin:1.5em 0; border-radius:4px;" alt="Sulfi, a yellow Portland Pudgy dinghy, pulled up on a gravel river bank in Southeast Alaska, forested mountains and a snow-streaked peak behind">

@@ -10,6 +10,12 @@ last_updated: 2026-07-06
 dates: 2020-present
 ---
 
+<style>
+  main { max-width: 820px; min-width: 0; }
+  main img { max-width: 100%; height: auto; }
+  main div[style*="overflow-x"] { max-width: 100%; }
+</style>
+
 # Petrichor
 
 <img src="/images/blog_posts/SVP/IMG_7350.jpg" style="width:100%; max-width:760px; height:auto; display:block; margin:1.5em 0; border-radius:4px;" alt="Petrichor anchored alone in a Southeast Alaska fjord, a snow-streaked peak and forested mountainside rising behind her">
