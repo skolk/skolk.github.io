@@ -4,9 +4,11 @@ layout: default
 <div>
   <section>
     <h1>Sean Kolk</h1>
-    <p>I make tools that help communities explore new horizons. I co-founded <a href="https://astraeusocean.com/">Astraeus Ocean Systems</a>, which builds infrastructure for coastal monitoring, and <a href="https://islandlab.dev/">Island Lab</a>, an experiment in developing coastal communities through gathering and design. I'm also Director of Grant Strategy at <a href="https://www.reapcenter.org/">REAP Climate Center</a>, working on climate technology and ocean systems.</p>
+    <p>I'm a technology and strategy consultant. I work with organizations across tech, philanthropy, and the public sector, moving between leading engagements and advising. The work is translating emerging technology, including AI and agentic systems, into clear strategy and tools people can actually use, and facilitating the workshops and co-design sessions where cross-sector groups make the hard calls together. The through-line: turning complex science and technology into resilient, operational tools that work for the people who need them most.</p>
 
-    <p>I enjoy bringing people together in environments with interesting constraints. I seek the cold, water, and mountains.</p>
+    <p>I run <a href="https://islandlab.dev/">Island Lab</a>, my independent strategy and facilitation practice since 2018, now focused on coastal communities through gathering and design. I co-founded <a href="https://astraeusocean.com/">Astraeus Ocean Systems</a> and serve as its Chief Strategy Officer, building coastal resilience intelligence for working waterfronts and maritime communities. And I'm Director of Grant Strategy at <a href="https://www.reapcenter.org/">REAP Climate Center</a>, leading climate grant strategy for bio-regenerative programs.</p>
+
+    <p>I like bringing people together in environments with interesting constraints. I seek the cold, water, and mountains.</p>
   </section>
 
   <section>
@@ -19,19 +21,6 @@ layout: default
     </ul>
     <p><a href="/log">All log entries →</a></p>
   </section>
-
-  {% assign in_review = site.posts | where_exp: "p", "p.needs_review == true" %}
-  {% if in_review.size > 0 %}
-  <section>
-    <h2 class="home-section-heading">Needs review</h2>
-    <p>Drafts that are live at their URLs but held out of the log until reviewed.</p>
-    <ul>
-    {% for post in in_review %}
-      <li><strong>{{ post.date | date: "%Y.%-m.%-d" }}</strong> &raquo; <a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>{% if post.short_description %} &middot; {{ post.short_description }}{% endif %}</li>
-    {% endfor %}
-    </ul>
-  </section>
-  {% endif %}
 
   <section>
     <h2 class="home-section-heading">Recent recaps</h2>
@@ -49,18 +38,17 @@ layout: default
   </section>
 
   <section>
+    <h2 class="home-section-heading">Background</h2>
+    <p>Before consulting full time, I was Director of Business Development at <a href="https://picknik.ai/">PickNik Robotics</a>, where I grew the sales pipeline from $3M to $7M+ and coordinated winning SBIR/STTR proposals with NASA, the DoD, NSF, and DOE. Earlier I was the first engineer at 3Scan, a cancer-diagnostics startup, where I led the design of a critical electro-mechanical subsystem and co-patented a tissue-capture mechanism.</p>
+  </section>
+
+  <section>
     <h2 class="home-section-heading">Current Projects</h2>
 
-    <p><strong>Climate Funding Strategy</strong>: Leading $12M+ in grant initiatives for bio-regenerative programs at REAP Climate Center.</p>
+    <p><strong>A Path into Sailing</strong>: Writing a guide for people getting into sailing, from basic skills to charter adventures around the world.</p>
 
-    <p><strong>Ocean Technology</strong>: Developing sustainable marine systems and coastal monitoring through Astraeus Ocean Systems.</p>
+    <p><strong>Adventure Report</strong>: A storytelling breakfast running since 2014, bringing people together to share adventure stories.</p>
 
-    <p><strong><a href="https://islandlab.dev/">Island Lab</a></strong>: Design group for rethinking systems.</p>
-
-    <p><strong>A Path into Sailing</strong>: Writing a guide for people interested in getting into sailing, from basic skills to charter adventures around the world.</p>
-
-    <p><strong>Adventure Report</strong>: Monthly storytelling breakfast running since 2014, bringing together people to share adventure stories.</p>
-
-    <p><strong>Boatless Sailing</strong>: Organizing charter sailing expeditions for people who don't own boats. Next trip in planning.</p>
+    <p><strong>Boatless Sailing</strong>: Organizing charter sailing expeditions for people who don't own boats.</p>
   </section>
 </div>
