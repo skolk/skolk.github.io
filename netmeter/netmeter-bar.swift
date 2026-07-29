@@ -175,6 +175,37 @@ class StatsWindow: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     }
 }
 
+// Custom-drawn toggle: NSSwitch renders washed out inside menus regardless of
+// appearance overrides, so we draw our own pill with unmistakable states.
+class ToggleSwitch: NSControl {
+    var isOn = true { didSet { needsDisplay = true } }
+    var onToggle: ((Bool) -> Void)?
+
+    override func draw(_ dirtyRect: NSRect) {
+        let track = NSRect(x: 0, y: 2, width: 38, height: 20)
+        let path = NSBezierPath(roundedRect: track, xRadius: 10, yRadius: 10)
+        if isOn {
+            NSColor.systemGreen.setFill()
+        } else {
+            NSColor.systemGray.withAlphaComponent(0.4).setFill()
+        }
+        path.fill()
+        NSColor.black.withAlphaComponent(0.12).setStroke()
+        path.stroke()
+        let knobX = isOn ? track.maxX - 18 : track.minX + 2
+        let knob = NSBezierPath(ovalIn: NSRect(x: knobX, y: track.minY + 2, width: 16, height: 16))
+        NSColor.white.setFill()
+        knob.fill()
+        NSColor.black.withAlphaComponent(0.15).setStroke()
+        knob.stroke()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        isOn.toggle()
+        onToggle?(isOn)
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem!
     let stats = StatsWindow()
@@ -335,25 +366,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         v.addSubview(size)
 
         if pausable {
-            let sw = NSSwitch(frame: NSRect(x: 296, y: 2, width: 44, height: 22))
-            sw.controlSize = .small
-            // Menus render controls with a vibrant appearance that washes out the
-            // switch tint; pinning the standard appearance restores the full color.
-            sw.appearance = NSAppearance(
-                named: NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) ?? .aqua)
-            sw.state = frozen ? .off : .on
-            sw.target = self
-            sw.action = #selector(switchToggled(_:))
-            sw.identifier = NSUserInterfaceItemIdentifier(name)
+            let sw = ToggleSwitch(frame: NSRect(x: 298, y: 1, width: 40, height: 24))
+            sw.isOn = !frozen
+            sw.onToggle = { [weak self] on in
+                self?.runNetmeter([on ? "resume" : "pause", name])
+            }
             v.addSubview(sw)
         }
         item.view = v
         return item
-    }
-
-    @objc func switchToggled(_ sender: NSSwitch) {
-        guard let name = sender.identifier?.rawValue else { return }
-        runNetmeter([sender.state == .off ? "pause" : "resume", name])
     }
     @objc func resumeAll() { runNetmeter(["resume-all"]) }
     @objc func quit() { NSApp.terminate(nil) }

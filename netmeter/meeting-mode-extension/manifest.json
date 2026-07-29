@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "netmeter Meeting Mode",
-  "version": "1.0",
-  "description": "One click: discard every tab except the meeting, the active tab, and anything playing audio.",
-  "permissions": ["tabs"],
+  "version": "2.0",
+  "description": "Discard non-meeting tabs, and cut Chrome's network without freezing it: full offline or Google-only (Calendar/Meet live).",
+  "permissions": ["tabs", "proxy", "storage"],
   "action": {
-    "default_title": "Meeting Mode: discard all non-meeting tabs"
+    "default_title": "netmeter: tabs and connection",
+    "default_popup": "popup.html"
   },
   "background": {
     "service_worker": "background.js"
