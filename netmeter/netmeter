@@ -1,0 +1,441 @@
+#!/usr/bin/env python3
+"""netmeter — per-app daily network totals for macOS (the monitoring half of Little Snitch/TripMode).
+
+A small daemon samples `nettop` every few seconds, computes per-process deltas,
+and accumulates them into per-app daily totals that survive process exits.
+Data lives in ~/.netmeter/YYYY-MM-DD.json.
+
+Usage:
+  netmeter                show today's per-app totals and the session line
+  netmeter show DATE      show a past day (YYYY-MM-DD)
+  netmeter session        show per-app totals for the current session
+  netmeter session reset  start a new session (e.g. when switching to tethering)
+  netmeter pause APP      freeze an app (SIGSTOP) — e.g. `netmeter pause chrome`
+  netmeter resume APP     unfreeze it (SIGCONT)
+  netmeter status APP     paused / running / not running
+  netmeter lowdata on     freeze the apps in config's lowdata_apps and keep them frozen;
+                          notify every notify_every_mb MB of session data
+  netmeter lowdata off    lift low data mode and unfreeze
+  netmeter start          run the sampling daemon in the foreground (launchd runs this)
+  netmeter reset          zero out today's counters and the session
+
+Config: ~/.netmeter/config.json  {"lowdata_apps": ["chrome"], "notify_every_mb": 25}
+"""
+
+import argparse
+import datetime
+import json
+import os
+import re
+import signal
+import subprocess
+import sys
+import time
+
+STATE_DIR = os.path.expanduser("~/.netmeter")
+NOW_PATH = os.path.join(STATE_DIR, "now.json")
+SESSION_PATH = os.path.join(STATE_DIR, "session.json")
+PAUSED_PATH = os.path.join(STATE_DIR, "paused.json")
+CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
+
+# lowdata_apps is empty by default: low data mode only watches and notifies.
+# Add "chrome" (or any alias/pattern) to also freeze apps while the mode is on.
+DEFAULT_CONFIG = {"lowdata": False, "lowdata_apps": [], "notify_every_mb": 25}
+
+# nettop truncates process names; map the cryptic ones to readable labels.
+FRIENDLY = [
+    (re.compile(r"^\d+\.\d+\.\d+$"), "Claude Code"),          # CLI shows as its version, e.g. 2.1.220
+    (re.compile(r"^Cursor Helper"), "Cursor"),
+    (re.compile(r"^Google Chrome"), "Google Chrome"),
+    (re.compile(r"^com\.apple\.Web"), "Safari (WebKit)"),
+    (re.compile(r"^networkservicep"), "networkserviceproxy (Apple relay)"),
+]
+
+# Short names accepted by pause/resume/lowdata, mapped to pgrep -f patterns.
+ALIASES = {
+    "chrome": "Google Chrome",
+    "safari": "Safari",
+    "cursor": "Cursor",
+    "spotify": "Spotify",
+    "slack": "Slack",
+    "whatsapp": "WhatsApp",
+}
+
+
+def friendly(name):
+    for pat, label in FRIENDLY:
+        if pat.match(name):
+            return label
+    return name
+
+
+def state_path(date):
+    return os.path.join(STATE_DIR, f"{date}.json")
+
+
+def save_json(path, obj):
+    os.makedirs(STATE_DIR, exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(obj, f)
+    os.replace(tmp, path)
+
+
+def read_json(path):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def load(date):
+    return read_json(state_path(date)) or {
+        "date": date, "started": None, "updated": None, "apps": {}}
+
+
+def load_config():
+    cfg = dict(DEFAULT_CONFIG)
+    cfg.update(read_json(CONFIG_PATH) or {})
+    return cfg
+
+
+def parse_row(line):
+    """One nettop CSV row -> (process_name, bytes_in, bytes_out), or None."""
+    parts = line.split(",")
+    if len(parts) < 3:
+        return None
+    m = re.match(r"^(.+)\.(\d+)$", parts[0])
+    if not m:
+        return None
+    try:
+        return m.group(1), int(parts[1]), int(parts[2])
+    except ValueError:
+        return None
+
+
+def session_totals(data):
+    """Per-app bytes since the last session reset (or since recording began today)."""
+    sess = read_json(SESSION_PATH)
+    live = sess is not None and sess.get("date") == data["date"]
+    snap = sess["snapshot"] if live else {}
+    apps = {}
+    for app, v in data["apps"].items():
+        s = snap.get(app, [0, 0])
+        d_in, d_out = max(0, v[0] - s[0]), max(0, v[1] - s[1])
+        if d_in or d_out:
+            apps[app] = [d_in, d_out]
+    started = sess["started"] if live else data["started"]
+    return apps, started
+
+
+def reset_session():
+    today = datetime.date.today().isoformat()
+    data = load(today)
+    save_json(SESSION_PATH, {
+        "started": datetime.datetime.now().isoformat(timespec="seconds"),
+        "date": today,
+        "snapshot": {k: list(v) for k, v in data["apps"].items()},
+    })
+    print("Session reset. Counting from zero now.")
+
+
+def canonical(name):
+    return ALIASES.get(name.lower(), name)
+
+
+def app_pids(name):
+    """Match by exact process name AND by command line, so both an app's main
+    process (e.g. 'Granola') and its helpers ('Granola Helper') are caught."""
+    pattern = canonical(name)
+    pids = set()
+    for args in (["-x", pattern], ["-f", pattern]):
+        out = subprocess.run(["pgrep"] + args, capture_output=True, text=True).stdout
+        pids.update(int(p) for p in out.split())
+    pids -= {os.getpid(), os.getppid()}
+    return sorted(pids)
+
+
+def set_paused(name, val):
+    p = read_json(PAUSED_PATH) or {}
+    if val:
+        p[name] = True
+    else:
+        p.pop(name, None)
+    save_json(PAUSED_PATH, p)
+
+
+def signal_app(name, sig):
+    pids = app_pids(name)
+    for pid in pids:
+        try:
+            os.kill(pid, sig)
+        except (ProcessLookupError, PermissionError):
+            pass
+    return len(pids)
+
+
+def pause(name, quiet=False):
+    n = signal_app(name, signal.SIGSTOP)
+    if n:
+        set_paused(canonical(name), True)
+    if quiet:
+        return
+    if n:
+        print(f"Froze {n} process(es) matching '{name}'. The app's window will be "
+              f"unresponsive until you run: netmeter resume {name}")
+    else:
+        print(f"No running processes match '{name}'.")
+
+
+def resume(name):
+    n = signal_app(name, signal.SIGCONT)
+    set_paused(canonical(name), False)
+    if n:
+        print(f"Resumed {n} process(es) matching '{name}'.")
+        if load_config()["lowdata"]:
+            print("Note: low data mode is still ON, the daemon will re-freeze it. "
+                  "Run: netmeter lowdata off")
+    else:
+        print(f"No running processes match '{name}'.")
+
+
+def resume_all():
+    paused = read_json(PAUSED_PATH) or {}
+    for name in paused:
+        signal_app(name, signal.SIGCONT)
+    save_json(PAUSED_PATH, {})
+    print(f"Resumed {len(paused)} app(s)." if paused else "Nothing was paused.")
+
+
+def status(name):
+    pids = app_pids(name)
+    if not pids:
+        print("not running")
+        return
+    out = subprocess.run(["ps", "-o", "stat=", "-p", ",".join(map(str, pids))],
+                         capture_output=True, text=True).stdout
+    print("paused" if any(s.startswith("T") for s in out.split()) else "running")
+
+
+def lowdata(action):
+    cfg = load_config()
+    if action == "on":
+        cfg["lowdata"] = True
+        save_json(CONFIG_PATH, cfg)
+        for app in cfg["lowdata_apps"]:
+            pause(app, quiet=True)
+        frozen = f" Frozen: {', '.join(cfg['lowdata_apps'])}." if cfg["lowdata_apps"] else ""
+        print(f"Low data mode ON.{frozen} You'll get a notification every "
+              f"{cfg['notify_every_mb']} MB of session data.")
+    elif action == "off":
+        cfg["lowdata"] = False
+        save_json(CONFIG_PATH, cfg)
+        for app in cfg["lowdata_apps"]:
+            signal_app(app, signal.SIGCONT)
+            set_paused(canonical(app), False)
+        print("Low data mode OFF. Apps unfrozen.")
+    else:
+        print("on" if cfg["lowdata"] else "off")
+
+
+def notify(text):
+    subprocess.run(["osascript", "-e",
+                    f'display notification "{text}" with title "netmeter"'],
+                   capture_output=True)
+
+
+def run_daemon(interval, ticks=None):
+    """Stream `nettop -d`: each sample after the first reports per-interval deltas
+    per process, so no baseline arithmetic is needed. (Per-process cumulative
+    counters are NOT monotonic — they drop when sockets close — so computing our
+    own deltas double-counted traffic.)"""
+    state = {"date": None, "data": None, "notified_mb": None}
+    blocks_done = 0
+
+    def handle_block(rows):
+        nonlocal blocks_done
+        today = datetime.date.today().isoformat()
+        if today != state["date"]:
+            state["date"] = today
+            state["data"] = load(today)
+            if state["data"]["started"] is None:
+                state["data"]["started"] = datetime.datetime.now().isoformat(timespec="seconds")
+        data = state["data"]
+        now_ts = time.time()
+        tick_in = tick_out = 0
+        for line in rows:
+            row = parse_row(line)
+            if row is None:
+                continue
+            name, d_in, d_out = row
+            if d_in or d_out:
+                t = data["apps"].setdefault(friendly(name), [0, 0])
+                t[0] += d_in
+                t[1] += d_out
+                tick_in += d_in
+                tick_out += d_out
+        data["updated"] = datetime.datetime.now().isoformat(timespec="seconds")
+        save_json(state_path(today), data)
+
+        sess_apps, sess_started = session_totals(data)
+        s_in = sum(v[0] for v in sess_apps.values())
+        s_out = sum(v[1] for v in sess_apps.values())
+        # nettop's deltas cover exactly one -s interval, so that is the right divisor.
+        elapsed = max(interval, 0.001)
+        save_json(NOW_PATH, {
+            "ts": now_ts,
+            "down_bps": tick_in / elapsed,
+            "up_bps": tick_out / elapsed,
+            "session_in": s_in,
+            "session_out": s_out,
+            "session_started": sess_started,
+        })
+
+        cfg = load_config()
+        if cfg["lowdata"]:
+            for app in cfg["lowdata_apps"]:
+                signal_app(app, signal.SIGSTOP)
+            step = cfg.get("notify_every_mb") or 0
+            if step:
+                total_mb = (s_in + s_out) / 1048576
+                if state["notified_mb"] is None:
+                    state["notified_mb"] = (total_mb // step) * step
+                elif total_mb >= state["notified_mb"] + step:
+                    state["notified_mb"] = (total_mb // step) * step
+                    notify(f"Session has used {total_mb:.0f} MB")
+        else:
+            state["notified_mb"] = None
+        blocks_done += 1
+
+    while ticks is None or blocks_done < ticks:
+        cmd = ["nettop", "-P", "-x", "-d", "-s", str(max(1, int(interval))),
+               "-L", "0" if ticks is None else str(ticks + 1),
+               "-J", "bytes_in,bytes_out"]
+        # Run under a pty (`script`), else nettop block-buffers and samples arrive bunched.
+        proc = subprocess.Popen(["script", "-q", "/dev/null"] + cmd,
+                                stdout=subprocess.PIPE, text=True)
+        block_idx = 0
+        pending = []
+        try:
+            for line in proc.stdout:
+                if line.startswith(","):  # header row marks the start of a sample
+                    if block_idx > 1 and pending:  # block 1 is cumulative; skip it
+                        handle_block(pending)
+                        if ticks is not None and blocks_done >= ticks:
+                            proc.kill()
+                            break
+                    block_idx += 1
+                    pending = []
+                else:
+                    pending.append(line)
+            else:
+                # nettop exited: flush the final block on bounded runs, then respawn/stop
+                if ticks is not None and block_idx > 1 and pending and blocks_done < ticks:
+                    handle_block(pending)
+        finally:
+            proc.kill()
+            proc.wait()
+        if ticks is None:
+            time.sleep(interval)  # nettop died; breathe before respawning
+
+
+def fmt(b):
+    if b >= 1024 ** 3:
+        return f"{b / 1024 ** 3:.2f} GB"
+    if b >= 1024 ** 2:
+        return f"{b / 1024 ** 2:.1f} MB"
+    return f"{b / 1024:.0f} KB"
+
+
+def print_table(apps, header):
+    rows = sorted(apps.items(), key=lambda kv: kv[1][0] + kv[1][1], reverse=True)
+    tot_in = sum(v[0] for v in apps.values())
+    tot_out = sum(v[1] for v in apps.values())
+    width = max([len(name) for name, _ in rows] + [len("TOTAL")])
+    print(header)
+    print(f"{'APP':<{width}}  {'DOWN':>10}  {'UP':>10}  {'TOTAL':>10}")
+    for name, (b_in, b_out) in rows:
+        if b_in + b_out < 10 * 1024:  # hide sub-10KB noise
+            continue
+        print(f"{name:<{width}}  {fmt(b_in):>10}  {fmt(b_out):>10}  {fmt(b_in + b_out):>10}")
+    print(f"{'TOTAL':<{width}}  {fmt(tot_in):>10}  {fmt(tot_out):>10}  {fmt(tot_in + tot_out):>10}")
+
+
+def show(date):
+    data = load(date)
+    if not data["apps"]:
+        print(f"No data recorded for {date}. Is the daemon running?")
+        print("  launchctl list | grep netmeter   # check")
+        return
+    print_table(data["apps"],
+                f"netmeter — {date}  (recording since {data['started']}, updated {data['updated']})")
+    if date == datetime.date.today().isoformat():
+        sess_apps, started = session_totals(data)
+        s_in = sum(v[0] for v in sess_apps.values())
+        s_out = sum(v[1] for v in sess_apps.values())
+        print(f"\nSession since {started}: ↓{fmt(s_in)} ↑{fmt(s_out)} "
+              f"(total {fmt(s_in + s_out)}) — `netmeter session` for the breakdown")
+
+
+def show_session():
+    data = load(datetime.date.today().isoformat())
+    apps, started = session_totals(data)
+    if not apps:
+        print("No session traffic yet.")
+        return
+    print_table(apps, f"netmeter session — since {started}")
+
+
+def main():
+    p = argparse.ArgumentParser(prog="netmeter")
+    sub = p.add_subparsers(dest="cmd")
+    sp = sub.add_parser("start", help="run the sampling daemon")
+    sp.add_argument("--interval", type=float, default=5.0)
+    sp.add_argument("--ticks", type=int, default=None, help="stop after N samples (for testing)")
+    shp = sub.add_parser("show", help="show a specific day")
+    shp.add_argument("date")
+    sep = sub.add_parser("session", help="show the session, or reset it")
+    sep.add_argument("action", nargs="?", choices=["reset"])
+    for name in ("pause", "resume", "status"):
+        ap = sub.add_parser(name)
+        ap.add_argument("app")
+    lp = sub.add_parser("lowdata", help="low data mode on/off")
+    lp.add_argument("action", nargs="?", choices=["on", "off"])
+    sub.add_parser("resume-all", help="unfreeze every paused app")
+    sub.add_parser("reset", help="zero out today's counters and the session")
+    args = p.parse_args()
+
+    if args.cmd == "start":
+        try:
+            run_daemon(args.interval, args.ticks)
+        except KeyboardInterrupt:
+            pass
+    elif args.cmd == "show":
+        show(args.date)
+    elif args.cmd == "session":
+        reset_session() if args.action == "reset" else show_session()
+    elif args.cmd == "pause":
+        pause(args.app)
+    elif args.cmd == "resume":
+        resume(args.app)
+    elif args.cmd == "status":
+        status(args.app)
+    elif args.cmd == "lowdata":
+        lowdata(args.action)
+    elif args.cmd == "resume-all":
+        resume_all()
+    elif args.cmd == "reset":
+        today = datetime.date.today().isoformat()
+        for path in (state_path(today), SESSION_PATH):
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                pass
+        print(f"Reset counters and session for {today}.")
+    else:
+        show(datetime.date.today().isoformat())
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "netmeter Meeting Mode",
+  "version": "1.0",
+  "description": "One click: discard every tab except the meeting, the active tab, and anything playing audio.",
+  "permissions": ["tabs"],
+  "action": {
+    "default_title": "Meeting Mode: discard all non-meeting tabs"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
