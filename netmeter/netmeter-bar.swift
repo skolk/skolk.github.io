@@ -175,6 +175,119 @@ class StatsWindow: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     }
 }
 
+let VERSION = "1.1"
+
+// Preferences: the Bandwidth+-style pane. Everything it writes goes to
+// ~/.netmeter/config.json via the netmeter CLI, never into the repo.
+class PrefsWindow: NSObject {
+    var window: NSWindow?
+    var run: (([String]) -> Void)?
+    var nameF = NSTextField()
+    var quotaF = NSTextField()
+    var dayF = NSTextField()
+    var seedF = NSTextField()
+    var notifyF = NSTextField()
+    var status = NSTextField(labelWithString: "")
+
+    func show() {
+        if window == nil { build() }
+        load()
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func sectionLabel(_ text: String, _ y: CGFloat, in content: NSView) {
+        let l = NSTextField(labelWithString: text)
+        l.font = NSFont.boldSystemFont(ofSize: 12)
+        l.frame = NSRect(x: 16, y: y, width: 380, height: 16)
+        content.addSubview(l)
+    }
+
+    func fieldRow(_ label: String, _ field: NSTextField, _ y: CGFloat,
+                  width: CGFloat, in content: NSView) {
+        let l = NSTextField(labelWithString: label)
+        l.alignment = .right
+        l.frame = NSRect(x: 16, y: y + 3, width: 120, height: 17)
+        content.addSubview(l)
+        field.frame = NSRect(x: 144, y: y, width: width, height: 24)
+        content.addSubview(field)
+    }
+
+    func button(_ title: String, _ sel: Selector, _ x: CGFloat, _ y: CGFloat,
+                _ w: CGFloat, in content: NSView) {
+        let b = NSButton(title: title, target: self, action: sel)
+        b.bezelStyle = .rounded
+        b.frame = NSRect(x: x, y: y, width: w, height: 28)
+        content.addSubview(b)
+    }
+
+    func build() {
+        let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 430, height: 380),
+                           styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        win.title = "netmeter Preferences"
+        win.isReleasedWhenClosed = false
+        win.center()
+        let c = win.contentView!
+
+        sectionLabel("Metered network (hotspot cap)", 344, in: c)
+        fieldRow("Network name:", nameF, 310, width: 260, in: c)
+        fieldRow("Quota (GB):", quotaF, 278, width: 80, in: c)
+        fieldRow("Resets on day:", dayF, 246, width: 80, in: c)
+        status.font = NSFont.systemFont(ofSize: 11)
+        status.textColor = .secondaryLabelColor
+        status.frame = NSRect(x: 144, y: 222, width: 270, height: 16)
+        c.addSubview(status)
+        button("Link Current Network", #selector(linkHere), 144, 186, 170, in: c)
+        button("Unlink All", #selector(unlink), 320, 186, 94, in: c)
+        fieldRow("Used so far (GB):", seedF, 148, width: 80, in: c)
+        button("Set", #selector(seed), 232, 146, 60, in: c)
+
+        sectionLabel("Low Data Mode", 108, in: c)
+        fieldRow("Notify every (MB):", notifyF, 74, width: 80, in: c)
+
+        button("Save", #selector(save), 314, 16, 100, in: c)
+        window = win
+    }
+
+    func load() {
+        let cfg = readJSON(home + "/.netmeter/config.json")
+        nameF.stringValue = (cfg?["tether_name"] as? String) ?? ""
+        if let cap = (cfg?["tether_cap_gb"] as? NSNumber)?.doubleValue, cap > 0 {
+            quotaF.stringValue = cap == cap.rounded() ? String(Int(cap)) : String(cap)
+        } else { quotaF.stringValue = "" }
+        dayF.stringValue = String((cfg?["tether_reset_day"] as? NSNumber)?.intValue ?? 1)
+        notifyF.stringValue = String((cfg?["notify_every_mb"] as? NSNumber)?.intValue ?? 25)
+        let macs = (cfg?["tether_gateway_macs"] as? [Any]) ?? []
+        let now = readJSON(home + "/.netmeter/now.json")
+        let on = (now?["tether_on"] as? Bool) ?? false
+        status.stringValue = macs.isEmpty
+            ? "No network linked yet. Connect to it, then Link."
+            : "\(macs.count) network(s) linked" + (on ? " · connected now" : "")
+    }
+
+    func reloadSoon() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.load() }
+    }
+
+    @objc func save() {
+        var args = ["tether-config"]
+        args += ["--name", nameF.stringValue]
+        if !quotaF.stringValue.isEmpty { args += ["--cap", quotaF.stringValue] }
+        if !dayF.stringValue.isEmpty { args += ["--reset-day", dayF.stringValue] }
+        if !notifyF.stringValue.isEmpty { args += ["--notify-every-mb", notifyF.stringValue] }
+        run?(args)
+        reloadSoon()
+    }
+
+    @objc func linkHere() { run?(["tether-here"]); reloadSoon() }
+    @objc func unlink() { run?(["tether-forget"]); reloadSoon() }
+    @objc func seed() {
+        if !seedF.stringValue.isEmpty { run?(["tether", seedF.stringValue]) }
+        seedF.stringValue = ""
+        reloadSoon()
+    }
+}
+
 // Custom-drawn toggle: NSSwitch renders washed out inside menus regardless of
 // appearance overrides, so we draw our own pill with unmistakable states.
 class ToggleSwitch: NSControl {
@@ -209,6 +322,7 @@ class ToggleSwitch: NSControl {
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem!
     let stats = StatsWindow()
+    let prefs = PrefsWindow()
     var showSession = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -235,7 +349,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let u = (now["up_bps"] as? Double) ?? 0
             let si = (now["session_in"] as? Double) ?? 0
             let so = (now["session_out"] as? Double) ?? 0
-            title = "↓\(fmtRate(d)) ↑\(fmtRate(u)) · \(fmtBytes(si + so))"
+            var tail = fmtBytes(si + so)
+            if (now["tether_on"] as? Bool) == true,
+               let used = now["tether_used"] as? Double,
+               let cap = (now["tether_cap_gb"] as? NSNumber)?.doubleValue, cap > 0 {
+                tail = String(format: "⌁%.1f/%.0fG", used / 1073741824, cap)
+            }
+            title = "↓\(fmtRate(d)) ↑\(fmtRate(u)) · \(tail)"
         }
         statusItem.button?.title = title
     }
@@ -251,6 +371,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let t = started.range(of: "T") { started = String(started[t.upperBound...]) }
         let since = started.isEmpty ? "" : "  (since \(started))"
         addDisabled(menu, "Session: ↓\(fmtBytes(si)) ↑\(fmtBytes(so))\(since)")
+        if let tname = now?["tether_name"] as? String, !tname.isEmpty {
+            if (now?["tether_setup"] as? Bool) == true {
+                let used = (now?["tether_used"] as? Double) ?? 0
+                let cap = (now?["tether_cap_gb"] as? NSNumber)?.doubleValue ?? 0
+                let resets = (now?["tether_resets"] as? String) ?? ""
+                let on = (now?["tether_on"] as? Bool) ?? false
+                addDisabled(menu, String(format: "⌁ %@: %.1f of %.0f GB · resets %@%@",
+                                         tname, used / 1073741824, cap, resets,
+                                         on ? " · connected" : ""))
+            } else {
+                addDisabled(menu, "⌁ \(tname): not linked · run `netmeter tether-here` while tethered")
+            }
+        }
         menu.addItem(makeItem("Reset Session", #selector(resetSession)))
         menu.addItem(.separator())
 
@@ -305,10 +438,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         low.state = lowOn ? .on : .off
         menu.addItem(low)
         menu.addItem(.separator())
+        menu.addItem(makeItem("Preferences…", #selector(openPrefs)))
+        menu.addItem(makeItem("About netmeter", #selector(showAbout)))
         menu.addItem(makeItem("Quit netmeter bar", #selector(quit)))
     }
 
     @objc func openStats() { stats.show() }
+    @objc func openPrefs() {
+        prefs.run = { [weak self] args in self?.runNetmeter(args) }
+        prefs.show()
+    }
+    @objc func showAbout() {
+        let a = NSAlert()
+        a.messageText = "netmeter \(VERSION)"
+        a.informativeText = """
+        Per-app network meter for macOS: live speed, session and daily \
+        per-app totals, app freezing, and a metered-network monthly cap.
+
+        Daemon + menu bar app + Chrome extension, built July 2026 with Claude. \
+        Data and settings live in ~/.netmeter (never in the repo).
+        """
+        a.addButton(withTitle: "OK")
+        a.addButton(withTitle: "Project Page")
+        NSApp.activate(ignoringOtherApps: true)
+        if a.runModal() == .alertSecondButtonReturn {
+            NSWorkspace.shared.open(URL(string: "https://skolk.github.io/projects/netmeter/")!)
+        }
+    }
     @objc func resetSession() { runNetmeter(["session", "reset"]) }
     @objc func toggleLowData() {
         let on = (readJSON(home + "/.netmeter/config.json")?["lowdata"] as? Bool) ?? false

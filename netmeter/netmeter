@@ -36,11 +36,19 @@ STATE_DIR = os.path.expanduser("~/.netmeter")
 NOW_PATH = os.path.join(STATE_DIR, "now.json")
 SESSION_PATH = os.path.join(STATE_DIR, "session.json")
 PAUSED_PATH = os.path.join(STATE_DIR, "paused.json")
+TETHER_PATH = os.path.join(STATE_DIR, "tether.json")
 CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
 
 # lowdata_apps is empty by default: low data mode only watches and notifies.
 # Add "chrome" (or any alias/pattern) to also freeze apps while the mode is on.
-DEFAULT_CONFIG = {"lowdata": False, "lowdata_apps": [], "notify_every_mb": 25}
+# Metered network: all personal values (name, cap, reset day, linked gateways)
+# live in ~/.netmeter/config.json, set via `netmeter tether-config` and
+# `netmeter tether-here`. The defaults here are deliberately empty.
+DEFAULT_CONFIG = {
+    "lowdata": False, "lowdata_apps": [], "notify_every_mb": 25,
+    "tether_name": "", "tether_cap_gb": 0, "tether_reset_day": 1,
+    "tether_gateway_macs": [], "wifi_if": "en0",
+}
 
 # nettop truncates process names; map the cryptic ones to readable labels.
 FRIENDLY = [
@@ -142,6 +150,52 @@ def reset_session():
 
 def canonical(name):
     return ALIASES.get(name.lower(), name)
+
+
+def gateway_mac(iface):
+    """(router_ip, router_mac) of the current network, from DHCP + ARP.
+    Works without location permission, unlike reading the SSID."""
+    ip = subprocess.run(["ipconfig", "getoption", iface, "router"],
+                        capture_output=True, text=True).stdout.strip()
+    if not ip:
+        return None, None
+    arp = subprocess.run(["arp", "-n", ip], capture_output=True, text=True).stdout
+    m = re.search(r" at ([0-9a-f:]+)", arp)
+    return ip, (m.group(1) if m else None)
+
+
+def wifi_bytes(iface):
+    """Cumulative (in, out) bytes for the interface since boot, from netstat."""
+    out = subprocess.run(["netstat", "-ib", "-I", iface],
+                         capture_output=True, text=True).stdout
+    for line in out.splitlines():
+        p = line.split()
+        if len(p) >= 11 and p[2].startswith("<Link"):
+            return int(p[6]), int(p[9])
+    return None
+
+
+def tether_period_start(reset_day, today=None):
+    t = today or datetime.date.today()
+    if t.day >= reset_day:
+        return datetime.date(t.year, t.month, reset_day)
+    prev_last = t.replace(day=1) - datetime.timedelta(days=1)
+    return datetime.date(prev_last.year, prev_last.month, reset_day)
+
+
+def tether_next_reset(period_start):
+    y, m = period_start.year, period_start.month + 1
+    if m > 12:
+        y, m = y + 1, 1
+    return datetime.date(y, m, period_start.day)
+
+
+def load_tether(cfg):
+    t = read_json(TETHER_PATH) or {}
+    ps = tether_period_start(cfg["tether_reset_day"]).isoformat()
+    if t.get("period_start") != ps:
+        t = {"period_start": ps, "in": 0, "out": 0, "notified_pct": 0}
+    return t
 
 
 def app_pids(name):
@@ -283,6 +337,35 @@ def run_daemon(interval, ticks=None):
         s_out = sum(v[1] for v in sess_apps.values())
         # nettop's deltas cover exactly one -s interval, so that is the right divisor.
         elapsed = max(interval, 0.001)
+        cfg = load_config()
+
+        # Tether cap accounting: raw interface bytes (headers included, so it
+        # tracks what the carrier bills), counted only while the gateway MAC
+        # matches a linked tether network.
+        iface = cfg.get("wifi_if", "en0")
+        _, gw_mac = gateway_mac(iface)
+        macs = cfg.get("tether_gateway_macs") or []
+        tether_on = gw_mac is not None and gw_mac in macs
+        wb = wifi_bytes(iface)
+        prev = state.get("wifi_prev")
+        state["wifi_prev"] = wb
+        tether = load_tether(cfg)
+        if tether_on and wb and prev:
+            t_in = wb[0] - prev[0] if wb[0] >= prev[0] else wb[0]
+            t_out = wb[1] - prev[1] if wb[1] >= prev[1] else wb[1]
+            tether["in"] += t_in
+            tether["out"] += t_out
+            cap = cfg.get("tether_cap_gb", 0) * 1024 ** 3
+            if cap:
+                pct = 100 * (tether["in"] + tether["out"]) / cap
+                for mark in (50, 75, 90, 100):
+                    if pct >= mark and tether.get("notified_pct", 0) < mark:
+                        tether["notified_pct"] = mark
+                        notify(f"{cfg.get('tether_name', 'tether')}: "
+                               f"{fmt(tether['in'] + tether['out'])} of "
+                               f"{cfg.get('tether_cap_gb')} GB used ({mark}%)")
+            save_json(TETHER_PATH, tether)
+
         save_json(NOW_PATH, {
             "ts": now_ts,
             "down_bps": tick_in / elapsed,
@@ -290,9 +373,14 @@ def run_daemon(interval, ticks=None):
             "session_in": s_in,
             "session_out": s_out,
             "session_started": sess_started,
+            "tether_name": cfg.get("tether_name", ""),
+            "tether_used": tether["in"] + tether["out"],
+            "tether_cap_gb": cfg.get("tether_cap_gb", 0),
+            "tether_on": tether_on,
+            "tether_setup": bool(macs),
+            "tether_resets": tether_next_reset(
+                datetime.date.fromisoformat(tether["period_start"])).isoformat(),
         })
-
-        cfg = load_config()
         if cfg["lowdata"]:
             for app in cfg["lowdata_apps"]:
                 signal_app(app, signal.SIGSTOP)
@@ -403,6 +491,15 @@ def main():
     lp = sub.add_parser("lowdata", help="low data mode on/off")
     lp.add_argument("action", nargs="?", choices=["on", "off"])
     sub.add_parser("resume-all", help="unfreeze every paused app")
+    tp = sub.add_parser("tether", help="metered-network status; pass GB to seed the period")
+    tp.add_argument("used_gb", nargs="?", type=float)
+    tcp = sub.add_parser("tether-config", help="set the metered network's name, cap, reset day")
+    tcp.add_argument("--name")
+    tcp.add_argument("--cap", type=float, help="GB per billing month")
+    tcp.add_argument("--reset-day", type=int, dest="reset_day", help="day of month the cap resets")
+    tcp.add_argument("--notify-every-mb", type=int, dest="notify_mb", help="low data mode interval")
+    sub.add_parser("tether-here", help="link the current wi-fi network as the metered one")
+    sub.add_parser("tether-forget", help="unlink all metered networks")
     sub.add_parser("reset", help="zero out today's counters and the session")
     args = p.parse_args()
 
@@ -425,6 +522,67 @@ def main():
         lowdata(args.action)
     elif args.cmd == "resume-all":
         resume_all()
+    elif args.cmd == "tether-config":
+        cfg = load_config()
+        if args.name is not None:
+            cfg["tether_name"] = args.name
+        if args.cap is not None:
+            cfg["tether_cap_gb"] = args.cap
+        if args.reset_day is not None:
+            cfg["tether_reset_day"] = max(1, min(28, args.reset_day))
+        if args.notify_mb is not None:
+            cfg["notify_every_mb"] = args.notify_mb
+        save_json(CONFIG_PATH, cfg)
+        print(f"Metered network: {cfg.get('tether_name') or '(unnamed)'} · "
+              f"{cfg.get('tether_cap_gb') or 0} GB/month · resets on day "
+              f"{cfg.get('tether_reset_day', 1)}. Link the network itself with "
+              f"`netmeter tether-here` while connected to it.")
+    elif args.cmd == "tether-forget":
+        cfg = load_config()
+        cfg["tether_gateway_macs"] = []
+        save_json(CONFIG_PATH, cfg)
+        print("Unlinked all metered networks.")
+    elif args.cmd == "tether":
+        cfg = load_config()
+        if not cfg.get("tether_name") and not cfg.get("tether_cap_gb"):
+            print("No metered network configured. Set one with:")
+            print("  netmeter tether-config --name <network> --cap <GB> --reset-day <day>")
+            print("  netmeter tether-here   (run once while connected to it)")
+            return
+        t = load_tether(cfg)
+        if args.used_gb is not None:
+            t["in"], t["out"], t["notified_pct"] = int(args.used_gb * 1024 ** 3), 0, 0
+            save_json(TETHER_PATH, t)
+            print(f"Seeded the period at {args.used_gb} GB.")
+        used = t["in"] + t["out"]
+        cap_gb = cfg.get("tether_cap_gb", 0)
+        nr = tether_next_reset(datetime.date.fromisoformat(t["period_start"]))
+        days = (nr - datetime.date.today()).days
+        _, gw = gateway_mac(cfg.get("wifi_if", "en0"))
+        macs = cfg.get("tether_gateway_macs") or []
+        if not macs:
+            state_txt = "not linked yet: run `netmeter tether-here` while tethered"
+        elif gw in macs:
+            state_txt = "connected, counting"
+        else:
+            state_txt = "not on the tether network"
+        pct = f" ({100 * used / (cap_gb * 1024 ** 3):.0f}%)" if cap_gb else ""
+        print(f"{cfg.get('tether_name')}: {fmt(used)} of {cap_gb} GB{pct} · "
+              f"resets {nr.isoformat()} ({days} days) · {state_txt}")
+    elif args.cmd == "tether-here":
+        cfg = load_config()
+        ip, gw = gateway_mac(cfg.get("wifi_if", "en0"))
+        if not gw:
+            print("Could not read the gateway MAC. Are you on wi-fi?")
+        else:
+            macs = cfg.get("tether_gateway_macs") or []
+            if gw not in macs:
+                macs.append(gw)
+            cfg["tether_gateway_macs"] = macs
+            save_json(CONFIG_PATH, cfg)
+            print(f"Linked this network (router {ip}, MAC {gw}) as "
+                  f"{cfg.get('tether_name')}. Its traffic now counts against the "
+                  f"{cfg.get('tether_cap_gb')} GB cap.")
     elif args.cmd == "reset":
         today = datetime.date.today().isoformat()
         for path in (state_path(today), SESSION_PATH):
