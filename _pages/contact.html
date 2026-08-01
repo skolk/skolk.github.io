@@ -32,6 +32,21 @@ title: Contact
     <span class="c-val"></span>
   </div>
 
+  <div class="c-row">
+    <span class="c-label">Island Lab</span>
+    <span class="c-val"><a href="https://islandlab.dev">islandlab.dev</a></span>
+  </div>
+
+  <div class="c-row">
+    <span class="c-label">LinkedIn</span>
+    <span class="c-val"><a href="https://www.linkedin.com/in/skolk/">in/skolk</a></span>
+  </div>
+
+  <div class="c-row">
+    <span class="c-label">Instagram</span>
+    <span class="c-val"><a href="https://www.instagram.com/s.a.kolk/">@s.a.kolk</a></span>
+  </div>
+
   <p><button class="c-btn" id="c-vcf" type="button">Save contact card (.vcf)</button></p>
 
   <noscript>
@@ -49,7 +64,7 @@ title: Contact
 (function () {
   var K = "petrichor";
   var C = {
-    ilab: "AwAVHCkKBA4QXgERBA=="
+    ilab: "AwAVHCkKGwMTHgEYEwtNDAoE"
   };
   var NAME = "Sean Kolk";
 
@@ -61,7 +76,7 @@ title: Contact
     return decodeURIComponent(escape(o));
   }
 
-  document.querySelectorAll(".c-row").forEach(function (row) {
+  document.querySelectorAll(".c-row[data-field]").forEach(function (row) {
     row.querySelector("button").addEventListener("click", function () {
       var key = row.getAttribute("data-field");
       var val = reveal(key);
@@ -80,6 +95,7 @@ title: Contact
       "BEGIN:VCARD", "VERSION:3.0",
       "FN:" + NAME,
       "EMAIL;TYPE=INTERNET,WORK:" + reveal("ilab"),
+      "URL:https://islandlab.dev",
       "URL:https://skolk.github.io/contact",
       "END:VCARD"
     ].join("\r\n");
