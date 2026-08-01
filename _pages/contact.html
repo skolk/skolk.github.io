@@ -33,8 +33,13 @@ title: Contact
   </div>
 
   <div class="c-row">
-    <span class="c-label">Island Lab</span>
+    <span class="c-label">Consulting</span>
     <span class="c-val"><a href="https://islandlab.dev">islandlab.dev</a></span>
+  </div>
+
+  <div class="c-row">
+    <span class="c-label">Personal site</span>
+    <span class="c-val"><a href="https://skolk.github.io">skolk.github.io</a></span>
   </div>
 
   <div class="c-row">
@@ -96,7 +101,7 @@ title: Contact
       "FN:" + NAME,
       "EMAIL;TYPE=INTERNET,WORK:" + reveal("ilab"),
       "URL:https://islandlab.dev",
-      "URL:https://skolk.github.io/contact",
+      "URL:https://skolk.github.io",
       "END:VCARD"
     ].join("\r\n");
     var url = URL.createObjectURL(new Blob([card], { type: "text/vcard" }));
