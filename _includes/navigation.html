@@ -47,6 +47,11 @@
       role="menuitem" href="{{ '/mountaineering' | prepend: site.baseurl }}" title="Mountaineering">
       → Mountaineering <div class="pull-right">»</div>
     </a>
+
+    <a class="menu-item {% if url == '/contact' %}active{% endif %}"
+      role="menuitem" href="{{ '/contact' | prepend: site.baseurl }}" title="Contact">
+      Contact <div class="pull-right">»</div>
+    </a>
   </nav>
 
   <div class="theme-toggle" id="theme-toggle" onclick="toggleNightMode()">
