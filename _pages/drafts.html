@@ -1,0 +1,31 @@
+---
+layout: default
+permalink: /drafts
+---
+
+<section>
+  <h2>Drafts</h2>
+  <p>Work in progress. This page only has content on the dev server (<code>bundle exec jekyll serve --drafts</code>); production builds never include drafts.</p>
+
+  {% assign drafts = site.posts | where_exp: "p", "p.relative_path contains '_drafts'" %}
+  {% if drafts.size == 0 %}
+    <p><em>Nothing here. Either there are no drafts, or this build ran without <code>--drafts</code>.</em></p>
+  {% endif %}
+
+  {% for post in drafts %}
+    <div class="media t-hackcss-media">
+      <div class="media-body">
+        <div class="media-heading">
+          <span>{{ post.date | date: "%Y.%-m.%-d" }} &raquo;
+            <a href="{{ post.url | prepend: site.baseurl }}" title="{{ post.title }}">
+              {{ post.title }}
+            </a>
+          </span>
+        </div>
+        <div class="media-content">
+          {{ post.short_description }}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</section>
