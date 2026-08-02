@@ -82,23 +82,23 @@ So the panels I'd draw:
   <!-- Row 3: testing -> feedback -->
   <g>
     <rect class="solid" x="115" y="690" width="70" height="70"/>
-    <text class="cap" x="150" y="830" text-anchor="middle">IF YOU ARE</text>
-    <text class="cap" x="150" y="857" text-anchor="middle">TESTING</text>
+    <text class="cap" x="150" y="880" text-anchor="middle">IF YOU ARE</text>
+    <text class="cap" x="150" y="907" text-anchor="middle">TESTING</text>
 
-    <line class="arrow" x1="300" y1="730" x2="430" y2="730"/>
-    <path class="arrow" d="M418 722 L432 730 L418 738"/>
+    <line class="arrow" x1="300" y1="725" x2="430" y2="725"/>
+    <path class="arrow" d="M418 717 L432 725 L418 733"/>
 
     <rect class="solid" x="545" y="690" width="70" height="70"/>
-    <path class="arrow" d="M615 700 C 680 680, 680 770, 615 750"/>
-    <path class="arrow" d="M624 745 L613 750 L622 759"/>
-    <text class="small" x="580" y="660" text-anchor="middle">education</text>
-    <path class="arrow" d="M580 668 L580 686"/>
-    <path class="arrow" d="M575 679 L580 688 L585 679"/>
-    <text class="small" x="490" y="725" text-anchor="end">the heart</text>
-    <path class="arrow" d="M498 720 L541 722"/>
-    <path class="arrow" d="M533 716 L543 722 L533 728"/>
-    <text class="cap" x="590" y="830" text-anchor="middle">THE ANSWER</text>
-    <text class="cap" x="590" y="857" text-anchor="middle">IS FEEDBACK</text>
+    <path class="arrow" d="M618 700 C 700 675, 700 775, 618 750"/>
+    <path class="arrow" d="M628 744 L616 750 L626 759"/>
+    <text class="small" x="580" y="625" text-anchor="middle">education</text>
+    <path class="arrow" d="M580 634 L580 682"/>
+    <path class="arrow" d="M574 673 L580 684 L586 673"/>
+    <text class="small" x="580" y="822" text-anchor="middle">the heart</text>
+    <path class="arrow" d="M580 804 L580 768"/>
+    <path class="arrow" d="M574 777 L580 766 L586 777"/>
+    <text class="cap" x="590" y="880" text-anchor="middle">THE ANSWER</text>
+    <text class="cap" x="590" y="907" text-anchor="middle">IS FEEDBACK</text>
   </g>
 </svg>
 
