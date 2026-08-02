@@ -31,6 +31,19 @@ Keep `Next action` free of `|` characters (it's a table cell).
 | Mexico 2021-22 cruise trip report | trip-report | 2 | ? | 2 | 1 | Write the Sea of Cortez season; add a photo |
 | Greece Kos 2019 trip report | trip-report | 2 | ? | 2 | 2 | Recover from notebooks soon or drop; add kos-dodecanese.jpg |
 | De-stub the 3 stub trip reports | edit | 3 | ? | 2 | 1 | Remove stub lines once each has real content |
+| Pride Before Protocol | idea | 4 | ? | 5 | 1 | Why Italy loves its tomatoes and not its seagrass; campaign plus protocol split; draw the two-column pride/action diagram |
+| The Invitation Is the Work | idea | 3 | ? | 4 | 0 | Ten years of travel; going somewhere versus being invited somewhere; short and personal |
+| Palinuro | idea | 3 | ? | 3 | 1 | The helmsman who was the price of passage, watchtowers, a storm, two people calibrating sensors; needs the watchtower-storm photo |
+| What to Step Into | idea | 2 | ? | 3 | 0 | When to step in, let it run, deconstruct, construct; small mental model with a decision diagram |
+| What Gets Left | idea | 2 | ? | 4 | 0 | Regenerative versus extractive presence, from the Blue Era fishermen-politician arguments; wait for Pollica protocol results |
+| The banjo player | idea | 2 | ? | 2 | 2 | Churches into music halls, ballads folded into modern music; need the name; Adventure Report material too |
+| Pollica full report | trip-report | 3 | ? | 5 | 1 | Expand from July recap and month notes: coastal mapping, sensors, governance history with Future Food Institute |
+| PNW Climate Week short write-up | idea | 2 | ? | 3 | 2 | Short post: trivia night, future of food event with Nice Industries, Maritime Blue and Sound Experience threads |
+| Ulva and the Islandness gathering | trip-report | 2 | ? | 4 | 1 | Archaeology, foraging, finding your trip; carried from June and July recaps |
+| Governance of Italy essay | idea | 2 | ? | 3 | 1 | Principalities, industry, why the young people leave, what can be done |
+| Boston 2026 trip log | trip-report | 2 | ? | 3 | 1 | A few days going deep on agentic AI; write while fresh |
+| Barra and the Hebrides | trip-report | 2 | ? | 3 | 1 | Viking and French farmers, island versus inland; carried from June recap |
+| Dudu Kouaté in Bristol | idea | 2 | ? | 2 | 1 | The percussion set and a smaller kind of life; carried from June recap |
 
 ## Parked ideas
 
