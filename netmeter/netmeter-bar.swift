@@ -273,6 +273,82 @@ func windowLabel(_ minutes: Int) -> String {
     return m == 0 ? "\(h)h" : "\(h)h \(m)m"
 }
 
+// Total bytes per time bucket over the window, oldest first, folded into at
+// most `columns` columns. Separate from recentTotals because the chart asks
+// "when" and the table asks "who", and folding per-app detail into time
+// buckets on the way past would answer neither well.
+func recentSeries(minutes: Int, columns: Int) -> ([Double], Double) {
+    guard let text = try? String(contentsOfFile: home + "/.netmeter/recent.jsonl",
+                                 encoding: .utf8) else { return ([], 0) }
+    let nowMin = Int(Date().timeIntervalSince1970 / 60)
+    let cutoff = nowMin - minutes
+    var perMinute: [Int: Double] = [:]
+    for line in text.split(separator: "\n") {
+        guard let d = line.data(using: .utf8),
+              let obj = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any],
+              let m = obj["m"] as? Int, m > cutoff,
+              let apps = obj["a"] as? [String: Any] else { continue }
+        var sum = 0.0
+        for (_, v) in apps {
+            guard let a = v as? [Any], a.count >= 2,
+                  let i = (a[0] as? NSNumber)?.doubleValue,
+                  let o = (a[1] as? NSNumber)?.doubleValue else { continue }
+            sum += i + o
+        }
+        perMinute[m, default: 0] += sum
+    }
+    let cols = max(1, min(columns, minutes))
+    let per = Double(minutes) / Double(cols)
+    var out = [Double](repeating: 0, count: cols)
+    for (m, v) in perMinute {
+        let idx = cols - 1 - Int(Double(nowMin - m) / per)
+        if idx >= 0 && idx < cols { out[idx] += v }
+    }
+    return (out, out.max() ?? 0)
+}
+
+// Usage against time. `timeOnX` transposes the whole thing: with it false, time
+// runs top to bottom and the bars grow rightward.
+class ChartView: NSView {
+    var buckets: [Double] = [] { didSet { needsDisplay = true } }
+    var peak: Double = 0 { didSet { needsDisplay = true } }
+    var timeOnX = true { didSet { needsDisplay = true } }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let plot = bounds
+        NSColor.secondaryLabelColor.withAlphaComponent(0.22).setStroke()
+        let axis = NSBezierPath()
+        axis.lineWidth = 1
+        if timeOnX {
+            axis.move(to: NSPoint(x: plot.minX, y: plot.minY + 0.5))
+            axis.line(to: NSPoint(x: plot.maxX, y: plot.minY + 0.5))
+        } else {
+            axis.move(to: NSPoint(x: plot.minX + 0.5, y: plot.minY))
+            axis.line(to: NSPoint(x: plot.minX + 0.5, y: plot.maxY))
+        }
+        axis.stroke()
+        guard peak > 0, !buckets.isEmpty else { return }
+
+        let n = CGFloat(buckets.count)
+        let span = timeOnX ? plot.width : plot.height
+        let slot = span / n
+        let thick = max(1.5, slot - 1)
+        NSColor.controlAccentColor.setFill()
+        for (i, v) in buckets.enumerated() {
+            let len = (timeOnX ? plot.height : plot.width) * CGFloat(v / peak)
+            guard len > 0 else { continue }
+            let at = CGFloat(i) * slot
+            // Time on X: oldest at the left, bars grow up from the baseline.
+            // Time on Y: oldest at the top, bars grow right from the axis.
+            let r = timeOnX
+                ? NSRect(x: plot.minX + at, y: plot.minY, width: thick, height: max(1, len))
+                : NSRect(x: plot.minX, y: plot.maxY - at - thick, width: max(1, len), height: thick)
+            let radius = min(1.5, thick / 2)
+            NSBezierPath(roundedRect: r, xRadius: radius, yRadius: radius).fill()
+        }
+    }
+}
+
 // Proportional bar. The share of the window is the thing worth seeing at a
 // glance; the byte count is the thing worth reading second.
 class BarView: NSView {
@@ -539,6 +615,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var recentValues: [NSTextField] = []
     var recentBars: [BarView] = []
     var recentEmpty: NSMenuItem?
+    var recentChartItem: NSMenuItem?
+    var recentChart: ChartView?
+    var recentPeak: NSTextField?
+    var recentAxisLeft: NSTextField?
+    var recentAxisRight: NSTextField?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -730,6 +811,36 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         header.view = v
         menu.addItem(header)
 
+        // The chart: usage against time, above the ranked rows.
+        let chartItem = NSMenuItem()
+        let cv = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 104))
+        let peakLabel = NSTextField(labelWithString: "")
+        peakLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
+        peakLabel.textColor = .tertiaryLabelColor
+        peakLabel.alignment = .right
+        peakLabel.frame = NSRect(x: 24, y: 86, width: 314, height: 13)
+        cv.addSubview(peakLabel)
+        recentPeak = peakLabel
+        let chart = ChartView(frame: NSRect(x: 24, y: 22, width: 314, height: 62))
+        cv.addSubview(chart)
+        recentChart = chart
+        let axisL = NSTextField(labelWithString: "")
+        axisL.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
+        axisL.textColor = .tertiaryLabelColor
+        axisL.frame = NSRect(x: 24, y: 5, width: 120, height: 13)
+        cv.addSubview(axisL)
+        recentAxisLeft = axisL
+        let axisR = NSTextField(labelWithString: "now")
+        axisR.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
+        axisR.textColor = .tertiaryLabelColor
+        axisR.alignment = .right
+        axisR.frame = NSRect(x: 218, y: 5, width: 120, height: 13)
+        cv.addSubview(axisR)
+        recentAxisRight = axisR
+        chartItem.view = cv
+        menu.addItem(chartItem)
+        recentChartItem = chartItem
+
         recentRowItems = []; recentNames = []; recentValues = []; recentBars = []
         for _ in 0..<6 {
             let item = NSMenuItem()
@@ -768,6 +879,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             : "Last \(windowLabel(recentWindow))"
         recentChevron?.label = recentOpen ? "\u{25BE}" : "\u{25B8}"
         recentChevron?.isOn = recentOpen
+        // Chart. One column per minute up to 60, so a 5m window is five fat
+        // columns rather than sixty slivers of mostly nothing.
+        let (series, peakBucket) = recentSeries(minutes: recentWindow, columns: 60)
+        recentChart?.buckets = series
+        recentChart?.peak = peakBucket
+        recentChartItem?.isHidden = !recentOpen
+        let perCol = max(1, recentWindow / max(1, series.count))
+        recentPeak?.stringValue = peakBucket > 0
+            ? "peak \(fmtBytes(peakBucket, space: false)) per \(perCol)m"
+            : ""
+        recentAxisLeft?.stringValue = "-\(windowLabel(recentWindow))"
+        recentAxisRight?.stringValue = "now"
+
         let top = Array(rows.prefix(recentRowItems.count))
         let peak = top.first?.1 ?? 0
         for (i, item) in recentRowItems.enumerated() {
