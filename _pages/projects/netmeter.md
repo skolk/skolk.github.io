@@ -13,6 +13,8 @@ last_updated: 2026-08-19
 
 > A menu bar meter for macOS that shows which app is spending your data, live and totaled for the day, with a switch beside each app to freeze it. Built because the boat runs on a phone hotspot, and one morning half a gigabyte was gone by 9am with no receipt.
 
+<img src="/images/blog_posts/netmeter-menubar.png" alt="The netmeter menu bar item reading 13K per second down and up combined, and 1.10GB for the session" width="202">
+
 I had trackers on every terminal and they all read under 100 MB combined, while the connection had moved 500 MB. The existing tools each tell you one piece: Bandwidth+ gives the interface total but no per-app split, Activity Monitor counts since boot, `nettop` forgets a process the moment it exits. Little Snitch and TripMode do it properly, and if you want the blocking half you should buy one of them. I wanted the accounting half, attributable and resettable, so I built it in a morning with Claude.
 
 ## What it does
@@ -23,6 +25,10 @@ I had trackers on every terminal and they all read under 100 MB combined, while 
 - **Two modes, as buttons at the top of the menu.** *Low Data* notifies every 25 MB of session data. *Solo* picks one app and freezes everything else the moment it touches the network. Solo is the one for "I only want to look at Chrome" without an editor, a sync client or an app updater helping itself to the hotspot behind you. Because it fires on the tick an app moves bytes, something that has been idle all morning gets caught when it reaches out, rather than after it has already pulled 200 MB.
 - **A monthly cap for the metered network**: link the hotspot once, set the carrier's quota and reset day, and the bar switches to `⌁2.4/50G` whenever you are on it, with notifications at 50, 75, 90 and 100 percent.
 - **A stats window**: Session / Today / Yesterday tables, refreshing every two seconds, each headed with its span.
+
+<img src="/images/blog_posts/netmeter-menu.png" alt="The netmeter menu open, showing Low Data and Solo mode buttons at the top, the session clock, both Session and Today totals with their durations, and the per-app list with a freeze switch beside each app" width="360">
+
+The menu on a working morning. Both modes are off: the Solo button still names Google Chrome because it remembers the last target, so arming it is one click. Claude Code, `nsurlsessiond` and `cloudd` are the three rows with no switch beside them, because freezing a system daemon takes DNS or iCloud down with it and freezing the running work session is rarely what you meant. Session and Today sit side by side, 1.10GB over 1h 28m against 3.13GB over 10h 29m, which is the comparison that says whether this hour is unusual. The hotspot name is blurred; everything else is as it runs.
 - **Meeting Mode**, a separate two-file Chrome extension: one click discards every tab except the active one, anything playing audio, and known meeting domains. The tabs sit in the strip and reload when clicked.
 
 ## The bugs worth knowing about
