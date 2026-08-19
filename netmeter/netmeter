@@ -16,6 +16,13 @@ Usage:
   netmeter lowdata on     freeze the apps in config's lowdata_apps and keep them frozen;
                           notify every notify_every_mb MB of session data
   netmeter lowdata off    lift low data mode and unfreeze
+  netmeter solo APP       solo mode: only APP may use the network. Every other app that
+                          tries to send or receive gets frozen, system daemons excepted
+  netmeter solo off       lift solo mode and unfreeze whatever solo froze
+  netmeter display        menu bar display options: --rate on|off (live speed),
+                          --total on|off (session total), --combine on|off (merge
+                          the down and up rates). With both rate and total off the
+                          bar item is just an up/down arrow
   netmeter start          run the sampling daemon in the foreground (launchd runs this)
   netmeter reset          zero out today's counters and the session
 
@@ -23,7 +30,9 @@ Config: ~/.netmeter/config.json  {"lowdata_apps": ["chrome"], "notify_every_mb":
 """
 
 import argparse
+import contextlib
 import datetime
+import fcntl
 import json
 import os
 import re
@@ -31,6 +40,12 @@ import signal
 import subprocess
 import sys
 import time
+
+# Decimal units, deliberately. A carrier that sells a 50 GB plan means
+# 50 x 10^9 bytes, so counting the cap in 2^30 gave 7.4% of phantom headroom:
+# the "100% used" warning did not fire until roughly 3.7 GB past the real cap.
+# Display follows the same units so the bar and the bill agree. (2026-08-19)
+KB, MB, GB = 1000, 1000 ** 2, 1000 ** 3
 
 STATE_DIR = os.path.expanduser("~/.netmeter")
 NOW_PATH = os.path.join(STATE_DIR, "now.json")
@@ -46,8 +61,24 @@ CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
 # `netmeter tether-here`. The defaults here are deliberately empty.
 DEFAULT_CONFIG = {
     "lowdata": False, "lowdata_apps": [], "notify_every_mb": 25,
+    "solo": False, "solo_app": "",
+    "combine_updown": False, "show_rate": True, "show_total": True,
     "tether_name": "", "tether_cap_gb": 0, "tether_reset_day": 1,
     "tether_gateway_macs": [], "wifi_if": "en0",
+}
+
+# Solo mode freezes every app that touches the network except the soloed one.
+# These are exempt: freezing them breaks the machine (DNS, the window server,
+# the terminal you would type `netmeter solo off` into) rather than saving data.
+SOLO_PROTECT = {
+    "kernel_task", "launchd", "WindowServer", "loginwindow", "Finder", "Dock",
+    "SystemUIServer", "netmeter", "netmeter-bar", "Terminal", "iTerm2", "iTerm",
+    "Ghostty", "Alacritty", "kitty", "Warp", "mDNSResponder", "configd",
+    "networkd", "nsurlsessiond", "syspolicyd", "apsd", "cloudd", "trustd",
+    "identityservice", "identityservicesd", "locationd", "bird", "timed",
+    "softwareupdated", "symptomsd", "rapportd", "sharingd", "searchpartyd",
+    "netbiosd", "com.apple.geod", "AssetCacheLocat", "parsec-fbf",
+    "networkserviceproxy (Apple relay)", "python3", "ssh", "sshd",
 }
 
 # nettop truncates process names; map the cryptic ones to readable labels.
@@ -82,11 +113,57 @@ def state_path(date):
 
 
 def save_json(path, obj):
+    """The temp name carries the pid. A shared `<path>.tmp` is what let two
+    netmeter processes writing at the same moment interleave into an
+    unparseable config.json, which read_json then swallowed, which made the
+    next load_config() fall back to defaults and persist them: one Preferences
+    Save wiped a linked tether network. Found 2026-08-19."""
     os.makedirs(STATE_DIR, exist_ok=True)
-    tmp = path + ".tmp"
+    tmp = f"{path}.{os.getpid()}.tmp"
     with open(tmp, "w") as f:
         json.dump(obj, f)
     os.replace(tmp, path)
+
+
+@contextlib.contextmanager
+def locked(path):
+    """Exclusive lock for a read-modify-write. The daemon and the CLI both edit
+    config.json and paused.json, and an unlocked read-modify-write loses the
+    other writer's change even when each individual write is atomic."""
+    os.makedirs(STATE_DIR, exist_ok=True)
+    with open(path + ".lock", "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+
+def update_config(**changes):
+    """The only way config.json is written. Locked, and it refuses to answer a
+    corrupt file with a fresh set of defaults: it recovers from config.json.bak
+    and says so, because silently defaulting is what turned a transient race
+    into lost settings."""
+    with locked(CONFIG_PATH):
+        raw, note = {}, ""
+        if os.path.exists(CONFIG_PATH):
+            try:
+                with open(CONFIG_PATH) as f:
+                    raw = json.load(f)
+            except json.JSONDecodeError:
+                os.replace(CONFIG_PATH, CONFIG_PATH + ".corrupt")
+                raw = read_json(CONFIG_PATH + ".bak") or {}
+                note = (f" (config.json was unreadable, kept as config.json.corrupt; "
+                        f"recovered {'from config.json.bak' if raw else 'defaults'})")
+        cfg = dict(DEFAULT_CONFIG)
+        cfg.update(raw)
+        cfg.update(changes)
+        save_json(CONFIG_PATH, cfg)
+        with contextlib.suppress(OSError):
+            save_json(CONFIG_PATH + ".bak", cfg)
+        if note:
+            print("netmeter:" + note)
+        return cfg
 
 
 def read_json(path):
@@ -206,17 +283,21 @@ def app_pids(name):
     for args in (["-x", pattern], ["-f", pattern]):
         out = subprocess.run(["pgrep"] + args, capture_output=True, text=True).stdout
         pids.update(int(p) for p in out.split())
-    pids -= {os.getpid(), os.getppid()}
+    pids -= {os.getpid(), os.getppid(), 1}
     return sorted(pids)
 
 
-def set_paused(name, val):
-    p = read_json(PAUSED_PATH) or {}
-    if val:
-        p[name] = True
-    else:
-        p.pop(name, None)
-    save_json(PAUSED_PATH, p)
+def set_paused(name, val, reason="manual"):
+    """paused.json maps app -> reason ("manual", "lowdata", "solo"). The reason is
+    what lets `solo off` unfreeze exactly what solo froze and nothing else. Older
+    files stored `true`; anything truthy still reads as paused."""
+    with locked(PAUSED_PATH):
+        p = read_json(PAUSED_PATH) or {}
+        if val:
+            p[name] = reason
+        else:
+            p.pop(name, None)
+        save_json(PAUSED_PATH, p)
 
 
 def signal_app(name, sig):
@@ -229,10 +310,10 @@ def signal_app(name, sig):
     return len(pids)
 
 
-def pause(name, quiet=False):
+def pause(name, quiet=False, reason="manual"):
     n = signal_app(name, signal.SIGSTOP)
     if n:
-        set_paused(canonical(name), True)
+        set_paused(canonical(name), True, reason)
     if quiet:
         return
     if n:
@@ -247,9 +328,13 @@ def resume(name):
     set_paused(canonical(name), False)
     if n:
         print(f"Resumed {n} process(es) matching '{name}'.")
-        if load_config()["lowdata"]:
+        cfg = load_config()
+        if cfg["lowdata"]:
             print("Note: low data mode is still ON, the daemon will re-freeze it. "
                   "Run: netmeter lowdata off")
+        if cfg["solo"] and canonical(name) != canonical(cfg.get("solo_app", "")):
+            print(f"Note: solo mode is still ON ({cfg['solo_app']} only), the daemon "
+                  "will re-freeze it. Run: netmeter solo off")
     else:
         print(f"No running processes match '{name}'.")
 
@@ -260,6 +345,55 @@ def resume_all():
         signal_app(name, signal.SIGCONT)
     save_json(PAUSED_PATH, {})
     print(f"Resumed {len(paused)} app(s)." if paused else "Nothing was paused.")
+
+
+def resume_reason(reason):
+    """Unfreeze only the apps a given mode froze. Returns how many."""
+    paused = read_json(PAUSED_PATH) or {}
+    names = [n for n, why in paused.items() if why == reason]
+    for name in names:
+        signal_app(name, signal.SIGCONT)
+        set_paused(name, False)
+    return len(names)
+
+
+def solo_freeze(cfg, names):
+    """Freeze every app in `names` that is neither the soloed app nor protected.
+    Called on `solo on` with today's app list, and on every daemon tick with the
+    apps that just moved bytes, which is what catches an app the moment it wakes
+    up and tries to phone home."""
+    target = canonical(cfg.get("solo_app", ""))
+    already = read_json(PAUSED_PATH) or {}
+    frozen = []
+    for name in names:
+        if name == target or name in SOLO_PROTECT or name in already:
+            continue
+        if signal_app(name, signal.SIGSTOP):
+            set_paused(name, True, "solo")
+            frozen.append(name)
+    return frozen
+
+
+def solo(app):
+    """`netmeter solo APP` / `netmeter solo off` / `netmeter solo` for status."""
+    cfg = load_config()
+    if app is None:
+        if cfg["solo"]:
+            print(f"Solo mode ON: {cfg['solo_app']} only.")
+        else:
+            print("off")
+        return
+    if app == "off":
+        update_config(solo=False)
+        n = resume_reason("solo")
+        print(f"Solo mode OFF. Resumed {n} app(s).")
+        return
+    cfg = update_config(solo=True, solo_app=canonical(app))
+    today = load(datetime.date.today().isoformat())
+    frozen = solo_freeze(cfg, list(today["apps"]))
+    tail = f" Froze {len(frozen)}: {', '.join(frozen)}." if frozen else ""
+    print(f"Solo mode ON: {cfg['solo_app']} only.{tail} Anything else that reaches "
+          f"for the network gets frozen on sight. Lift it with `netmeter solo off`.")
 
 
 def status(name):
@@ -275,16 +409,14 @@ def status(name):
 def lowdata(action):
     cfg = load_config()
     if action == "on":
-        cfg["lowdata"] = True
-        save_json(CONFIG_PATH, cfg)
+        cfg = update_config(lowdata=True)
         for app in cfg["lowdata_apps"]:
             pause(app, quiet=True)
         frozen = f" Frozen: {', '.join(cfg['lowdata_apps'])}." if cfg["lowdata_apps"] else ""
         print(f"Low data mode ON.{frozen} You'll get a notification every "
               f"{cfg['notify_every_mb']} MB of session data.")
     elif action == "off":
-        cfg["lowdata"] = False
-        save_json(CONFIG_PATH, cfg)
+        cfg = update_config(lowdata=False)
         for app in cfg["lowdata_apps"]:
             signal_app(app, signal.SIGCONT)
             set_paused(canonical(app), False)
@@ -318,6 +450,7 @@ def run_daemon(interval, ticks=None):
         data = state["data"]
         now_ts = time.time()
         tick_in = tick_out = 0
+        active = set()
         for line in rows:
             row = parse_row(line)
             if row is None:
@@ -329,6 +462,7 @@ def run_daemon(interval, ticks=None):
                 t[1] += d_out
                 tick_in += d_in
                 tick_out += d_out
+                active.add(friendly(name))
         data["updated"] = datetime.datetime.now().isoformat(timespec="seconds")
         save_json(state_path(today), data)
 
@@ -355,7 +489,7 @@ def run_daemon(interval, ticks=None):
             t_out = wb[1] - prev[1] if wb[1] >= prev[1] else wb[1]
             tether["in"] += t_in
             tether["out"] += t_out
-            cap = cfg.get("tether_cap_gb", 0) * 1024 ** 3
+            cap = cfg.get("tether_cap_gb", 0) * GB
             if cap:
                 pct = 100 * (tether["in"] + tether["out"]) / cap
                 for mark in (50, 75, 90, 100):
@@ -381,12 +515,15 @@ def run_daemon(interval, ticks=None):
             "tether_resets": tether_next_reset(
                 datetime.date.fromisoformat(tether["period_start"])).isoformat(),
         })
+        if cfg["solo"]:
+            for name in solo_freeze(cfg, active):
+                notify(f"Solo mode froze {name} ({cfg['solo_app']} only)")
         if cfg["lowdata"]:
             for app in cfg["lowdata_apps"]:
                 signal_app(app, signal.SIGSTOP)
             step = cfg.get("notify_every_mb") or 0
             if step:
-                total_mb = (s_in + s_out) / 1048576
+                total_mb = (s_in + s_out) / MB
                 if state["notified_mb"] is None:
                     state["notified_mb"] = (total_mb // step) * step
                 elif total_mb >= state["notified_mb"] + step:
@@ -429,11 +566,11 @@ def run_daemon(interval, ticks=None):
 
 
 def fmt(b):
-    if b >= 1024 ** 3:
-        return f"{b / 1024 ** 3:.2f} GB"
-    if b >= 1024 ** 2:
-        return f"{b / 1024 ** 2:.1f} MB"
-    return f"{b / 1024:.0f} KB"
+    if b >= GB:
+        return f"{b / GB:.2f} GB"
+    if b >= MB:
+        return f"{b / MB:.0f} MB"
+    return f"{b / KB:.0f} KB"
 
 
 def print_table(apps, header):
@@ -490,6 +627,13 @@ def main():
         ap.add_argument("app")
     lp = sub.add_parser("lowdata", help="low data mode on/off")
     lp.add_argument("action", nargs="?", choices=["on", "off"])
+    slp = sub.add_parser("solo", help="only APP may use the network; `solo off` lifts it")
+    slp.add_argument("app", nargs="?", help="app name or alias, or `off`")
+    dp = sub.add_parser("display", help="menu bar display options")
+    dp.add_argument("--combine", choices=["on", "off"],
+                    help="show one combined rate instead of separate down and up")
+    dp.add_argument("--rate", choices=["on", "off"], help="show the live transfer speed")
+    dp.add_argument("--total", choices=["on", "off"], help="show the session total")
     sub.add_parser("resume-all", help="unfreeze every paused app")
     tp = sub.add_parser("tether", help="metered-network status; pass GB to seed the period")
     tp.add_argument("used_gb", nargs="?", type=float)
@@ -498,6 +642,10 @@ def main():
     tcp.add_argument("--cap", type=float, help="GB per billing month")
     tcp.add_argument("--reset-day", type=int, dest="reset_day", help="day of month the cap resets")
     tcp.add_argument("--notify-every-mb", type=int, dest="notify_mb", help="low data mode interval")
+    tcp.add_argument("--combine", choices=["on", "off"],
+                     help="menu bar: one combined rate instead of separate down and up")
+    tcp.add_argument("--rate", choices=["on", "off"], help="menu bar: show the live speed")
+    tcp.add_argument("--total", choices=["on", "off"], help="menu bar: show the session total")
     sub.add_parser("tether-here", help="link the current wi-fi network as the metered one")
     sub.add_parser("tether-forget", help="unlink all metered networks")
     sub.add_parser("reset", help="zero out today's counters and the session")
@@ -520,27 +668,50 @@ def main():
         status(args.app)
     elif args.cmd == "lowdata":
         lowdata(args.action)
+    elif args.cmd == "solo":
+        solo(args.app)
+    elif args.cmd == "display":
+        changes = {}
+        if args.combine is not None:
+            changes["combine_updown"] = args.combine == "on"
+        if args.rate is not None:
+            changes["show_rate"] = args.rate == "on"
+        if args.total is not None:
+            changes["show_total"] = args.total == "on"
+        cfg = update_config(**changes) if changes else load_config()
+        shown = []
+        if cfg["show_rate"]:
+            shown.append("one combined rate (\u21c5)" if cfg["combine_updown"]
+                         else "separate \u2193 and \u2191")
+        if cfg["show_total"]:
+            shown.append("session total")
+        print("Menu bar: " + (", ".join(shown) if shown
+                              else "arrow only (\u21c5), both readouts hidden"))
     elif args.cmd == "resume-all":
         resume_all()
     elif args.cmd == "tether-config":
-        cfg = load_config()
+        changes = {}
         if args.name is not None:
-            cfg["tether_name"] = args.name
+            changes["tether_name"] = args.name
         if args.cap is not None:
-            cfg["tether_cap_gb"] = args.cap
+            changes["tether_cap_gb"] = args.cap
         if args.reset_day is not None:
-            cfg["tether_reset_day"] = max(1, min(28, args.reset_day))
+            changes["tether_reset_day"] = max(1, min(28, args.reset_day))
         if args.notify_mb is not None:
-            cfg["notify_every_mb"] = args.notify_mb
-        save_json(CONFIG_PATH, cfg)
+            changes["notify_every_mb"] = args.notify_mb
+        if args.combine is not None:
+            changes["combine_updown"] = args.combine == "on"
+        if args.rate is not None:
+            changes["show_rate"] = args.rate == "on"
+        if args.total is not None:
+            changes["show_total"] = args.total == "on"
+        cfg = update_config(**changes)
         print(f"Metered network: {cfg.get('tether_name') or '(unnamed)'} · "
               f"{cfg.get('tether_cap_gb') or 0} GB/month · resets on day "
               f"{cfg.get('tether_reset_day', 1)}. Link the network itself with "
               f"`netmeter tether-here` while connected to it.")
     elif args.cmd == "tether-forget":
-        cfg = load_config()
-        cfg["tether_gateway_macs"] = []
-        save_json(CONFIG_PATH, cfg)
+        update_config(tether_gateway_macs=[])
         print("Unlinked all metered networks.")
     elif args.cmd == "tether":
         cfg = load_config()
@@ -551,7 +722,7 @@ def main():
             return
         t = load_tether(cfg)
         if args.used_gb is not None:
-            t["in"], t["out"], t["notified_pct"] = int(args.used_gb * 1024 ** 3), 0, 0
+            t["in"], t["out"], t["notified_pct"] = int(args.used_gb * GB), 0, 0
             save_json(TETHER_PATH, t)
             print(f"Seeded the period at {args.used_gb} GB.")
         used = t["in"] + t["out"]
@@ -566,7 +737,7 @@ def main():
             state_txt = "connected, counting"
         else:
             state_txt = "not on the tether network"
-        pct = f" ({100 * used / (cap_gb * 1024 ** 3):.0f}%)" if cap_gb else ""
+        pct = f" ({100 * used / (cap_gb * GB):.0f}%)" if cap_gb else ""
         print(f"{cfg.get('tether_name')}: {fmt(used)} of {cap_gb} GB{pct} · "
               f"resets {nr.isoformat()} ({days} days) · {state_txt}")
     elif args.cmd == "tether-here":
@@ -578,8 +749,7 @@ def main():
             macs = cfg.get("tether_gateway_macs") or []
             if gw not in macs:
                 macs.append(gw)
-            cfg["tether_gateway_macs"] = macs
-            save_json(CONFIG_PATH, cfg)
+            cfg = update_config(tether_gateway_macs=macs)
             print(f"Linked this network (router {ip}, MAC {gw}) as "
                   f"{cfg.get('tether_name')}. Its traffic now counts against the "
                   f"{cfg.get('tether_cap_gb')} GB cap.")

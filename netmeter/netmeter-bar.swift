@@ -40,15 +40,53 @@ func sessionApps() -> [String: (Double, Double)] {
     return apps
 }
 
-func fmtBytes(_ b: Double) -> String {
-    if b >= 1073741824 { return String(format: "%.2f GB", b / 1073741824) }
-    if b >= 1048576 { return String(format: "%.1f MB", b / 1048576) }
-    return String(format: "%.0f KB", b / 1024)
+// Decimal units, matching the engine: a carrier's 50 GB plan is 50 x 10^9
+// bytes, and a bar that disagrees with the bill is worse than no bar.
+let KB = 1000.0, MB = 1000_000.0, GB = 1000_000_000.0
+
+// KB and MB are whole numbers: those digits churn every second, and a readout
+// that changes width every second is what walks off the end of a crowded menu
+// bar. GB keeps two decimals, because a gigabyte counter that moves once an
+// hour is not the churn, and "1 GB" for anything from 1.0 to 1.9 is useless.
+func fmtBytes(_ b: Double, space: Bool = true) -> String {
+    let sp = space ? " " : ""
+    if b >= 100 * GB { return String(format: "%.0f\(sp)GB", b / GB) }
+    if b >= GB { return String(format: "%.2f\(sp)GB", b / GB) }
+    if b >= MB { return String(format: "%.0f\(sp)MB", b / MB) }
+    return String(format: "%.0f\(sp)KB", b / KB)
 }
 
 func fmtRate(_ bps: Double) -> String {
-    if bps >= 1048576 { return String(format: "%.1fM", bps / 1048576) }
-    return String(format: "%.0fK", max(0, bps) / 1024)
+    if bps >= MB { return String(format: "%.0fM", bps / MB) }
+    return String(format: "%.0fK", max(0, bps) / KB)
+}
+
+// Both the engine's timestamps are `isoformat(timespec="seconds")`, local time.
+let stampFormat: DateFormatter = {
+    let df = DateFormatter()
+    df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+    return df
+}()
+
+func stamp(_ s: String?) -> Date? {
+    guard let s = s, !s.isEmpty else { return nil }
+    return stampFormat.date(from: s)
+}
+
+func fmtDuration(_ seconds: Double) -> String {
+    let t = max(0, Int(seconds))
+    let h = t / 3600, m = (t % 3600) / 60
+    if h >= 24 { return "\(h / 24)d \(h % 24)h" }
+    if h > 0 { return "\(h)h \(m)m" }
+    return "\(m)m"
+}
+
+// Elapsed from `since` to `until`, or to now when `until` is nil. A finished day
+// gets its last sample as the end, so Yesterday reads as a span, not a countdown
+// from the epoch.
+func elapsed(since: String?, until: String? = nil) -> String {
+    guard let start = stamp(since) else { return "" }
+    return fmtDuration((stamp(until) ?? Date()).timeIntervalSince(start))
 }
 
 func dayString(_ daysAgo: Int) -> String {
@@ -127,19 +165,31 @@ class StatsWindow: NSObject, NSTableViewDataSource, NSTableViewDelegate {
         let today = dayString(0)
         var apps: [String: (Double, Double)]
         var label: String
+        var age = ""
         switch seg.selectedSegment {
         case 1:
-            apps = loadApps(home + "/.netmeter/\(today).json")
+            let path = home + "/.netmeter/\(today).json"
+            apps = loadApps(path)
             label = "Today"
+            age = elapsed(since: readJSON(path)?["started"] as? String)
         case 2:
-            apps = loadApps(home + "/.netmeter/\(dayString(1)).json")
+            let path = home + "/.netmeter/\(dayString(1)).json"
+            let file = readJSON(path)
+            apps = loadApps(path)
             label = "Yesterday"
+            // A closed day is a span between its first and last sample, not a
+            // duration still running up to now.
+            age = elapsed(since: file?["started"] as? String,
+                          until: file?["updated"] as? String)
         default:
             apps = sessionApps()
             label = "Session"
+            age = elapsed(since: readJSON(home + "/.netmeter/now.json")?["session_started"] as? String)
         }
+        let span = age.isEmpty ? "" : (seg.selectedSegment == 2 ? "  (over \(age))"
+                                                                : "  (running \(age))")
         rows = apps.map { ($0.key, $0.value.0, $0.value.1) }
-            .filter { $0.1 + $0.2 >= 1024 }
+            .filter { $0.1 + $0.2 >= KB }
             .sorted { $0.1 + $0.2 > $1.1 + $1.2 }
         let ti = rows.reduce(0.0) { $0 + $1.1 }
         let to = rows.reduce(0.0) { $0 + $1.2 }
@@ -148,9 +198,15 @@ class StatsWindow: NSObject, NSTableViewDataSource, NSTableViewDelegate {
            let ts = now["ts"] as? Double, Date().timeIntervalSince1970 - ts < 30 {
             let d = (now["down_bps"] as? Double) ?? 0
             let u = (now["up_bps"] as? Double) ?? 0
-            speed = "   ·   now ↓\(fmtRate(d))/s ↑\(fmtRate(u))/s"
+            speed = combineUpDown()
+                ? "   ·   now ⇅\(fmtRate(d + u))/s"
+                : "   ·   now ↓\(fmtRate(d))/s ↑\(fmtRate(u))/s"
         }
-        header.stringValue = "\(label): ↓\(fmtBytes(ti))  ↑\(fmtBytes(to))  =  \(fmtBytes(ti + to))\(speed)"
+        if combineUpDown() {
+            header.stringValue = "\(label): ⇅\(fmtBytes(ti + to))\(span)\(speed)"
+        } else {
+            header.stringValue = "\(label): ↓\(fmtBytes(ti))  ↑\(fmtBytes(to))  =  \(fmtBytes(ti + to))\(span)\(speed)"
+        }
         table.reloadData()
     }
 
@@ -175,7 +231,30 @@ class StatsWindow: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     }
 }
 
-let VERSION = "1.1"
+let VERSION = "1.2"
+
+func config() -> [String: Any] { readJSON(home + "/.netmeter/config.json") ?? [:] }
+
+func combineUpDown() -> Bool { (config()["combine_updown"] as? Bool) ?? false }
+
+// Both default to true: a fresh install should look like a meter, not a glyph.
+func showRate() -> Bool { (config()["show_rate"] as? Bool) ?? true }
+func showTotal() -> Bool { (config()["show_total"] as? Bool) ?? true }
+
+// Apps that get no on/off switch. System daemons because freezing mDNSResponder
+// breaks DNS; Claude Code because those processes are the running work sessions.
+// Solo mode keeps its own, shorter exemption list on the daemon side, so soloing
+// Chrome does freeze the Claude app when it reaches for an update.
+let PAUSE_DENY: Set<String> = [
+    "Claude Code", "mDNSResponder", "syspolicyd", "apsd", "cloudd",
+    "nsurlsessiond", "trustd", "remindd", "gamed", "storekitagent",
+    "appstoreagent", "amsengagementd", "managedappdistr", "mstreamd",
+    "AddressBookSour", "com.apple.geod", "WeatherWidget", "CategoriesServi",
+    "netbiosd", "networkserviceproxy (Apple relay)", "AssetCacheLocat",
+    "curl", "git-remote-http", "gh", "com.apple.Safar", "Safari (WebKit)",
+    "locationd", "bird", "identityservice", "softwareupdated", "timed",
+    "parsec-fbf", "familycircled", "rapportd", "sharingd", "searchpartyd"
+]
 
 // Preferences: the Bandwidth+-style pane. Everything it writes goes to
 // ~/.netmeter/config.json via the netmeter CLI, never into the repo.
@@ -187,6 +266,9 @@ class PrefsWindow: NSObject {
     var dayF = NSTextField()
     var seedF = NSTextField()
     var notifyF = NSTextField()
+    var combineB = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    var rateB = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    var totalB = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     var status = NSTextField(labelWithString: "")
 
     func show() {
@@ -222,28 +304,47 @@ class PrefsWindow: NSObject {
     }
 
     func build() {
-        let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 430, height: 380),
+        let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 430, height: 440),
                            styleMask: [.titled, .closable], backing: .buffered, defer: false)
         win.title = "netmeter Preferences"
         win.isReleasedWhenClosed = false
         win.center()
         let c = win.contentView!
 
-        sectionLabel("Metered network (hotspot cap)", 344, in: c)
-        fieldRow("Network name:", nameF, 310, width: 260, in: c)
-        fieldRow("Quota (GB):", quotaF, 278, width: 80, in: c)
-        fieldRow("Resets on day:", dayF, 246, width: 80, in: c)
+        sectionLabel("Metered network (hotspot cap)", 404, in: c)
+        fieldRow("Network name:", nameF, 370, width: 260, in: c)
+        fieldRow("Quota (GB):", quotaF, 338, width: 80, in: c)
+        fieldRow("Resets on day:", dayF, 306, width: 80, in: c)
         status.font = NSFont.systemFont(ofSize: 11)
         status.textColor = .secondaryLabelColor
-        status.frame = NSRect(x: 144, y: 222, width: 270, height: 16)
+        status.frame = NSRect(x: 144, y: 282, width: 270, height: 16)
         c.addSubview(status)
-        button("Link Current Network", #selector(linkHere), 144, 186, 170, in: c)
-        button("Unlink All", #selector(unlink), 320, 186, 94, in: c)
-        fieldRow("Used so far (GB):", seedF, 148, width: 80, in: c)
-        button("Set", #selector(seed), 232, 146, 60, in: c)
+        button("Link Current Network", #selector(linkHere), 144, 246, 170, in: c)
+        button("Unlink All", #selector(unlink), 320, 246, 94, in: c)
+        fieldRow("Used so far (GB):", seedF, 208, width: 80, in: c)
+        button("Set", #selector(seed), 232, 206, 60, in: c)
 
-        sectionLabel("Low Data Mode", 108, in: c)
-        fieldRow("Notify every (MB):", notifyF, 74, width: 80, in: c)
+        sectionLabel("Low Data Mode", 168, in: c)
+        fieldRow("Notify every (MB):", notifyF, 134, width: 80, in: c)
+
+        // Speed and total hide independently. Combine only changes how the speed
+        // is written, so it sits under the switch that decides whether it shows.
+        sectionLabel("Menu bar display", 100, in: c)
+        rateB = NSButton(checkboxWithTitle: "Show transfer speed", target: nil, action: nil)
+        rateB.frame = NSRect(x: 16, y: 76, width: 290, height: 20)
+        c.addSubview(rateB)
+        combineB = NSButton(checkboxWithTitle: "Combine \u{2193} and \u{2191} into one rate",
+                            target: nil, action: nil)
+        combineB.frame = NSRect(x: 34, y: 54, width: 272, height: 20)
+        c.addSubview(combineB)
+        totalB = NSButton(checkboxWithTitle: "Show total transferred", target: nil, action: nil)
+        totalB.frame = NSRect(x: 16, y: 30, width: 290, height: 20)
+        c.addSubview(totalB)
+        let hint = NSTextField(labelWithString: "With both Show boxes off, the bar is just \u{21C5}.")
+        hint.font = NSFont.systemFont(ofSize: 10)
+        hint.textColor = .tertiaryLabelColor
+        hint.frame = NSRect(x: 16, y: 8, width: 290, height: 14)
+        c.addSubview(hint)
 
         button("Save", #selector(save), 314, 16, 100, in: c)
         window = win
@@ -257,6 +358,9 @@ class PrefsWindow: NSObject {
         } else { quotaF.stringValue = "" }
         dayF.stringValue = String((cfg?["tether_reset_day"] as? NSNumber)?.intValue ?? 1)
         notifyF.stringValue = String((cfg?["notify_every_mb"] as? NSNumber)?.intValue ?? 25)
+        combineB.state = ((cfg?["combine_updown"] as? Bool) ?? false) ? .on : .off
+        rateB.state = ((cfg?["show_rate"] as? Bool) ?? true) ? .on : .off
+        totalB.state = ((cfg?["show_total"] as? Bool) ?? true) ? .on : .off
         let macs = (cfg?["tether_gateway_macs"] as? [Any]) ?? []
         let now = readJSON(home + "/.netmeter/now.json")
         let on = (now?["tether_on"] as? Bool) ?? false
@@ -275,6 +379,9 @@ class PrefsWindow: NSObject {
         if !quotaF.stringValue.isEmpty { args += ["--cap", quotaF.stringValue] }
         if !dayF.stringValue.isEmpty { args += ["--reset-day", dayF.stringValue] }
         if !notifyF.stringValue.isEmpty { args += ["--notify-every-mb", notifyF.stringValue] }
+        args += ["--combine", combineB.state == .on ? "on" : "off"]
+        args += ["--rate", rateB.state == .on ? "on" : "off"]
+        args += ["--total", totalB.state == .on ? "on" : "off"]
         run?(args)
         reloadSoon()
     }
@@ -319,11 +426,58 @@ class ToggleSwitch: NSControl {
     }
 }
 
+// A mode button for the row at the top of the menu. NSButton in pushOnPushOff
+// renders with no readable on-state inside a status menu, same problem
+// ToggleSwitch was written to dodge, so this draws its own filled pill.
+class ModeButton: NSControl {
+    var label = "" { didSet { needsDisplay = true } }
+    var isOn = false { didSet { needsDisplay = true } }
+    var onClick: (() -> Void)?
+
+    override func draw(_ dirtyRect: NSRect) {
+        let r = bounds.insetBy(dx: 1, dy: 1)
+        let path = NSBezierPath(roundedRect: r, xRadius: 7, yRadius: 7)
+        if isOn {
+            NSColor.controlAccentColor.setFill()
+            path.fill()
+        } else {
+            NSColor.secondaryLabelColor.withAlphaComponent(0.10).setFill()
+            path.fill()
+            NSColor.separatorColor.setStroke()
+            path.stroke()
+        }
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 12, weight: isOn ? .semibold : .regular),
+            .foregroundColor: isOn ? NSColor.white : NSColor.labelColor,
+        ]
+        let text = NSAttributedString(string: label, attributes: attrs)
+        var size = text.size()
+        size.width = min(size.width, r.width - 12)
+        text.draw(in: NSRect(x: r.midX - size.width / 2, y: r.midY - size.height / 2,
+                             width: size.width, height: size.height))
+    }
+
+    // Flip immediately rather than waiting on the CLI round trip, and do not
+    // call super: passing the click up is what dismisses the menu, and a mode
+    // toggle you have to reopen the menu to confirm is not a toggle.
+    override func mouseDown(with event: NSEvent) {
+        isOn.toggle()
+        onClick?()
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem!
     let stats = StatsWindow()
     let prefs = PrefsWindow()
     var showSession = false
+    // Live references into the open menu. Retitling an item and redrawing a view
+    // is safe while a menu is tracking; adding or removing items is not, so the
+    // two status lines are always present and toggle their isHidden instead.
+    var lowButton: ModeButton?
+    var soloButton: ModeButton?
+    var lowStatus: NSMenuItem?
+    var soloStatus: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -341,7 +495,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func update() {
-        var title = "netmeter …"
+        let wantRate = showRate(), wantTotal = showTotal()
+        // With both readouts off the item is one glyph wide, so a stale daemon
+        // has to say so inside that glyph: "⇅ …" rather than a bare arrow, which
+        // would be indistinguishable from a quiet network.
+        var title = (wantRate || wantTotal) ? "netmeter …" : "⇅ …"
         if let now = readJSON(home + "/.netmeter/now.json"),
            let ts = now["ts"] as? Double,
            Date().timeIntervalSince1970 - ts < 30 {
@@ -349,74 +507,98 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let u = (now["up_bps"] as? Double) ?? 0
             let si = (now["session_in"] as? Double) ?? 0
             let so = (now["session_out"] as? Double) ?? 0
-            var tail = fmtBytes(si + so)
-            if (now["tether_on"] as? Bool) == true,
-               let used = now["tether_used"] as? Double,
-               let cap = (now["tether_cap_gb"] as? NSNumber)?.doubleValue, cap > 0 {
-                tail = String(format: "⌁%.1f/%.0fG", used / 1073741824, cap)
+            var parts: [String] = []
+            if wantRate {
+                parts.append(combineUpDown()
+                    ? "⇅\(fmtRate(d + u))"
+                    : "↓\(fmtRate(d)) ↑\(fmtRate(u))")
             }
-            title = "↓\(fmtRate(d)) ↑\(fmtRate(u)) · \(tail)"
+            if wantTotal {
+                var tail = fmtBytes(si + so, space: false)
+                if (now["tether_on"] as? Bool) == true,
+                   let used = now["tether_used"] as? Double,
+                   let cap = (now["tether_cap_gb"] as? NSNumber)?.doubleValue, cap > 0 {
+                    tail = String(format: "⌁%.1f/%.0fG", used / GB, cap)
+                }
+                parts.append(tail)
+            }
+            title = parts.isEmpty ? "⇅" : parts.joined(separator: " · ")
         }
         statusItem.button?.title = title
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        menu.addItem(makeItem("Open netmeter…", #selector(openStats)))
-        menu.addItem(.separator())
+        let cfg = config()
         let now = readJSON(home + "/.netmeter/now.json")
-        let si = (now?["session_in"] as? Double) ?? 0
-        let so = (now?["session_out"] as? Double) ?? 0
-        var started = (now?["session_started"] as? String) ?? ""
-        if let t = started.range(of: "T") { started = String(started[t.upperBound...]) }
-        let since = started.isEmpty ? "" : "  (since \(started))"
-        addDisabled(menu, "Session: ↓\(fmtBytes(si)) ↑\(fmtBytes(so))\(since)")
+        let paused = readJSON(home + "/.netmeter/paused.json") ?? [:]
+
+        // Per-app rows first: the solo picker needs the same list the rows use.
+        // Both sides get totalled either way, because the header shows both.
+        let dayFile = readJSON(home + "/.netmeter/\(dayString(0)).json")
+        let todayApps = loadApps(home + "/.netmeter/\(dayString(0)).json")
+        let sessApps = sessionApps()
+        var rows: [(String, Double, Double)] = []
+        for (name, v) in (showSession ? sessApps : todayApps) {
+            rows.append((name, v.0, v.1))
+        }
+        rows.sort { $0.1 + $0.2 > $1.1 + $1.2 }
+
+        // Modes, at the top, as buttons.
+        let lowOn = (cfg["lowdata"] as? Bool) ?? false
+        let soloOn = (cfg["solo"] as? Bool) ?? false
+        let soloApp = (cfg["solo_app"] as? String) ?? ""
+        menu.addItem(modesRow(lowOn: lowOn, soloOn: soloOn, soloApp: soloApp))
+        menu.addItem(soloPicker(rows: rows, current: soloApp))
+        let soloLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        soloLine.isEnabled = false
+        menu.addItem(soloLine)
+        soloStatus = soloLine
+        let lowLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        lowLine.isEnabled = false
+        menu.addItem(lowLine)
+        lowStatus = lowLine
+        refreshModeUI()
+        menu.addItem(.separator())
+
+        menu.addItem(makeItem("Open netmeter\u{2026}", #selector(openStats)))
+        menu.addItem(.separator())
+        let sessStarted = (now?["session_started"] as? String) ?? ""
+        let sessAge = elapsed(since: sessStarted)
+        var clock = sessStarted
+        if let t = clock.range(of: "T") { clock = String(clock[t.upperBound...]) }
+        if clock.count >= 5 { clock = String(clock.prefix(5)) }
+        addDisabled(menu, clock.isEmpty
+            ? "Session: not started yet"
+            : "Session: running \(sessAge), since \(clock)")
         if let tname = now?["tether_name"] as? String, !tname.isEmpty {
             if (now?["tether_setup"] as? Bool) == true {
                 let used = (now?["tether_used"] as? Double) ?? 0
                 let cap = (now?["tether_cap_gb"] as? NSNumber)?.doubleValue ?? 0
                 let resets = (now?["tether_resets"] as? String) ?? ""
                 let on = (now?["tether_on"] as? Bool) ?? false
-                addDisabled(menu, String(format: "⌁ %@: %.1f of %.0f GB · resets %@%@",
-                                         tname, used / 1073741824, cap, resets,
-                                         on ? " · connected" : ""))
+                addDisabled(menu, String(format: "\u{2441} %@: %.1f of %.0f GB \u{00B7} resets %@%@",
+                                         tname, used / GB, cap, resets,
+                                         on ? " \u{00B7} connected" : ""))
             } else {
-                addDisabled(menu, "⌁ \(tname): not linked · run `netmeter tether-here` while tethered")
+                addDisabled(menu, "\u{2441} \(tname): not linked \u{00B7} run `netmeter tether-here` while tethered")
             }
         }
         menu.addItem(makeItem("Reset Session", #selector(resetSession)))
         menu.addItem(.separator())
 
-        var rows: [(String, Double, Double)] = []
-        let source = showSession ? sessionApps() : loadApps(home + "/.netmeter/\(dayString(0)).json")
-        for (name, v) in source {
-            rows.append((name, v.0, v.1))
-        }
-        rows.sort { $0.1 + $0.2 > $1.1 + $1.2 }
-        let ti = rows.reduce(0.0) { $0 + $1.1 }
-        let to = rows.reduce(0.0) { $0 + $1.2 }
-        menu.addItem(headerRow(ti, to))
+        let sessTotal = sessApps.values.reduce(0.0) { $0 + $1.0 + $1.1 }
+        let todayTotal = todayApps.values.reduce(0.0) { $0 + $1.0 + $1.1 }
+        let todayAge = elapsed(since: dayFile?["started"] as? String)
+        menu.addItem(headerRow(session: (sessTotal, sessAge), today: (todayTotal, todayAge)))
 
         // Per-app rows with an inline on/off switch (on = running, off = frozen).
-        // System daemons get no switch (freezing mDNSResponder would break DNS),
-        // nor does Claude Code (those processes are the running work sessions).
-        let deny: Set<String> = [
-            "Claude Code", "mDNSResponder", "syspolicyd", "apsd", "cloudd",
-            "nsurlsessiond", "trustd", "remindd", "gamed", "storekitagent",
-            "appstoreagent", "amsengagementd", "managedappdistr", "mstreamd",
-            "AddressBookSour", "com.apple.geod", "WeatherWidget", "CategoriesServi",
-            "netbiosd", "networkserviceproxy (Apple relay)", "AssetCacheLocat",
-            "curl", "git-remote-http", "gh", "com.apple.Safar", "Safari (WebKit)",
-            "locationd", "bird", "identityservice", "softwareupdated", "timed",
-            "parsec-fbf", "familycircled", "rapportd", "sharingd", "searchpartyd"
-        ]
-        let paused = readJSON(home + "/.netmeter/paused.json") ?? [:]
         var listed = Set<String>()
-        let minBytes: Double = showSession ? 102400 : 1048576
+        let minBytes: Double = showSession ? 100 * KB : MB
         for r in rows.prefix(10) where r.1 + r.2 >= minBytes {
             listed.insert(r.0)
             menu.addItem(appRow(r.0, r.1 + r.2,
-                                pausable: !deny.contains(r.0),
+                                pausable: !PAUSE_DENY.contains(r.0),
                                 frozen: paused[r.0] != nil))
         }
         // Anything still frozen but no longer in today's top list stays reachable.
@@ -427,20 +609,97 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(makeItem("Resume All", #selector(resumeAll)))
         }
         menu.addItem(.separator())
-
-        let cfg = readJSON(home + "/.netmeter/config.json")
-        let lowOn = (cfg?["lowdata"] as? Bool) ?? false
-        let apps = (cfg?["lowdata_apps"] as? [String]) ?? []
-        let every = (cfg?["notify_every_mb"] as? NSNumber)?.intValue ?? 25
-        var lowTitle = "Low Data Mode (notify every \(every) MB)"
-        if !apps.isEmpty { lowTitle += " · freezes \(apps.joined(separator: ", "))" }
-        let low = makeItem(lowTitle, #selector(toggleLowData))
-        low.state = lowOn ? .on : .off
-        menu.addItem(low)
-        menu.addItem(.separator())
-        menu.addItem(makeItem("Preferences…", #selector(openPrefs)))
+        menu.addItem(makeItem("Preferences\u{2026}", #selector(openPrefs)))
         menu.addItem(makeItem("About netmeter", #selector(showAbout)))
         menu.addItem(makeItem("Quit netmeter bar", #selector(quit)))
+    }
+
+    // Re-reads config and updates the open menu in place. Called on every menu
+    // build and again once a mode command has actually finished writing.
+    func refreshModeUI() {
+        let cfg = config()
+        let lowOn = (cfg["lowdata"] as? Bool) ?? false
+        let soloOn = (cfg["solo"] as? Bool) ?? false
+        let soloApp = (cfg["solo_app"] as? String) ?? ""
+        lowButton?.isOn = lowOn
+        soloButton?.isOn = soloOn
+        soloButton?.label = soloApp.isEmpty ? "Solo" : "Solo: \(soloApp)"
+        soloStatus?.title = "\u{25C9} Solo: only \(soloApp) may use the network"
+        soloStatus?.isHidden = !soloOn
+        let every = (cfg["notify_every_mb"] as? NSNumber)?.intValue ?? 25
+        let apps = (cfg["lowdata_apps"] as? [String]) ?? []
+        var line = "\u{25D0} Low Data: notifying every \(every) MB"
+        if !apps.isEmpty { line += " \u{00B7} freezing \(apps.joined(separator: ", "))" }
+        lowStatus?.title = line
+        lowStatus?.isHidden = !lowOn
+    }
+
+    func modesRow(lowOn: Bool, soloOn: Bool, soloApp: String) -> NSMenuItem {
+        let item = NSMenuItem()
+        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 38))
+        let low = ModeButton(frame: NSRect(x: 10, y: 6, width: 108, height: 26))
+        low.label = "Low Data"
+        low.isOn = lowOn
+        low.onClick = { [weak self] in self?.toggleLowData() }
+        lowButton = low
+        v.addSubview(low)
+        let solo = ModeButton(frame: NSRect(x: 126, y: 6, width: 212, height: 26))
+        solo.label = soloApp.isEmpty ? "Solo" : "Solo: \(soloApp)"
+        solo.isOn = soloOn
+        solo.onClick = { [weak self] in self?.toggleSolo() }
+        soloButton = solo
+        v.addSubview(solo)
+        item.view = v
+        return item
+    }
+
+    // The picker is a real submenu rather than a popup button inside the row: a
+    // popup nested in a status menu swallows its own clicks.
+    func soloPicker(rows: [(String, Double, Double)], current: String) -> NSMenuItem {
+        let item = NSMenuItem(title: "Solo app", action: nil, keyEquivalent: "")
+        let sub = NSMenu()
+        var names: [String] = []
+        for r in rows.prefix(14) where !PAUSE_DENY.contains(r.0) { names.append(r.0) }
+        if !current.isEmpty && !names.contains(current) { names.insert(current, at: 0) }
+        if names.isEmpty {
+            let none = NSMenuItem(title: "No apps recorded yet", action: nil, keyEquivalent: "")
+            none.isEnabled = false
+            sub.addItem(none)
+        }
+        for name in names {
+            let i = makeItem(name, #selector(pickSolo(_:)))
+            i.representedObject = name
+            i.state = (name == current) ? .on : .off
+            sub.addItem(i)
+        }
+        item.submenu = sub
+        return item
+    }
+
+    @objc func pickSolo(_ sender: NSMenuItem) {
+        guard let name = sender.representedObject as? String else { return }
+        runNetmeter(["solo", name]) { [weak self] in self?.refreshModeUI() }
+    }
+
+    @objc func toggleSolo() {
+        let cfg = config()
+        if (cfg["solo"] as? Bool) ?? false {
+            runNetmeter(["solo", "off"]) { [weak self] in self?.refreshModeUI() }
+            return
+        }
+        var target = (cfg["solo_app"] as? String) ?? ""
+        if target.isEmpty {
+            // Nothing picked yet: solo whatever has moved the most data today,
+            // which is nearly always the thing you are actually looking at.
+            let source = loadApps(home + "/.netmeter/\(dayString(0)).json")
+            target = source.filter { !PAUSE_DENY.contains($0.key) }
+                .max { $0.value.0 + $0.value.1 < $1.value.0 + $1.value.1 }?.key ?? ""
+        }
+        guard !target.isEmpty else {
+            soloButton?.isOn = false   // nothing to solo; undo the optimistic flip
+            return
+        }
+        runNetmeter(["solo", target]) { [weak self] in self?.refreshModeUI() }
     }
 
     @objc func openStats() { stats.show() }
@@ -453,7 +712,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         a.messageText = "netmeter \(VERSION)"
         a.informativeText = """
         Per-app network meter for macOS: live speed, session and daily \
-        per-app totals, app freezing, and a metered-network monthly cap.
+        per-app totals, app freezing, Low Data and Solo modes, and a \
+        metered-network monthly cap.
 
         Daemon + menu bar app + Chrome extension, built July 2026 with Claude. \
         Data and settings live in ~/.netmeter (never in the repo).
@@ -467,12 +727,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc func resetSession() { runNetmeter(["session", "reset"]) }
     @objc func toggleLowData() {
-        let on = (readJSON(home + "/.netmeter/config.json")?["lowdata"] as? Bool) ?? false
-        runNetmeter(["lowdata", on ? "off" : "on"])
+        let on = (config()["lowdata"] as? Bool) ?? false
+        runNetmeter(["lowdata", on ? "off" : "on"]) { [weak self] in self?.refreshModeUI() }
     }
-    func headerRow(_ totalIn: Double, _ totalOut: Double) -> NSMenuItem {
+    // The segmented control only ever showed the side you had selected, so the
+    // other number cost a click to see. Both live here now, each with how long
+    // it has been accumulating, and the selected one is the one in full contrast.
+    func headerRow(session: (Double, String), today: (Double, String)) -> NSMenuItem {
         let item = NSMenuItem()
-        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 30))
+        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 46))
         let seg = NSSegmentedControl(labels: ["Session", "Today"],
                                      trackingMode: .selectOne,
                                      target: self, action: #selector(modeChanged(_:)))
@@ -480,14 +743,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         seg.controlSize = .small
         seg.appearance = NSAppearance(
             named: NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) ?? .aqua)
-        seg.frame = NSRect(x: 10, y: 4, width: 150, height: 21)
+        seg.frame = NSRect(x: 10, y: 13, width: 150, height: 21)
         v.addSubview(seg)
-        let totals = NSTextField(labelWithString: "↓\(fmtBytes(totalIn)) ↑\(fmtBytes(totalOut))")
-        totals.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
-        totals.textColor = .secondaryLabelColor
-        totals.alignment = .right
-        totals.frame = NSRect(x: 166, y: 7, width: 172, height: 16)
-        v.addSubview(totals)
+
+        let lines = [("Session", session, showSession), ("Today", today, !showSession)]
+        for (i, entry) in lines.enumerated() {
+            let (name, value, active) = entry
+            let (bytes, age) = value
+            let right = NSTextField(labelWithString:
+                age.isEmpty ? "\u{21C5}\(fmtBytes(bytes, space: false))"
+                            : "\u{21C5}\(fmtBytes(bytes, space: false)) \u{00B7} \(age)")
+            right.font = NSFont.monospacedDigitSystemFont(ofSize: 11,
+                                                          weight: active ? .semibold : .regular)
+            right.textColor = active ? .labelColor : .tertiaryLabelColor
+            right.alignment = .right
+            right.frame = NSRect(x: 206, y: 25 - CGFloat(i) * 16, width: 132, height: 14)
+            v.addSubview(right)
+
+            let tag = NSTextField(labelWithString: name)
+            tag.font = NSFont.systemFont(ofSize: 10,
+                                         weight: active ? .semibold : .regular)
+            tag.textColor = active ? .secondaryLabelColor : .tertiaryLabelColor
+            tag.alignment = .right
+            tag.frame = NSRect(x: 162, y: 25 - CGFloat(i) * 16, width: 40, height: 14)
+            v.addSubview(tag)
+        }
         item.view = v
         return item
     }
@@ -535,11 +815,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func resumeAll() { runNetmeter(["resume-all"]) }
     @objc func quit() { NSApp.terminate(nil) }
 
-    func runNetmeter(_ args: [String]) {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-        p.arguments = [home + "/bin/netmeter"] + args
-        try? p.run()
+    // One serial queue, and we wait for each command to exit. Two of these
+    // launched back to back (Preferences saved tether settings and the display
+    // option as separate calls) both read config.json, both wrote it, and the
+    // loser's change vanished. The engine locks its own writes now; this keeps
+    // the app from queueing a race in the first place.
+    let cliQueue = DispatchQueue(label: "dev.seankolk.netmeter.cli")
+
+    func runNetmeter(_ args: [String], then: (() -> Void)? = nil) {
+        cliQueue.async {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+            p.arguments = [home + "/bin/netmeter"] + args
+            try? p.run()
+            p.waitUntilExit()
+            if let then = then { DispatchQueue.main.async(execute: then) }
+        }
     }
 
     func makeItem(_ title: String, _ sel: Selector) -> NSMenuItem {

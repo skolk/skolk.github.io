@@ -4,11 +4,23 @@ Per-app network usage meter for macOS. The monitoring half of Little Snitch / Tr
 
 ## What it does
 
-- **Menu bar readout**: live ↓/↑ speed and the running session total (`↓3K ↑175K · 1.16 GB`).
-- **Menu**: per-app list switchable between Session and Today, each row with an on/off switch that freezes the app (SIGSTOP) until resumed. Reset Session when you hop onto a hotspot. Low Data Mode posts a notification every 25 MB of session data.
-- **Window** ("Open netmeter..."): Session / Today / Yesterday tables, auto-refreshing.
+- **Menu bar readout**: live ↓/↑ speed and the running session total (`↓3K ↑175K · 1.29GB`). KB and MB are whole numbers, so the digits that churn every second never change the item's width and walk it off a crowded bar; GB keeps two decimals because it moves about once an hour. Preferences hides either half independently and can collapse the two rates into one, so the item is as wide as you want it:
+
+  | speed | total | menu bar |
+  |---|---|---|
+  | on | on | `↓3K ↑175K · 1.29GB`, or `⇅178K · 1.29GB` combined |
+  | off | on | `1.29GB` |
+  | on | off | `⇅178K` |
+  | off | off | `⇅` |
+
+  With both off the item is one glyph, so a stale daemon has to say so inside it: `⇅ …` rather than a bare arrow, which would look the same as a quiet network.
+- **Modes**, as buttons at the top of the menu. Clicking one toggles it and leaves the menu open, so you can flip a mode and keep reading the per-app list:
+  - **Low Data Mode** posts a notification every 25 MB of session data, and freezes whatever is listed in `lowdata_apps`.
+  - **Solo Mode** picks one app and freezes everything else the moment it touches the network. Pick the app under "Solo app". This is the one for "I only want to look at Chrome" and not have an editor, a sync client or an app updater help itself to the hotspot behind you. System daemons, the window server and your terminal are exempt; app updaters are not.
+- **Menu**: per-app list switchable between Session and Today, each row with an on/off switch that freezes the app (SIGSTOP) until resumed. The switch shows **both** totals at once with how long each has been accumulating (`Session ⇅351MB · 3m` / `Today ⇅2.01GB · 8h 59m`), so the other number never costs a click; the selected side is the one in full contrast. Reset Session when you hop onto a hotspot.
+- **Window** ("Open netmeter..."): Session / Today / Yesterday tables, auto-refreshing, each headed with its span (`running 8h 59m` for a live period, `over 23h 51m` for a closed day).
 - **History**: one JSON file per day in `~/.netmeter/`.
-- **CLI**: `netmeter`, `netmeter session`, `netmeter session reset`, `netmeter pause <app>`, `netmeter resume-all`, `netmeter lowdata on|off`, `netmeter show 2026-07-29`.
+- **CLI**: `netmeter`, `netmeter session`, `netmeter session reset`, `netmeter pause <app>`, `netmeter resume-all`, `netmeter lowdata on|off`, `netmeter solo chrome`, `netmeter solo off`, `netmeter display --rate on|off --total on|off --combine on|off`, `netmeter show 2026-07-29`.
 - **meeting-mode-extension/**: a tiny Chrome extension (load unpacked via `chrome://extensions`). One click discards every tab except the active one, audible tabs, and meeting domains.
 
 ## Install
@@ -33,6 +45,8 @@ rm -rf ~/.netmeter
 
 ## Notes that cost a morning to learn
 
+- **Units are decimal** (1 GB = 10^9 bytes), not binary. A carrier selling a 50 GB plan means 50 x 10^9, so counting the cap in 2^30 handed out 7.4% of phantom headroom: the "100% used" warning did not fire until roughly 3.7 GB past the real cap. Display uses the same units so the bar and the bill agree.
+- **Two processes writing one JSON file will eat your settings.** `save_json` wrote through a shared `<path>.tmp`, so a Preferences Save (which fired two `netmeter` calls at once) could interleave into an unparseable `config.json`. `read_json` swallowed the `JSONDecodeError` and returned `None`, `load_config` filled in defaults, and the next write persisted them: one click unlinked a tether network. Fixed three ways, all of which were needed: pid-scoped temp names, an `flock` around every read-modify-write, and an `update_config` that recovers from `config.json.bak` and says so rather than answering a corrupt file with fresh defaults.
 - `nettop`'s per-process cumulative counters are **not monotonic**: they sum the currently open sockets, so they drop when sockets close. Never diff them yourself; run `nettop -d` and consume its per-interval deltas.
 - `nettop` block-buffers when piped. Run it under `script -q /dev/null` (a pty) to get samples in real time.
 - Expect netmeter to read 10-15% below the interface counters (Bandwidth+, `netstat -ib`): packet headers and processes living under one sample interval are invisible to it.
@@ -43,4 +57,5 @@ rm -rf ~/.netmeter
 
 - macOS only. Monitoring only (no per-app bandwidth blocking or shaping).
 - Sub-5-second processes can slip between samples.
-- System daemons and Claude Code sessions deliberately have no freeze switch.
+- System daemons and Claude Code sessions deliberately have no freeze switch in the per-app list. Solo Mode keeps a shorter exemption list (`SOLO_PROTECT`): it will freeze the Claude app, since an editor updating itself is exactly what Solo Mode exists to stop.
+- `~/.netmeter/paused.json` records why each app was frozen (`manual`, `lowdata`, `solo`), which is what lets `solo off` unfreeze what solo froze and leave a hand-paused app alone.
