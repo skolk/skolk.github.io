@@ -360,6 +360,32 @@ class ChartView: NSView {
     }
 }
 
+// A row you can click without the menu closing. A normal NSMenuItem action
+// dismisses the menu, and NSMenu.popUp does not open from inside a menu that is
+// already tracking, so the solo picker is built from these instead.
+class PickRow: NSControl {
+    var onClick: (() -> Void)?
+    var hot = false { didSet { needsDisplay = true } }
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard hot else { return }
+        NSColor.secondaryLabelColor.withAlphaComponent(0.12).setFill()
+        NSBezierPath(roundedRect: bounds.insetBy(dx: 6, dy: 1),
+                     xRadius: 4, yRadius: 4).fill()
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: bounds,
+                                       options: [.mouseEnteredAndExited, .activeAlways],
+                                       owner: self))
+    }
+    override func mouseEntered(with event: NSEvent) { hot = true }
+    override func mouseExited(with event: NSEvent) { hot = false }
+    override func mouseDown(with event: NSEvent) { onClick?() }
+}
+
 // Proportional bar. The share of the window is the thing worth seeing at a
 // glance; the byte count is the thing worth reading second.
 class BarView: NSView {
@@ -658,6 +684,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var recentValues: [NSTextField] = []
     var recentBars: [BarView] = []
     var soloCandidates: [String] = []
+    var soloPickOpen = false
+    var soloPickItems: [NSMenuItem] = []
+    var soloPickLabels: [NSTextField] = []
     var recentEmpty: NSMenuItem?
     var recentChartItem: NSMenuItem?
     var recentChart: ChartView?
@@ -751,6 +780,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         lowLine.isEnabled = false
         menu.addItem(lowLine)
         lowStatus = lowLine
+        addSoloPicker(menu)
         refreshModeUI()
         menu.addItem(.separator())
 
@@ -759,9 +789,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         var clock = sessStarted
         if let t = clock.range(of: "T") { clock = String(clock[t.upperBound...]) }
         if clock.count >= 5 { clock = String(clock.prefix(5)) }
-        // The running duration lives in the Session/Today header two rows down,
-        // so this row carries only what that one cannot: when it started.
-        menu.addItem(actionRow(since: clock))
         if let tname = now?["tether_name"] as? String, !tname.isEmpty {
             if (now?["tether_setup"] as? Bool) == true {
                 let used = (now?["tether_used"] as? Double) ?? 0
@@ -780,7 +807,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let sessTotal = sessApps.values.reduce(0.0) { $0 + $1.0 + $1.1 }
         let todayTotal = todayApps.values.reduce(0.0) { $0 + $1.0 + $1.1 }
         let todayAge = elapsed(since: dayFile?["started"] as? String)
-        menu.addItem(headerRow(session: (sessTotal, sessAge), today: (todayTotal, todayAge)))
+        menu.addItem(headerRow(session: (sessTotal, sessAge),
+                               today: (todayTotal, todayAge), since: clock))
 
         // Per-app rows with an inline on/off switch (on = running, off = frozen).
         var listed = Set<String>()
@@ -805,6 +833,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         addRecentSection(menu)
 
         menu.addItem(.separator())
+        menu.addItem(makeItem("Open netmeter\u{2026}", #selector(openStats)))
         menu.addItem(makeItem("Preferences\u{2026}", #selector(openPrefs)))
         menu.addItem(makeItem("About netmeter", #selector(showAbout)))
         menu.addItem(makeItem("Quit netmeter bar", #selector(quit)))
@@ -828,6 +857,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !apps.isEmpty { line += " \u{00B7} freezing \(apps.joined(separator: ", "))" }
         lowStatus?.title = line
         lowStatus?.isHidden = !lowOn
+
+        for (i, item) in soloPickItems.enumerated() {
+            guard soloPickOpen, i < soloCandidates.count else { item.isHidden = true; continue }
+            item.isHidden = false
+            let name = soloCandidates[i]
+            soloPickLabels[i].stringValue = (name == soloApp ? "\u{2713}  " : "     ") + name
+            soloPickLabels[i].textColor = (name == soloApp) ? .labelColor : .secondaryLabelColor
+        }
     }
 
     func addRecentSection(_ menu: NSMenu) {
@@ -982,7 +1019,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         solo.onClick = { [weak self] in self?.toggleSolo() }
         solo.onArrow = { [weak self] in
             guard let self = self else { return }
-            self.showSoloPicker(from: solo)
+            self.soloPickOpen.toggle()
+            self.refreshModeUI()
         }
         soloButton = solo
         v.addSubview(solo)
@@ -990,60 +1028,37 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return item
     }
 
-    // The picker hangs off the chevron on the Solo button itself. It used to be
-    // a "Solo app" submenu row, which cost a row of menu to hold one setting
-    // that only ever qualifies the button beside it.
-    func showSoloPicker(from view: NSView) {
-        let m = NSMenu()
-        let current = (config()["solo_app"] as? String) ?? ""
-        if soloCandidates.isEmpty {
-            let none = NSMenuItem(title: "No apps recorded yet", action: nil, keyEquivalent: "")
-            none.isEnabled = false
-            m.addItem(none)
+    // Twelve pre-built rows that show and hide. NSMenu.popUp does not open from
+    // inside a menu that is already tracking, which is why the first attempt at
+    // a chevron pop-up did nothing at all.
+    func addSoloPicker(_ menu: NSMenu) {
+        soloPickItems = []; soloPickLabels = []
+        for i in 0..<12 {
+            let item = NSMenuItem()
+            let row = PickRow(frame: NSRect(x: 0, y: 0, width: 348, height: 22))
+            let label = NSTextField(labelWithString: "")
+            label.font = NSFont.menuFont(ofSize: 13)
+            label.lineBreakMode = .byTruncatingTail
+            label.frame = NSRect(x: 34, y: 3, width: 300, height: 17)
+            row.addSubview(label)
+            row.onClick = { [weak self] in self?.pickSoloAt(i) }
+            item.view = row
+            item.isHidden = true
+            menu.addItem(item)
+            soloPickItems.append(item)
+            soloPickLabels.append(label)
         }
-        for name in soloCandidates {
-            let i = makeItem(name, #selector(pickSolo(_:)))
-            i.representedObject = name
-            i.state = (name == current) ? .on : .off
-            m.addItem(i)
-        }
-        m.popUp(positioning: nil, at: NSPoint(x: view.bounds.minX, y: view.bounds.minY - 2), in: view)
+    }
+
+    func pickSoloAt(_ i: Int) {
+        guard i < soloCandidates.count else { return }
+        let name = soloCandidates[i]
+        soloPickOpen = false
+        runNetmeter(["solo", name]) { [weak self] in self?.refreshModeUI() }
+        refreshModeUI()
     }
 
     func closeMenu() { statusItem.menu?.cancelTracking() }
-
-    func actionRow(since: String) -> NSMenuItem {
-        let item = NSMenuItem()
-        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 38))
-        let open = ModeButton(frame: NSRect(x: 10, y: 6, width: 142, height: 26))
-        open.label = "Open netmeter"
-        open.momentary = true
-        open.onClick = { [weak self] in
-            self?.closeMenu()
-            self?.openStats()
-        }
-        v.addSubview(open)
-        let reset = ModeButton(frame: NSRect(x: 160, y: 6, width: 118, height: 26))
-        reset.label = "Reset Session"
-        reset.momentary = true
-        reset.onClick = { [weak self] in
-            self?.runNetmeter(["session", "reset"]) { self?.refreshModeUI() }
-        }
-        v.addSubview(reset)
-        let lbl = NSTextField(labelWithString: since.isEmpty ? "" : "since \(since)")
-        lbl.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
-        lbl.textColor = .tertiaryLabelColor
-        lbl.alignment = .right
-        lbl.frame = NSRect(x: 284, y: 12, width: 54, height: 14)
-        v.addSubview(lbl)
-        item.view = v
-        return item
-    }
-
-    @objc func pickSolo(_ sender: NSMenuItem) {
-        guard let name = sender.representedObject as? String else { return }
-        runNetmeter(["solo", name]) { [weak self] in self?.refreshModeUI() }
-    }
 
     @objc func toggleSolo() {
         let cfg = config()
@@ -1096,9 +1111,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // The segmented control only ever showed the side you had selected, so the
     // other number cost a click to see. Both live here now, each with how long
     // it has been accumulating, and the selected one is the one in full contrast.
-    func headerRow(session: (Double, String), today: (Double, String)) -> NSMenuItem {
+    func headerRow(session: (Double, String), today: (Double, String),
+                   since: String) -> NSMenuItem {
         let item = NSMenuItem()
-        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 46))
+        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 58))
         let seg = NSSegmentedControl(labels: ["Session", "Today"],
                                      trackingMode: .selectOne,
                                      target: self, action: #selector(modeChanged(_:)))
@@ -1106,8 +1122,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         seg.controlSize = .small
         seg.appearance = NSAppearance(
             named: NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) ?? .aqua)
-        seg.frame = NSRect(x: 10, y: 13, width: 150, height: 21)
+        seg.frame = NSRect(x: 10, y: 31, width: 150, height: 21)
         v.addSubview(seg)
+
+        // Reset belongs beside the counter it resets, not adrift in a row above.
+        let reset = ModeButton(frame: NSRect(x: 10, y: 4, width: 104, height: 22))
+        reset.label = "Reset Session"
+        reset.momentary = true
+        reset.onClick = { [weak self] in
+            self?.runNetmeter(["session", "reset"]) { self?.refreshModeUI() }
+        }
+        v.addSubview(reset)
+        if !since.isEmpty {
+            let started = NSTextField(labelWithString: since)
+            started.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
+            started.textColor = .tertiaryLabelColor
+            started.toolTip = "This session started at \(since)"
+            started.frame = NSRect(x: 120, y: 8, width: 40, height: 13)
+            v.addSubview(started)
+        }
 
         let lines = [("Session", session, showSession), ("Today", today, !showSession)]
         for (i, entry) in lines.enumerated() {
@@ -1120,7 +1153,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                                           weight: active ? .semibold : .regular)
             right.textColor = active ? .labelColor : .tertiaryLabelColor
             right.alignment = .right
-            right.frame = NSRect(x: 206, y: 25 - CGFloat(i) * 16, width: 132, height: 14)
+            right.frame = NSRect(x: 206, y: 33 - CGFloat(i) * 16, width: 132, height: 14)
             v.addSubview(right)
 
             let tag = NSTextField(labelWithString: name)
@@ -1128,7 +1161,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                          weight: active ? .semibold : .regular)
             tag.textColor = active ? .secondaryLabelColor : .tertiaryLabelColor
             tag.alignment = .right
-            tag.frame = NSRect(x: 162, y: 25 - CGFloat(i) * 16, width: 40, height: 14)
+            tag.frame = NSRect(x: 162, y: 33 - CGFloat(i) * 16, width: 40, height: 14)
             v.addSubview(tag)
         }
         item.view = v
