@@ -481,6 +481,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // A named autosave key instead of the auto-generated "Item-0". The key
+        // is what macOS stores the bar position under, and an ordinal is only
+        // stable as long as this stays the app's one and only status item.
+        statusItem.autosaveName = "netmeter"
         statusItem.button?.font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         let menu = NSMenu()
         menu.delegate = self

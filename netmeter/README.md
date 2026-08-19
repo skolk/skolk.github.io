@@ -45,6 +45,16 @@ rm -rf ~/.netmeter
 
 ## Notes that cost a morning to learn
 
+- **To move the readout along the menu bar, hold Cmd and drag it.** A plain drag does nothing, on any menu bar item, which is the whole reason it looks stuck. macOS saves the result to `~/Library/Preferences/netmeter-bar.plist` under `NSStatusItem Preferred Position netmeter`, the key named by `statusItem.autosaveName`. The value is a pixel offset from the right edge, so a larger number sits further left, and it is really a sort key against whatever else is in the bar: macOS rewrites every item's number when the bar reflows, so what persists is the ordering, not the figure. To place it without dragging, stop the app first, or `cfprefsd` writes its cached value back over yours:
+
+  ```sh
+  launchctl bootout gui/$(id -u)/com.seankolk.netmeterbar
+  defaults write netmeter-bar "NSStatusItem Preferred Position netmeter" -float 305
+  killall cfprefsd
+  launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.seankolk.netmeterbar.plist
+  ```
+
+  Pick the number by reading the neighbours you want to sit between: `defaults find "NSStatusItem Preferred Position"`. Set `autosaveName` explicitly rather than accepting the auto-generated `Item-0`, which is only stable while this remains the app's one and only status item. The preferences domain is the bare executable name and not a bundle identifier, because netmeter-bar is a plain Mach-O rather than a `.app`, so renaming the binary loses the position. Control Center, Spotlight and the clock are pinned and never move.
 - **Units are decimal** (1 GB = 10^9 bytes), not binary. A carrier selling a 50 GB plan means 50 x 10^9, so counting the cap in 2^30 handed out 7.4% of phantom headroom: the "100% used" warning did not fire until roughly 3.7 GB past the real cap. Display uses the same units so the bar and the bill agree.
 - **Two processes writing one JSON file will eat your settings.** `save_json` wrote through a shared `<path>.tmp`, so a Preferences Save (which fired two `netmeter` calls at once) could interleave into an unparseable `config.json`. `read_json` swallowed the `JSONDecodeError` and returned `None`, `load_config` filled in defaults, and the next write persisted them: one click unlinked a tether network. Fixed three ways, all of which were needed: pid-scoped temp names, an `flock` around every read-modify-write, and an `update_config` that recovers from `config.json.bak` and says so rather than answering a corrupt file with fresh defaults.
 - `nettop`'s per-process cumulative counters are **not monotonic**: they sum the currently open sockets, so they drop when sockets close. Never diff them yourself; run `nettop -d` and consume its per-interval deltas.
