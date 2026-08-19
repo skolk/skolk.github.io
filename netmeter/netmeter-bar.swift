@@ -569,7 +569,10 @@ class ToggleSwitch: NSControl {
 class ModeButton: NSControl {
     var label = "" { didSet { needsDisplay = true } }
     var isOn = false { didSet { needsDisplay = true } }
+    var momentary = false          // an action button, so it never latches "on"
+    var arrowWidth: CGFloat = 0    // > 0 splits a chevron zone off the right edge
     var onClick: (() -> Void)?
+    var onArrow: (() -> Void)?
 
     override func draw(_ dirtyRect: NSRect) {
         let r = bounds.insetBy(dx: 1, dy: 1)
@@ -583,22 +586,50 @@ class ModeButton: NSControl {
             NSColor.separatorColor.setStroke()
             path.stroke()
         }
+        let ink = isOn ? NSColor.white : NSColor.labelColor
         let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 12, weight: isOn ? .semibold : .regular),
-            .foregroundColor: isOn ? NSColor.white : NSColor.labelColor,
+            .foregroundColor: ink,
         ]
+        // The label centres in what is left after the chevron zone, so adding an
+        // arrow does not shove the text off-centre.
+        let textArea = NSRect(x: r.minX, y: r.minY, width: r.width - arrowWidth, height: r.height)
         let text = NSAttributedString(string: label, attributes: attrs)
         var size = text.size()
-        size.width = min(size.width, r.width - 12)
-        text.draw(in: NSRect(x: r.midX - size.width / 2, y: r.midY - size.height / 2,
+        size.width = min(size.width, textArea.width - 12)
+        text.draw(in: NSRect(x: textArea.midX - size.width / 2, y: r.midY - size.height / 2,
                              width: size.width, height: size.height))
+
+        guard arrowWidth > 0 else { return }
+        let split = r.maxX - arrowWidth
+        ink.withAlphaComponent(0.28).setStroke()
+        let divider = NSBezierPath()
+        divider.move(to: NSPoint(x: split, y: r.minY + 4))
+        divider.line(to: NSPoint(x: split, y: r.maxY - 4))
+        divider.lineWidth = 1
+        divider.stroke()
+        let cx = split + arrowWidth / 2, cy = r.midY
+        let chev = NSBezierPath()
+        chev.move(to: NSPoint(x: cx - 3.5, y: cy + 2))
+        chev.line(to: NSPoint(x: cx, y: cy - 2.5))
+        chev.line(to: NSPoint(x: cx + 3.5, y: cy + 2))
+        chev.lineWidth = 1.5
+        chev.lineCapStyle = .round
+        chev.lineJoinStyle = .round
+        ink.setStroke()
+        chev.stroke()
     }
 
     // Flip immediately rather than waiting on the CLI round trip, and do not
     // call super: passing the click up is what dismisses the menu, and a mode
     // toggle you have to reopen the menu to confirm is not a toggle.
     override func mouseDown(with event: NSEvent) {
-        isOn.toggle()
+        let p = convert(event.locationInWindow, from: nil)
+        if arrowWidth > 0 && p.x >= bounds.maxX - arrowWidth - 1 {
+            onArrow?()
+            return
+        }
+        if !momentary { isOn.toggle() }
         onClick?()
     }
 }
@@ -626,6 +657,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var recentNames: [NSTextField] = []
     var recentValues: [NSTextField] = []
     var recentBars: [BarView] = []
+    var soloCandidates: [String] = []
     var recentEmpty: NSMenuItem?
     var recentChartItem: NSMenuItem?
     var recentChart: ChartView?
@@ -706,8 +738,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let lowOn = (cfg["lowdata"] as? Bool) ?? false
         let soloOn = (cfg["solo"] as? Bool) ?? false
         let soloApp = (cfg["solo_app"] as? String) ?? ""
+        soloCandidates = rows.prefix(14).map { $0.0 }.filter { !PAUSE_DENY.contains($0) }
+        if !soloApp.isEmpty && !soloCandidates.contains(soloApp) {
+            soloCandidates.insert(soloApp, at: 0)
+        }
         menu.addItem(modesRow(lowOn: lowOn, soloOn: soloOn, soloApp: soloApp))
-        menu.addItem(soloPicker(rows: rows, current: soloApp))
         let soloLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         soloLine.isEnabled = false
         menu.addItem(soloLine)
@@ -719,16 +754,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         refreshModeUI()
         menu.addItem(.separator())
 
-        menu.addItem(makeItem("Open netmeter\u{2026}", #selector(openStats)))
-        menu.addItem(.separator())
         let sessStarted = (now?["session_started"] as? String) ?? ""
         let sessAge = elapsed(since: sessStarted)
         var clock = sessStarted
         if let t = clock.range(of: "T") { clock = String(clock[t.upperBound...]) }
         if clock.count >= 5 { clock = String(clock.prefix(5)) }
-        addDisabled(menu, clock.isEmpty
-            ? "Session: not started yet"
-            : "Session: running \(sessAge), since \(clock)")
+        // The running duration lives in the Session/Today header two rows down,
+        // so this row carries only what that one cannot: when it started.
+        menu.addItem(actionRow(since: clock))
         if let tname = now?["tether_name"] as? String, !tname.isEmpty {
             if (now?["tether_setup"] as? Bool) == true {
                 let used = (now?["tether_used"] as? Double) ?? 0
@@ -742,7 +775,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 addDisabled(menu, "\u{2441} \(tname): not linked \u{00B7} run `netmeter tether-here` while tethered")
             }
         }
-        menu.addItem(makeItem("Reset Session", #selector(resetSession)))
         menu.addItem(.separator())
 
         let sessTotal = sessApps.values.reduce(0.0) { $0 + $1.0 + $1.1 }
@@ -946,33 +978,65 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let solo = ModeButton(frame: NSRect(x: 126, y: 6, width: 212, height: 26))
         solo.label = soloApp.isEmpty ? "Solo" : "Solo: \(soloApp)"
         solo.isOn = soloOn
+        solo.arrowWidth = 26
         solo.onClick = { [weak self] in self?.toggleSolo() }
+        solo.onArrow = { [weak self] in
+            guard let self = self else { return }
+            self.showSoloPicker(from: solo)
+        }
         soloButton = solo
         v.addSubview(solo)
         item.view = v
         return item
     }
 
-    // The picker is a real submenu rather than a popup button inside the row: a
-    // popup nested in a status menu swallows its own clicks.
-    func soloPicker(rows: [(String, Double, Double)], current: String) -> NSMenuItem {
-        let item = NSMenuItem(title: "Solo app", action: nil, keyEquivalent: "")
-        let sub = NSMenu()
-        var names: [String] = []
-        for r in rows.prefix(14) where !PAUSE_DENY.contains(r.0) { names.append(r.0) }
-        if !current.isEmpty && !names.contains(current) { names.insert(current, at: 0) }
-        if names.isEmpty {
+    // The picker hangs off the chevron on the Solo button itself. It used to be
+    // a "Solo app" submenu row, which cost a row of menu to hold one setting
+    // that only ever qualifies the button beside it.
+    func showSoloPicker(from view: NSView) {
+        let m = NSMenu()
+        let current = (config()["solo_app"] as? String) ?? ""
+        if soloCandidates.isEmpty {
             let none = NSMenuItem(title: "No apps recorded yet", action: nil, keyEquivalent: "")
             none.isEnabled = false
-            sub.addItem(none)
+            m.addItem(none)
         }
-        for name in names {
+        for name in soloCandidates {
             let i = makeItem(name, #selector(pickSolo(_:)))
             i.representedObject = name
             i.state = (name == current) ? .on : .off
-            sub.addItem(i)
+            m.addItem(i)
         }
-        item.submenu = sub
+        m.popUp(positioning: nil, at: NSPoint(x: view.bounds.minX, y: view.bounds.minY - 2), in: view)
+    }
+
+    func closeMenu() { statusItem.menu?.cancelTracking() }
+
+    func actionRow(since: String) -> NSMenuItem {
+        let item = NSMenuItem()
+        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 38))
+        let open = ModeButton(frame: NSRect(x: 10, y: 6, width: 142, height: 26))
+        open.label = "Open netmeter"
+        open.momentary = true
+        open.onClick = { [weak self] in
+            self?.closeMenu()
+            self?.openStats()
+        }
+        v.addSubview(open)
+        let reset = ModeButton(frame: NSRect(x: 160, y: 6, width: 118, height: 26))
+        reset.label = "Reset Session"
+        reset.momentary = true
+        reset.onClick = { [weak self] in
+            self?.runNetmeter(["session", "reset"]) { self?.refreshModeUI() }
+        }
+        v.addSubview(reset)
+        let lbl = NSTextField(labelWithString: since.isEmpty ? "" : "since \(since)")
+        lbl.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
+        lbl.textColor = .tertiaryLabelColor
+        lbl.alignment = .right
+        lbl.frame = NSRect(x: 284, y: 12, width: 54, height: 14)
+        v.addSubview(lbl)
+        item.view = v
         return item
     }
 
@@ -1025,7 +1089,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSWorkspace.shared.open(URL(string: "https://skolk.github.io/projects/netmeter/")!)
         }
     }
-    @objc func resetSession() { runNetmeter(["session", "reset"]) }
     @objc func toggleLowData() {
         let on = (config()["lowdata"] as? Bool) ?? false
         runNetmeter(["lowdata", on ? "off" : "on"]) { [weak self] in self?.refreshModeUI() }
