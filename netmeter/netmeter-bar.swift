@@ -243,14 +243,37 @@ func showTotal() -> Bool { (config()["show_total"] as? Bool) ?? true }
 
 let RECENT_WINDOWS: [(Int, String)] = [(5, "5m"), (15, "15m"), (60, "1h"), (360, "6h"), (720, "12h")]
 
-// Per-app totals over the last `minutes`, from the daemon's one-line-per-minute
-// history. Daily totals cannot answer this: they only ever go up, so they say
-// who has spent the most since midnight, never who is spending it now.
-func recentTotals(minutes: Int) -> [String: (Double, Double)] {
+func windowLabel(_ minutes: Int) -> String {
+    if minutes < 60 { return "\(minutes)m" }
+    let h = minutes / 60, m = minutes % 60
+    return m == 0 ? "\(h)h" : "\(h)h \(m)m"
+}
+
+// One pass over the history producing everything the section needs: the ranked
+// apps, and each time bucket broken down by those apps. Chart and table read
+// the same result, so the legend cannot disagree with what is plotted.
+let SERIES_COLORS: [NSColor] = [.systemBlue, .systemGreen, .systemOrange,
+                                .systemPurple, .systemPink, .systemTeal]
+let OTHER_COLOR = NSColor.systemGray
+
+struct RecentBreakdown {
+    var keys: [String] = []          // top apps, most data first
+    var totals: [Double] = []        // window total per key, same order
+    var columns: [[Double]] = []     // per time bucket: one slot per key, plus "other" last
+    var peak: Double = 0             // largest bucket total, the chart's y scale
+    var grand: Double = 0
+    var perColumn: Int = 1           // minutes per bucket
+    var other: Double = 0
+}
+
+func recentBreakdown(minutes: Int, columns: Int, topN: Int) -> RecentBreakdown {
+    var out = RecentBreakdown()
     guard let text = try? String(contentsOfFile: home + "/.netmeter/recent.jsonl",
-                                 encoding: .utf8) else { return [:] }
-    let cutoff = Int(Date().timeIntervalSince1970 / 60) - minutes
-    var out: [String: (Double, Double)] = [:]
+                                 encoding: .utf8) else { return out }
+    let nowMin = Int(Date().timeIntervalSince1970 / 60)
+    let cutoff = nowMin - minutes
+    var perMinute: [Int: [String: Double]] = [:]
+    var totals: [String: Double] = [:]
     for line in text.split(separator: "\n") {
         guard let d = line.data(using: .utf8),
               let obj = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any],
@@ -260,57 +283,41 @@ func recentTotals(minutes: Int) -> [String: (Double, Double)] {
             guard let a = v as? [Any], a.count >= 2,
                   let i = (a[0] as? NSNumber)?.doubleValue,
                   let o = (a[1] as? NSNumber)?.doubleValue else { continue }
-            let cur = out[k] ?? (0, 0)
-            out[k] = (cur.0 + i, cur.1 + o)
+            let both = i + o
+            guard both > 0 else { continue }
+            perMinute[m, default: [:]][k, default: 0] += both
+            totals[k, default: 0] += both
+            out.grand += both
         }
     }
-    return out
-}
+    let ranked = totals.sorted { $0.value > $1.value }
+    out.keys = ranked.prefix(topN).map { $0.key }
+    out.totals = ranked.prefix(topN).map { $0.value }
+    out.other = ranked.dropFirst(topN).reduce(0) { $0 + $1.value }
 
-func windowLabel(_ minutes: Int) -> String {
-    if minutes < 60 { return "\(minutes)m" }
-    let h = minutes / 60, m = minutes % 60
-    return m == 0 ? "\(h)h" : "\(h)h \(m)m"
-}
-
-// Total bytes per time bucket over the window, oldest first, folded into at
-// most `columns` columns. Separate from recentTotals because the chart asks
-// "when" and the table asks "who", and folding per-app detail into time
-// buckets on the way past would answer neither well.
-func recentSeries(minutes: Int, columns: Int) -> ([Double], Double) {
-    guard let text = try? String(contentsOfFile: home + "/.netmeter/recent.jsonl",
-                                 encoding: .utf8) else { return ([], 0) }
-    let nowMin = Int(Date().timeIntervalSince1970 / 60)
-    let cutoff = nowMin - minutes
-    var perMinute: [Int: Double] = [:]
-    for line in text.split(separator: "\n") {
-        guard let d = line.data(using: .utf8),
-              let obj = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any],
-              let m = obj["m"] as? Int, m > cutoff,
-              let apps = obj["a"] as? [String: Any] else { continue }
-        var sum = 0.0
-        for (_, v) in apps {
-            guard let a = v as? [Any], a.count >= 2,
-                  let i = (a[0] as? NSNumber)?.doubleValue,
-                  let o = (a[1] as? NSNumber)?.doubleValue else { continue }
-            sum += i + o
-        }
-        perMinute[m, default: 0] += sum
-    }
     let cols = max(1, min(columns, minutes))
+    out.perColumn = max(1, minutes / cols)
+    var slot: [String: Int] = [:]
+    for (i, k) in out.keys.enumerated() { slot[k] = i }
+    let width = out.keys.count + 1                       // + "other"
+    out.columns = Array(repeating: [Double](repeating: 0, count: width), count: cols)
     let per = Double(minutes) / Double(cols)
-    var out = [Double](repeating: 0, count: cols)
-    for (m, v) in perMinute {
+    for (m, apps) in perMinute {
         let idx = cols - 1 - Int(Double(nowMin - m) / per)
-        if idx >= 0 && idx < cols { out[idx] += v }
+        guard idx >= 0 && idx < cols else { continue }
+        for (k, v) in apps {
+            out.columns[idx][slot[k] ?? (width - 1)] += v
+        }
     }
-    return (out, out.max() ?? 0)
+    out.peak = out.columns.map { $0.reduce(0, +) }.max() ?? 0
+    return out
 }
 
 // Usage against time. `timeOnX` transposes the whole thing: with it false, time
 // runs top to bottom and the bars grow rightward.
 class ChartView: NSView {
-    var buckets: [Double] = [] { didSet { needsDisplay = true } }
+    var stacks: [[Double]] = [] { didSet { needsDisplay = true } }
+    var colors: [NSColor] = [] { didSet { needsDisplay = true } }
     var peak: Double = 0 { didSet { needsDisplay = true } }
     var timeOnX = true { didSet { needsDisplay = true } }
 
@@ -327,24 +334,28 @@ class ChartView: NSView {
             axis.line(to: NSPoint(x: plot.minX + 0.5, y: plot.maxY))
         }
         axis.stroke()
-        guard peak > 0, !buckets.isEmpty else { return }
+        guard peak > 0, !stacks.isEmpty else { return }
 
-        let n = CGFloat(buckets.count)
+        let n = CGFloat(stacks.count)
         let span = timeOnX ? plot.width : plot.height
         let slot = span / n
         let thick = max(1.5, slot - 1)
-        NSColor.controlAccentColor.setFill()
-        for (i, v) in buckets.enumerated() {
-            let len = (timeOnX ? plot.height : plot.width) * CGFloat(v / peak)
-            guard len > 0 else { continue }
+        let full = timeOnX ? plot.height : plot.width
+        for (i, column) in stacks.enumerated() {
             let at = CGFloat(i) * slot
-            // Time on X: oldest at the left, bars grow up from the baseline.
-            // Time on Y: oldest at the top, bars grow right from the axis.
-            let r = timeOnX
-                ? NSRect(x: plot.minX + at, y: plot.minY, width: thick, height: max(1, len))
-                : NSRect(x: plot.minX, y: plot.maxY - at - thick, width: max(1, len), height: thick)
-            let radius = min(1.5, thick / 2)
-            NSBezierPath(roundedRect: r, xRadius: radius, yRadius: radius).fill()
+            var run: CGFloat = 0          // how far up (or right) the stack has grown
+            for (j, v) in column.enumerated() where v > 0 {
+                // Segments below a pixel would vanish, and a stack of vanished
+                // segments loses height the column actually has, so each one
+                // claims at least a pixel and the run carries the true offset.
+                let len = max(1, full * CGFloat(v / peak))
+                (j < colors.count ? colors[j] : OTHER_COLOR).setFill()
+                let r = timeOnX
+                    ? NSRect(x: plot.minX + at, y: plot.minY + run, width: thick, height: len)
+                    : NSRect(x: plot.minX + run, y: plot.maxY - at - thick, width: len, height: thick)
+                r.fill()
+                run += len
+            }
         }
     }
 }
@@ -353,6 +364,7 @@ class ChartView: NSView {
 // glance; the byte count is the thing worth reading second.
 class BarView: NSView {
     var fraction: CGFloat = 0 { didSet { needsDisplay = true } }
+    var color: NSColor = .controlAccentColor { didSet { needsDisplay = true } }
 
     override func draw(_ dirtyRect: NSRect) {
         let h: CGFloat = 6
@@ -360,7 +372,7 @@ class BarView: NSView {
         NSColor.secondaryLabelColor.withAlphaComponent(0.15).setFill()
         NSBezierPath(roundedRect: track, xRadius: h / 2, yRadius: h / 2).fill()
         let w = max(h, bounds.width * max(0, min(1, fraction)))
-        NSColor.controlAccentColor.setFill()
+        color.setFill()
         NSBezierPath(roundedRect: NSRect(x: 0, y: track.minY, width: w, height: h),
                      xRadius: h / 2, yRadius: h / 2).fill()
     }
@@ -871,38 +883,41 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func refreshRecent() {
-        let totals = recentTotals(minutes: recentWindow)
-        let rows = totals.map { ($0.key, $0.value.0 + $0.value.1) }.sorted { $0.1 > $1.1 }
-        let grand = rows.reduce(0.0) { $0 + $1.1 }
-        recentTitle?.stringValue = grand > 0
-            ? "Last \(windowLabel(recentWindow))  \(fmtBytes(grand, space: false))"
+        // Six table rows, so six coloured series in the chart plus "other".
+        let b = recentBreakdown(minutes: recentWindow, columns: 60,
+                                topN: recentRowItems.count)
+        recentTitle?.stringValue = b.grand > 0
+            ? "Last \(windowLabel(recentWindow))  \(fmtBytes(b.grand, space: false))"
             : "Last \(windowLabel(recentWindow))"
         recentChevron?.label = recentOpen ? "\u{25BE}" : "\u{25B8}"
         recentChevron?.isOn = recentOpen
-        // Chart. One column per minute up to 60, so a 5m window is five fat
-        // columns rather than sixty slivers of mostly nothing.
-        let (series, peakBucket) = recentSeries(minutes: recentWindow, columns: 60)
-        recentChart?.buckets = series
-        recentChart?.peak = peakBucket
+
+        recentChart?.stacks = b.columns
+        recentChart?.colors = SERIES_COLORS
+        recentChart?.peak = b.peak
         recentChartItem?.isHidden = !recentOpen
-        let perCol = max(1, recentWindow / max(1, series.count))
-        recentPeak?.stringValue = peakBucket > 0
-            ? "peak \(fmtBytes(peakBucket, space: false)) per \(perCol)m"
+        recentPeak?.stringValue = b.peak > 0
+            ? "peak \(fmtBytes(b.peak, space: false)) per \(b.perColumn)m"
             : ""
         recentAxisLeft?.stringValue = "-\(windowLabel(recentWindow))"
         recentAxisRight?.stringValue = "now"
 
-        let top = Array(rows.prefix(recentRowItems.count))
-        let peak = top.first?.1 ?? 0
+        let peakRow = b.totals.first ?? 0
         for (i, item) in recentRowItems.enumerated() {
-            guard recentOpen, i < top.count else { item.isHidden = true; continue }
+            guard recentOpen, i < b.keys.count else { item.isHidden = true; continue }
             item.isHidden = false
-            recentNames[i].stringValue = top[i].0
-            recentValues[i].stringValue = fmtBytes(top[i].1)
-            recentBars[i].fraction = peak > 0 ? CGFloat(top[i].1 / peak) : 0
+            recentNames[i].stringValue = b.keys[i]
+            recentValues[i].stringValue = fmtBytes(b.totals[i])
+            recentBars[i].fraction = peakRow > 0 ? CGFloat(b.totals[i] / peakRow) : 0
+            recentBars[i].color = i < SERIES_COLORS.count ? SERIES_COLORS[i] : OTHER_COLOR
         }
-        recentEmpty?.title = "     Nothing recorded yet. History starts when the daemon does."
-        recentEmpty?.isHidden = !(recentOpen && rows.isEmpty)
+        if b.other > 0 && recentOpen {
+            recentEmpty?.title = "     everything else, \(fmtBytes(b.other))"
+            recentEmpty?.isHidden = false
+        } else {
+            recentEmpty?.title = "     Nothing recorded yet. History starts when the daemon does."
+            recentEmpty?.isHidden = !(recentOpen && b.grand == 0)
+        }
     }
 
     @objc func toggleRecentOpen() {
