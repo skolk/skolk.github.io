@@ -19,6 +19,7 @@ Usage:
   netmeter solo APP       solo mode: only APP may use the network. Every other app that
                           tries to send or receive gets frozen, system daemons excepted
   netmeter solo off       lift solo mode and unfreeze whatever solo froze
+  netmeter recent [MIN]   who spent the data over the last MIN minutes (default 60)
   netmeter display        menu bar display options: --rate on|off (live speed),
                           --total on|off (session total), --combine on|off (merge
                           the down and up rates). With both rate and total off the
@@ -51,6 +52,7 @@ STATE_DIR = os.path.expanduser("~/.netmeter")
 NOW_PATH = os.path.join(STATE_DIR, "now.json")
 SESSION_PATH = os.path.join(STATE_DIR, "session.json")
 PAUSED_PATH = os.path.join(STATE_DIR, "paused.json")
+RECENT_PATH = os.path.join(STATE_DIR, "recent.jsonl")
 TETHER_PATH = os.path.join(STATE_DIR, "tether.json")
 CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
 
@@ -63,6 +65,7 @@ DEFAULT_CONFIG = {
     "lowdata": False, "lowdata_apps": [], "notify_every_mb": 25,
     "solo": False, "solo_app": "",
     "combine_updown": False, "show_rate": True, "show_total": True,
+    "recent_window": 60, "recent_open": True,
     "tether_name": "", "tether_cap_gb": 0, "tether_reset_day": 1,
     "tether_gateway_macs": [], "wifi_if": "en0",
 }
@@ -177,6 +180,58 @@ def read_json(path):
 def load(date):
     return read_json(state_path(date)) or {
         "date": date, "started": None, "updated": None, "apps": {}}
+
+
+RECENT_KEEP = 800          # minutes of history, a little over 13 hours
+
+
+def append_recent(minute, apps):
+    """One JSON object per line, one line per elapsed minute. Appending is O(1),
+    which is why this is not the single rewritten blob the rest of the state
+    uses: a rewrite every tick would be writing hundreds of KB a minute to keep
+    a few dozen numbers."""
+    if not apps:
+        return
+    with locked(RECENT_PATH):
+        with open(RECENT_PATH, "a") as f:
+            f.write(json.dumps({"m": minute, "a": apps}, separators=(",", ":")) + "\n")
+
+
+def prune_recent():
+    with locked(RECENT_PATH):
+        try:
+            with open(RECENT_PATH) as f:
+                lines = f.readlines()
+        except FileNotFoundError:
+            return
+        if len(lines) <= RECENT_KEEP * 2:
+            return
+        tmp = f"{RECENT_PATH}.{os.getpid()}.tmp"
+        with open(tmp, "w") as f:
+            f.writelines(lines[-RECENT_KEEP:])
+        os.replace(tmp, RECENT_PATH)
+
+
+def read_recent(window_minutes):
+    """Per-app totals over the last `window_minutes` complete minutes."""
+    cutoff = int(time.time() // 60) - window_minutes
+    totals = {}
+    try:
+        with open(RECENT_PATH) as f:
+            for line in f:
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue          # a torn final line, skip it
+                if row.get("m", 0) <= cutoff:
+                    continue
+                for app, (d_in, d_out) in row.get("a", {}).items():
+                    t = totals.setdefault(app, [0, 0])
+                    t[0] += d_in
+                    t[1] += d_out
+    except FileNotFoundError:
+        return {}
+    return totals
 
 
 def load_config():
@@ -436,7 +491,8 @@ def run_daemon(interval, ticks=None):
     per process, so no baseline arithmetic is needed. (Per-process cumulative
     counters are NOT monotonic — they drop when sockets close — so computing our
     own deltas double-counted traffic.)"""
-    state = {"date": None, "data": None, "notified_mb": None}
+    state = {"date": None, "data": None, "notified_mb": None,
+             "bucket_min": None, "bucket": {}, "appends": 0}
     blocks_done = 0
 
     def handle_block(rows):
@@ -456,13 +512,34 @@ def run_daemon(interval, ticks=None):
             if row is None:
                 continue
             name, d_in, d_out = row
+            # nettop occasionally emits a negative interval delta when a
+            # counter resets mid-sample. Summed as-is it walks the daily totals
+            # backwards, so clamp rather than trust it. (Seen 2026-08-19:
+            # syspolicyd reported [0, -28].)
+            d_in, d_out = max(0, d_in), max(0, d_out)
             if d_in or d_out:
-                t = data["apps"].setdefault(friendly(name), [0, 0])
+                label = friendly(name)
+                t = data["apps"].setdefault(label, [0, 0])
                 t[0] += d_in
                 t[1] += d_out
                 tick_in += d_in
                 tick_out += d_out
-                active.add(friendly(name))
+                active.add(label)
+                b = state["bucket"].setdefault(label, [0, 0])
+                b[0] += d_in
+                b[1] += d_out
+
+        # Close the minute bucket when the clock rolls over, so the history file
+        # is appended to once a minute rather than on every tick.
+        minute = int(now_ts // 60)
+        if state["bucket_min"] is None:
+            state["bucket_min"] = minute
+        elif minute != state["bucket_min"]:
+            append_recent(state["bucket_min"], state["bucket"])
+            state["bucket_min"], state["bucket"] = minute, {}
+            state["appends"] += 1
+            if state["appends"] % 60 == 0:
+                prune_recent()
         data["updated"] = datetime.datetime.now().isoformat(timespec="seconds")
         save_json(state_path(today), data)
 
@@ -603,6 +680,31 @@ def show(date):
               f"(total {fmt(s_in + s_out)}) — `netmeter session` for the breakdown")
 
 
+def fmt_window(minutes):
+    if minutes < 60:
+        return f"{minutes}m"
+    h, m = divmod(minutes, 60)
+    return f"{h}h" if not m else f"{h}h {m}m"
+
+
+def show_recent(minutes):
+    apps = read_recent(minutes)
+    if not apps:
+        print(f"No traffic recorded in the last {fmt_window(minutes)}. "
+              "The history only starts when the daemon does.")
+        return
+    rows = sorted(apps.items(), key=lambda kv: kv[1][0] + kv[1][1], reverse=True)
+    total = sum(v[0] + v[1] for v in apps.values())
+    width = max([len(n) for n, _ in rows[:12]] + [len("TOTAL")])
+    print(f"netmeter, last {fmt_window(minutes)}  (total {fmt(total)}, "
+          f"{fmt(total / (minutes * 60))}/s average)")
+    for name, (b_in, b_out) in rows[:12]:
+        both = b_in + b_out
+        share = both / total if total else 0
+        bar = "#" * max(1, round(share * 24))
+        print(f"{name:<{width}}  {fmt(both):>10}  {100 * share:4.0f}%  {bar}")
+
+
 def show_session():
     data = load(datetime.date.today().isoformat())
     apps, started = session_totals(data)
@@ -634,6 +736,12 @@ def main():
                     help="show one combined rate instead of separate down and up")
     dp.add_argument("--rate", choices=["on", "off"], help="show the live transfer speed")
     dp.add_argument("--total", choices=["on", "off"], help="show the session total")
+    dp.add_argument("--recent-window", type=int, dest="recent_window",
+                    help="minutes covered by the recent-usage table")
+    dp.add_argument("--recent-open", choices=["on", "off"], dest="recent_open",
+                    help="expand or collapse the recent-usage table")
+    rcp = sub.add_parser("recent", help="per-app usage over a recent window")
+    rcp.add_argument("minutes", nargs="?", type=int, default=60)
     sub.add_parser("resume-all", help="unfreeze every paused app")
     tp = sub.add_parser("tether", help="metered-network status; pass GB to seed the period")
     tp.add_argument("used_gb", nargs="?", type=float)
@@ -678,6 +786,10 @@ def main():
             changes["show_rate"] = args.rate == "on"
         if args.total is not None:
             changes["show_total"] = args.total == "on"
+        if args.recent_window is not None:
+            changes["recent_window"] = max(1, min(720, args.recent_window))
+        if args.recent_open is not None:
+            changes["recent_open"] = args.recent_open == "on"
         cfg = update_config(**changes) if changes else load_config()
         shown = []
         if cfg["show_rate"]:
@@ -687,6 +799,8 @@ def main():
             shown.append("session total")
         print("Menu bar: " + (", ".join(shown) if shown
                               else "arrow only (\u21c5), both readouts hidden"))
+    elif args.cmd == "recent":
+        show_recent(args.minutes)
     elif args.cmd == "resume-all":
         resume_all()
     elif args.cmd == "tether-config":

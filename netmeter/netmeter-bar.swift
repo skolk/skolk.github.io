@@ -241,6 +241,55 @@ func combineUpDown() -> Bool { (config()["combine_updown"] as? Bool) ?? false }
 func showRate() -> Bool { (config()["show_rate"] as? Bool) ?? true }
 func showTotal() -> Bool { (config()["show_total"] as? Bool) ?? true }
 
+let RECENT_WINDOWS: [(Int, String)] = [(5, "5m"), (15, "15m"), (60, "1h"), (360, "6h"), (720, "12h")]
+
+// Per-app totals over the last `minutes`, from the daemon's one-line-per-minute
+// history. Daily totals cannot answer this: they only ever go up, so they say
+// who has spent the most since midnight, never who is spending it now.
+func recentTotals(minutes: Int) -> [String: (Double, Double)] {
+    guard let text = try? String(contentsOfFile: home + "/.netmeter/recent.jsonl",
+                                 encoding: .utf8) else { return [:] }
+    let cutoff = Int(Date().timeIntervalSince1970 / 60) - minutes
+    var out: [String: (Double, Double)] = [:]
+    for line in text.split(separator: "\n") {
+        guard let d = line.data(using: .utf8),
+              let obj = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any],
+              let m = obj["m"] as? Int, m > cutoff,
+              let apps = obj["a"] as? [String: Any] else { continue }
+        for (k, v) in apps {
+            guard let a = v as? [Any], a.count >= 2,
+                  let i = (a[0] as? NSNumber)?.doubleValue,
+                  let o = (a[1] as? NSNumber)?.doubleValue else { continue }
+            let cur = out[k] ?? (0, 0)
+            out[k] = (cur.0 + i, cur.1 + o)
+        }
+    }
+    return out
+}
+
+func windowLabel(_ minutes: Int) -> String {
+    if minutes < 60 { return "\(minutes)m" }
+    let h = minutes / 60, m = minutes % 60
+    return m == 0 ? "\(h)h" : "\(h)h \(m)m"
+}
+
+// Proportional bar. The share of the window is the thing worth seeing at a
+// glance; the byte count is the thing worth reading second.
+class BarView: NSView {
+    var fraction: CGFloat = 0 { didSet { needsDisplay = true } }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let h: CGFloat = 6
+        let track = NSRect(x: 0, y: (bounds.height - h) / 2, width: bounds.width, height: h)
+        NSColor.secondaryLabelColor.withAlphaComponent(0.15).setFill()
+        NSBezierPath(roundedRect: track, xRadius: h / 2, yRadius: h / 2).fill()
+        let w = max(h, bounds.width * max(0, min(1, fraction)))
+        NSColor.controlAccentColor.setFill()
+        NSBezierPath(roundedRect: NSRect(x: 0, y: track.minY, width: w, height: h),
+                     xRadius: h / 2, yRadius: h / 2).fill()
+    }
+}
+
 // Apps that get no on/off switch. System daemons because freezing mDNSResponder
 // breaks DNS; Claude Code because those processes are the running work sessions.
 // Solo mode keeps its own, shorter exemption list on the daemon side, so soloing
@@ -478,6 +527,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var soloButton: ModeButton?
     var lowStatus: NSMenuItem?
     var soloStatus: NSMenuItem?
+    // Recent-usage table. Six fixed row slots that show and hide, rather than
+    // items added and removed, so changing the window or collapsing the section
+    // never mutates the item list of a menu that is currently tracking.
+    var recentWindow = 60
+    var recentOpen = true
+    var recentTitle: NSTextField?
+    var recentChevron: ModeButton?
+    var recentRowItems: [NSMenuItem] = []
+    var recentNames: [NSTextField] = []
+    var recentValues: [NSTextField] = []
+    var recentBars: [BarView] = []
+    var recentEmpty: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -612,6 +673,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !paused.isEmpty {
             menu.addItem(makeItem("Resume All", #selector(resumeAll)))
         }
+
+        recentWindow = (cfg["recent_window"] as? NSNumber)?.intValue ?? 60
+        recentOpen = (cfg["recent_open"] as? Bool) ?? true
+        menu.addItem(.separator())
+        addRecentSection(menu)
+
         menu.addItem(.separator())
         menu.addItem(makeItem("Preferences\u{2026}", #selector(openPrefs)))
         menu.addItem(makeItem("About netmeter", #selector(showAbout)))
@@ -636,6 +703,96 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !apps.isEmpty { line += " \u{00B7} freezing \(apps.joined(separator: ", "))" }
         lowStatus?.title = line
         lowStatus?.isHidden = !lowOn
+    }
+
+    func addRecentSection(_ menu: NSMenu) {
+        let header = NSMenuItem()
+        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 34))
+        let chev = ModeButton(frame: NSRect(x: 10, y: 6, width: 26, height: 22))
+        chev.onClick = { [weak self] in self?.toggleRecentOpen() }
+        v.addSubview(chev)
+        recentChevron = chev
+        let title = NSTextField(labelWithString: "")
+        title.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+        title.textColor = .secondaryLabelColor
+        title.frame = NSRect(x: 42, y: 9, width: 118, height: 16)
+        v.addSubview(title)
+        recentTitle = title
+        let seg = NSSegmentedControl(labels: RECENT_WINDOWS.map { $0.1 },
+                                     trackingMode: .selectOne,
+                                     target: self, action: #selector(recentWindowChanged(_:)))
+        seg.controlSize = .small
+        seg.appearance = NSAppearance(
+            named: NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) ?? .aqua)
+        seg.selectedSegment = RECENT_WINDOWS.firstIndex { $0.0 == recentWindow } ?? 2
+        seg.frame = NSRect(x: 164, y: 6, width: 174, height: 21)
+        v.addSubview(seg)
+        header.view = v
+        menu.addItem(header)
+
+        recentRowItems = []; recentNames = []; recentValues = []; recentBars = []
+        for _ in 0..<6 {
+            let item = NSMenuItem()
+            let rv = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 22))
+            let name = NSTextField(labelWithString: "")
+            name.font = NSFont.menuFont(ofSize: 12)
+            name.lineBreakMode = .byTruncatingTail
+            name.frame = NSRect(x: 24, y: 3, width: 132, height: 16)
+            rv.addSubview(name)
+            let val = NSTextField(labelWithString: "")
+            val.font = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+            val.textColor = .secondaryLabelColor
+            val.alignment = .right
+            val.frame = NSRect(x: 158, y: 3, width: 66, height: 16)
+            rv.addSubview(val)
+            let bar = BarView(frame: NSRect(x: 232, y: 3, width: 106, height: 16))
+            rv.addSubview(bar)
+            item.view = rv
+            menu.addItem(item)
+            recentRowItems.append(item); recentNames.append(name)
+            recentValues.append(val); recentBars.append(bar)
+        }
+        let empty = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        empty.isEnabled = false
+        menu.addItem(empty)
+        recentEmpty = empty
+        refreshRecent()
+    }
+
+    func refreshRecent() {
+        let totals = recentTotals(minutes: recentWindow)
+        let rows = totals.map { ($0.key, $0.value.0 + $0.value.1) }.sorted { $0.1 > $1.1 }
+        let grand = rows.reduce(0.0) { $0 + $1.1 }
+        recentTitle?.stringValue = grand > 0
+            ? "Last \(windowLabel(recentWindow))  \(fmtBytes(grand, space: false))"
+            : "Last \(windowLabel(recentWindow))"
+        recentChevron?.label = recentOpen ? "\u{25BE}" : "\u{25B8}"
+        recentChevron?.isOn = recentOpen
+        let top = Array(rows.prefix(recentRowItems.count))
+        let peak = top.first?.1 ?? 0
+        for (i, item) in recentRowItems.enumerated() {
+            guard recentOpen, i < top.count else { item.isHidden = true; continue }
+            item.isHidden = false
+            recentNames[i].stringValue = top[i].0
+            recentValues[i].stringValue = fmtBytes(top[i].1)
+            recentBars[i].fraction = peak > 0 ? CGFloat(top[i].1 / peak) : 0
+        }
+        recentEmpty?.title = "     Nothing recorded yet. History starts when the daemon does."
+        recentEmpty?.isHidden = !(recentOpen && rows.isEmpty)
+    }
+
+    @objc func toggleRecentOpen() {
+        recentOpen.toggle()
+        refreshRecent()
+        runNetmeter(["display", "--recent-open", recentOpen ? "on" : "off"])
+    }
+
+    @objc func recentWindowChanged(_ sender: NSSegmentedControl) {
+        let i = sender.selectedSegment
+        guard i >= 0 && i < RECENT_WINDOWS.count else { return }
+        recentWindow = RECENT_WINDOWS[i].0
+        refreshRecent()
+        runNetmeter(["display", "--recent-window", String(recentWindow)])
     }
 
     func modesRow(lowOn: Bool, soloOn: Bool, soloApp: String) -> NSMenuItem {
