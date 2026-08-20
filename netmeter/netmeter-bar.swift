@@ -672,6 +672,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var soloButton: ModeButton?
     var lowStatus: NSMenuItem?
     var soloStatus: NSMenuItem?
+    // The "always Low Data on this network" row. netProfile is the name the
+    // current gateway MAC is pinned under, or "" when it is not pinned.
+    var netLine: NSMenuItem?
+    var netProfile = ""
     // Recent-usage table. Six fixed row slots that show and hide, rather than
     // items added and removed, so changing the window or collapsing the section
     // never mutates the item list of a menu that is currently tracking.
@@ -781,6 +785,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(lowLine)
         lowStatus = lowLine
         addSoloPicker(menu)
+        let netItem = NSMenuItem(title: "", action: #selector(pinToggle), keyEquivalent: "")
+        netItem.target = self
+        menu.addItem(netItem)
+        netLine = netItem
         refreshModeUI()
         menu.addItem(.separator())
 
@@ -853,10 +861,79 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         soloStatus?.isHidden = !soloOn
         let every = (cfg["notify_every_mb"] as? NSNumber)?.intValue ?? 25
         let apps = (cfg["lowdata_apps"] as? [String]) ?? []
-        var line = "\u{25D0} Low Data: notifying every \(every) MB"
-        if !apps.isEmpty { line += " \u{00B7} freezing \(apps.joined(separator: ", "))" }
-        lowStatus?.title = line
+        let slowed = (cfg["lowdata_throttle"] as? [String]) ?? []
+        let pct = (cfg["throttle_pct"] as? NSNumber)?.intValue ?? 25
+        let cap = (cfg["burst_cap_mb"] as? NSNumber)?.intValue ?? 0
+        // Listed hardest control first, which is the order they surprise you in.
+        // The line used to name only the freezes, and a mode that now also
+        // throttles and caps cannot keep saying that: reading "freezing nothing"
+        // while an app crawls at a quarter speed is worse than no line at all.
+        var parts: [String] = []
+        if !apps.isEmpty { parts.append("freezing \(apps.joined(separator: ", "))") }
+        if cap > 0 { parts.append("freezing anything over \(cap) MB/min") }
+        if !slowed.isEmpty { parts.append("\(slowed.joined(separator: ", ")) at \(pct)%") }
+        parts.append("notifying every \(every) MB")
+        // Joined into one line this summary becomes the widest item in the
+        // menu and drags the whole window out to its length, so it wraps
+        // instead: parts pack onto lines capped near the per-app row width,
+        // breaking only at the separators. A plain title swallows newlines,
+        // so the wrapped text goes through attributedTitle, which also
+        // forfeits the automatic disabled dimming; color and font are set
+        // by hand to match what a disabled item renders on its own.
+        let lowPrefix = "\u{25D0} Low Data: "
+        var lowLines: [String] = []
+        var acc = lowPrefix
+        for part in parts {
+            let joined = acc == lowPrefix ? acc + part : acc + " \u{00B7} " + part
+            if joined.count > 52 && acc != lowPrefix {
+                lowLines.append(acc)
+                acc = part
+            } else {
+                acc = joined
+            }
+        }
+        lowLines.append(acc)
+        let lowFont = NSFont.menuFont(ofSize: 13)
+        // U+2028 breaks the line without ending the paragraph, which is what
+        // lets headIndent reach the continuations: they hang under the text
+        // rather than under the \u{25D0} glyph.
+        let lowPara = NSMutableParagraphStyle()
+        lowPara.headIndent = ("\u{25D0} " as NSString)
+            .size(withAttributes: [.font: lowFont]).width
+        lowStatus?.attributedTitle = NSAttributedString(
+            string: lowLines.joined(separator: "\u{2028}"),
+            attributes: [.font: lowFont,
+                         .foregroundColor: NSColor.disabledControlTextColor,
+                         .paragraphStyle: lowPara])
         lowStatus?.isHidden = !lowOn
+
+        // "Always Low Data on this network": the MAC comes from the daemon's
+        // last tick (now.json), the pin lookup from config.json so the row
+        // flips the instant a pin or unpin lands, not a tick later. A stale
+        // now.json (daemon dead) or no readable gateway hides the row, there
+        // is no network to pin.
+        var mac = ""
+        if let now = readJSON(home + "/.netmeter/now.json"),
+           let ts = now["ts"] as? Double,
+           Date().timeIntervalSince1970 - ts < 30 {
+            mac = (now["net_mac"] as? String) ?? ""
+        }
+        let profiles = (cfg["network_profiles"] as? [String: [String: Any]]) ?? [:]
+        netProfile = mac.isEmpty ? "" : ((profiles[mac]?["name"] as? String) ?? "")
+        if mac.isEmpty {
+            netLine?.isHidden = true
+        } else if netProfile.isEmpty {
+            netLine?.isHidden = false
+            netLine?.state = .off
+            netLine?.title = "\u{25D0} Always Low Data on this network\u{2026}"
+        } else {
+            // Pinned but manually switched off mid-stint reads as a lie
+            // without the suffix: the checkmark says always, the mode is off.
+            netLine?.isHidden = false
+            netLine?.state = .on
+            netLine?.title = "\u{25D0} Always Low Data here (\(netProfile))"
+                + (lowOn ? "" : " \u{00B7} off until rejoin")
+        }
 
         for (i, item) in soloPickItems.enumerated() {
             guard soloPickOpen, i < soloCandidates.count else { item.isHidden = true; continue }
@@ -1107,6 +1184,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func toggleLowData() {
         let on = (config()["lowdata"] as? Bool) ?? false
         runNetmeter(["lowdata", on ? "off" : "on"]) { [weak self] in self?.refreshModeUI() }
+    }
+    // One row, two meanings: unpinned it pins the network you are on, pinned
+    // it forgets the pin. SSIDs are location-gated for CLI tools on this OS,
+    // so the pin asks for a name instead of reading one, same as tether-here.
+    @objc func pinToggle() {
+        if netProfile.isEmpty { pinNetwork() } else { unpinNetwork() }
+    }
+    func pinNetwork() {
+        let a = NSAlert()
+        a.messageText = "Always Low Data on this network"
+        a.informativeText = """
+        Pins the current Low Data settings (freeze list, throttles, burst \
+        cap) to this network and turns the mode on. Joining this network \
+        applies them by itself; leaving restores what they replaced. \
+        Flipping Low Data off while here sticks until you leave and rejoin.
+        """
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 230, height: 24))
+        field.placeholderString = "name this network (e.g. coworking)"
+        a.accessoryView = field
+        a.addButton(withTitle: "Pin")
+        a.addButton(withTitle: "Cancel")
+        a.window.initialFirstResponder = field
+        NSApp.activate(ignoringOtherApps: true)
+        guard a.runModal() == .alertFirstButtonReturn else { return }
+        let name = field.stringValue.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        // Order matters: lowdata on first, so the snapshot profile-here takes
+        // has the mode on and "always Low Data" is what the pin actually says.
+        runNetmeter(["lowdata", "on"]) { [weak self] in
+            self?.runNetmeter(["profile-here", name]) { self?.refreshModeUI() }
+        }
+    }
+    func unpinNetwork() {
+        // Forgetting the pin leaves the applied settings standing until the
+        // network is left, which is the CLI's rule too; the row's state flips
+        // now because refreshModeUI reads the pin from config, not the stint.
+        runNetmeter(["profile", "rm", netProfile]) { [weak self] in self?.refreshModeUI() }
     }
     // The segmented control only ever showed the side you had selected, so the
     // other number cost a click to see. Both live here now, each with how long

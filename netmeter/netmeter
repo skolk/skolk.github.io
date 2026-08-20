@@ -12,10 +12,22 @@ Usage:
   netmeter session reset  start a new session (e.g. when switching to tethering)
   netmeter pause APP      freeze an app (SIGSTOP) — e.g. `netmeter pause chrome`
   netmeter resume APP     unfreeze it (SIGCONT)
-  netmeter status APP     paused / running / not running
-  netmeter lowdata on     freeze the apps in config's lowdata_apps and keep them frozen;
+  netmeter throttle APP   slow an app to a share of its speed instead of freezing it,
+                          e.g. `netmeter throttle claude --pct 25`. `throttle APP off`
+                          lifts one, `throttle off` lifts all, bare `throttle` lists them
+  netmeter status APP     throttled / paused / running / not running
+  netmeter lowdata on     freeze the apps in config's lowdata_apps and keep them frozen,
+                          throttle the apps in lowdata_throttle to throttle_pct,
+                          freeze any app that moves burst_cap_mb inside one minute;
                           notify every notify_every_mb MB of session data
   netmeter lowdata off    lift low data mode and unfreeze
+  netmeter profile-here NAME
+                          pin the current lowdata settings (mode, freeze list,
+                          throttle list, pct, burst cap) to this network, identified
+                          by its gateway MAC: joining it applies them by itself,
+                          leaving it restores what they replaced. A mode flipped by
+                          hand while connected stands until you leave and rejoin
+  netmeter profile        list per-network profiles; `profile rm NAME` forgets one
   netmeter solo APP       solo mode: only APP may use the network. Every other app that
                           tries to send or receive gets frozen, system daemons excepted
   netmeter solo off       lift solo mode and unfreeze whatever solo froze
@@ -27,10 +39,14 @@ Usage:
   netmeter start          run the sampling daemon in the foreground (launchd runs this)
   netmeter reset          zero out today's counters and the session
 
-Config: ~/.netmeter/config.json  {"lowdata_apps": ["chrome"], "notify_every_mb": 25}
+Config: ~/.netmeter/config.json
+  {"lowdata_apps": ["chrome"], "lowdata_throttle": ["claude"], "throttle_pct": 25,
+   "burst_cap_mb": 150, "notify_every_mb": 25,
+   "network_profiles": {"<gateway MAC>": {"name": "...", "settings": {...}}}}
 """
 
 import argparse
+import atexit
 import contextlib
 import datetime
 import fcntl
@@ -40,6 +56,7 @@ import re
 import signal
 import subprocess
 import sys
+import threading
 import time
 
 # Decimal units, deliberately. A carrier that sells a 50 GB plan means
@@ -52,8 +69,10 @@ STATE_DIR = os.path.expanduser("~/.netmeter")
 NOW_PATH = os.path.join(STATE_DIR, "now.json")
 SESSION_PATH = os.path.join(STATE_DIR, "session.json")
 PAUSED_PATH = os.path.join(STATE_DIR, "paused.json")
+THROTTLED_PATH = os.path.join(STATE_DIR, "throttled.json")
 RECENT_PATH = os.path.join(STATE_DIR, "recent.jsonl")
 TETHER_PATH = os.path.join(STATE_DIR, "tether.json")
+PROFILE_PATH = os.path.join(STATE_DIR, "profile.json")
 CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
 
 # lowdata_apps is empty by default: low data mode only watches and notifies.
@@ -63,17 +82,35 @@ CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
 # `netmeter tether-here`. The defaults here are deliberately empty.
 DEFAULT_CONFIG = {
     "lowdata": False, "lowdata_apps": [], "notify_every_mb": 25,
+    # lowdata_throttle is the middle setting between "leave it alone" and the
+    # all-or-nothing freeze of lowdata_apps: apps here stay usable, just slow.
+    # throttle_period is the duty cycle length in seconds; longer saves more
+    # syscalls, shorter keeps a stalled TCP connection from backing off.
+    "lowdata_throttle": [], "throttle_pct": 25, "throttle_period": 4.0,
+    # burst_cap_mb is the hard stop, and it is the one that protects a monthly
+    # cap. Throttling is a soft brake: a stopped process still has its socket
+    # buffer filled for it by the kernel and drains the backlog the moment it
+    # wakes, so a 25% duty cycle measured 63% of full speed against a real
+    # transfer. Freezing an app that has moved burst_cap_mb inside one minute is
+    # what actually stops a bulk download. Only armed while low data mode is on.
+    "burst_cap_mb": 0,
     "solo": False, "solo_app": "",
     "combine_updown": False, "show_rate": True, "show_total": True,
     "recent_window": 60, "recent_open": True,
     "tether_name": "", "tether_cap_gb": 0, "tether_reset_day": 1,
     "tether_gateway_macs": [], "wifi_if": "en0",
+    # network_profiles pins lowdata settings to a network, keyed by gateway MAC,
+    # the identity the tether counter already trusts (reading the SSID needs
+    # location permission, the router's MAC does not). Entries are
+    # {"name": ..., "settings": {PROFILE_KEYS...}}, made by `profile-here`.
+    "network_profiles": {},
 }
 
-# Solo mode freezes every app that touches the network except the soloed one.
-# These are exempt: freezing them breaks the machine (DNS, the window server,
-# the terminal you would type `netmeter solo off` into) rather than saving data.
-SOLO_PROTECT = {
+# Freezing these breaks the machine (DNS, the window server, the terminal you
+# would type `netmeter solo off` into) rather than saving data. The burst cap
+# stops at this line and nothing else: an app moving 900 MB a minute is exactly
+# what the cap is for, however inconvenient freezing it happens to be.
+NEVER_FREEZE = {
     "kernel_task", "launchd", "WindowServer", "loginwindow", "Finder", "Dock",
     "SystemUIServer", "netmeter", "netmeter-bar", "Terminal", "iTerm2", "iTerm",
     "Ghostty", "Alacritty", "kitty", "Warp", "mDNSResponder", "configd",
@@ -83,6 +120,14 @@ SOLO_PROTECT = {
     "netbiosd", "com.apple.geod", "AssetCacheLocat", "parsec-fbf",
     "networkserviceproxy (Apple relay)", "python3", "ssh", "sshd",
 }
+
+# Solo mode spares one more thing: the running work sessions. Soloing Chrome to
+# stop an updater helping itself to the hotspot should not also kill the terminal
+# session doing the work, and until app_pids() learned to resolve the label it
+# never could, because the CLI's process is named for its version and the SIGSTOP
+# fell on nothing. Now that it lands, the exemption has to be written down.
+# Throttling is the control for these, which is the whole reason it exists.
+SOLO_PROTECT = NEVER_FREEZE | {"Claude Code"}
 
 # nettop truncates process names; map the cryptic ones to readable labels.
 FRIENDLY = [
@@ -330,14 +375,36 @@ def load_tether(cfg):
     return t
 
 
+def ps_ucomm():
+    """(pid, ucomm) for every process. ucomm is the short accounting name, the
+    same one nettop reports and the only one `pgrep -x` matches against."""
+    out = subprocess.run(["ps", "-axo", "pid=,ucomm="],
+                         capture_output=True, text=True).stdout
+    rows = []
+    for line in out.splitlines():
+        pid, _, ucomm = line.strip().partition(" ")
+        if pid.isdigit():
+            rows.append((int(pid), ucomm.strip()))
+    return rows
+
+
 def app_pids(name):
     """Match by exact process name AND by command line, so both an app's main
-    process (e.g. 'Granola') and its helpers ('Granola Helper') are caught."""
+    process (e.g. 'Granola') and its helpers ('Granola Helper') are caught.
+
+    Labels that exist only because FRIENDLY renamed something need that regex
+    run in reverse, else the table shows an app the signals cannot reach. The
+    Claude Code CLI is the case in point: its process name is its version, so
+    `pgrep -x "Claude Code"` matches nothing at all and `pgrep -f claude` would
+    sweep in every helper of the desktop app instead."""
     pattern = canonical(name)
     pids = set()
     for args in (["-x", pattern], ["-f", pattern]):
         out = subprocess.run(["pgrep"] + args, capture_output=True, text=True).stdout
         pids.update(int(p) for p in out.split())
+    for pat, label in FRIENDLY:
+        if label == pattern:
+            pids.update(pid for pid, ucomm in ps_ucomm() if pat.match(ucomm))
     pids -= {os.getpid(), os.getppid(), 1}
     return sorted(pids)
 
@@ -355,14 +422,15 @@ def set_paused(name, val, reason="manual"):
         save_json(PAUSED_PATH, p)
 
 
-def signal_app(name, sig):
-    pids = app_pids(name)
+def signal_pids(pids, sig):
     for pid in pids:
-        try:
+        with contextlib.suppress(ProcessLookupError, PermissionError):
             os.kill(pid, sig)
-        except (ProcessLookupError, PermissionError):
-            pass
     return len(pids)
+
+
+def signal_app(name, sig):
+    return signal_pids(app_pids(name), sig)
 
 
 def pause(name, quiet=False, reason="manual"):
@@ -381,6 +449,9 @@ def pause(name, quiet=False, reason="manual"):
 def resume(name):
     n = signal_app(name, signal.SIGCONT)
     set_paused(canonical(name), False)
+    # Resume means "leave this app alone", so it lifts a throttle too. Without
+    # this the SIGCONT is undone by the next duty cycle a second later.
+    set_throttled(canonical(name), 0)
     if n:
         print(f"Resumed {n} process(es) matching '{name}'.")
         cfg = load_config()
@@ -396,10 +467,13 @@ def resume(name):
 
 def resume_all():
     paused = read_json(PAUSED_PATH) or {}
-    for name in paused:
+    throttled = read_throttled()
+    for name in set(paused) | set(throttled):
         signal_app(name, signal.SIGCONT)
     save_json(PAUSED_PATH, {})
-    print(f"Resumed {len(paused)} app(s)." if paused else "Nothing was paused.")
+    save_json(THROTTLED_PATH, {})
+    n = len(set(paused) | set(throttled))
+    print(f"Resumed {n} app(s)." if n else "Nothing was paused or throttled.")
 
 
 def resume_reason(reason):
@@ -410,6 +484,194 @@ def resume_reason(reason):
         signal_app(name, signal.SIGCONT)
         set_paused(name, False)
     return len(names)
+
+
+# --- throttle -----------------------------------------------------------
+# Pause is all-or-nothing, and for some apps that makes it useless: freezing a
+# running work session is not a saving, it is a stall you have to undo by hand.
+# (The menu bar knows this: Claude Code is in its PAUSE_DENY list for exactly
+# that reason.) Throttling duty-cycles SIGSTOP/SIGCONT instead: an app set to
+# 25% runs for a quarter of each period and is frozen for the rest. Nothing
+# rate-limits the socket directly; TCP does it, because a stopped process stops
+# draining its receive buffer, the window closes, and the sender backs off. The
+# transfer slows down rather than failing, which is the whole point.
+
+
+def read_throttled():
+    return read_json(THROTTLED_PATH) or {}
+
+
+def set_throttled(name, pct, reason="manual"):
+    """throttled.json maps app -> {"pct", "reason"}, mirroring paused.json so
+    `lowdata off` can lift exactly what low data mode throttled."""
+    with locked(THROTTLED_PATH):
+        t = read_json(THROTTLED_PATH) or {}
+        if pct:
+            t[name] = {"pct": int(pct), "reason": reason}
+        else:
+            t.pop(name, None)
+        save_json(THROTTLED_PATH, t)
+
+
+def unfreeze_throttled():
+    """A throttled app is stopped for most of every period, so a daemon that dies
+    mid-cycle leaves it stopped. Called on the way out, which covers every exit
+    that runs code, and on the way in, which is what covers the one that does
+    not: SIGKILL cannot be handled, so a killed daemon really does leave the app
+    frozen until launchd's KeepAlive restarts it a second later and this runs."""
+    t = read_json(THROTTLED_PATH) or {}
+    for name in t:
+        signal_app(name, signal.SIGCONT)
+    return len(t)
+
+
+def unthrottle_reason(reason):
+    """Lift only the throttles a given mode applied. Returns how many."""
+    t = read_json(THROTTLED_PATH) or {}
+    names = [n for n, v in t.items() if (v or {}).get("reason") == reason]
+    for name in names:
+        signal_app(name, signal.SIGCONT)
+        set_throttled(name, 0)
+    return len(names)
+
+
+def burst_cap_check(bucket, cap_mb, already):
+    """Freeze anything that has moved more than cap_mb inside the current minute.
+
+    This is the backstop the throttle cannot be. A 953 MB minute is not a session
+    ramping up, it is a bulk transfer nobody asked for, and the only thing that
+    reliably stops one is taking the process off the CPU. The daemon already
+    accumulates a per-app bucket for the history file, so the cap reads that
+    instead of keeping a second window. `already` is the set of apps caught this
+    minute, so one breach is one freeze rather than one per tick."""
+    frozen = []
+    limit = cap_mb * MB
+    for name, (d_in, d_out) in list(bucket.items()):
+        moved = d_in + d_out
+        if name in already or name in NEVER_FREEZE or moved < limit:
+            continue
+        already.add(name)
+        if signal_app(name, signal.SIGSTOP):
+            set_paused(name, True, "cap")
+            frozen.append((name, moved))
+    return frozen
+
+
+def daemon_running():
+    out = subprocess.run(["pgrep", "-f", "netmeter start"],
+                         capture_output=True, text=True).stdout.split()
+    return any(int(pid) != os.getpid() for pid in out)
+
+
+def throttle_worker(stop):
+    """One duty cycle per period: wake every throttled app, then freeze each one
+    again once it has had its share. Percentages are per app, so the stops are
+    scheduled rather than done all at once.
+
+    PIDs are re-read every few seconds, not every period: `pgrep` plus a `ps`
+    sweep per app is far too much work to repeat twice a second."""
+    pid_cache, cached_at = {}, 0.0
+    while not stop.is_set():
+        cfg = load_config()
+        period = max(0.5, min(5.0, float(cfg.get("throttle_period") or 4.0)))
+        throttled = read_throttled()
+        if not throttled:
+            pid_cache, cached_at = {}, 0.0
+            stop.wait(period)
+            continue
+        # An app that was deliberately paused stays paused. Throttling must not
+        # quietly undo a pause, a solo, or a low data freeze.
+        paused = read_json(PAUSED_PATH) or {}
+        names = [n for n in throttled if n not in paused]
+        if time.time() - cached_at > 5:
+            pid_cache = {n: app_pids(n) for n in names}
+            cached_at = time.time()
+        schedule = {}
+        for name in names:
+            pids = pid_cache.get(name) or []
+            if not pids:
+                continue
+            pct = max(1, min(95, int((throttled[name] or {}).get("pct", 25))))
+            schedule.setdefault(round(period * pct / 100, 3), []).append(pids)
+        if not schedule:
+            stop.wait(period)
+            continue
+        started = time.time()
+        for pids in schedule.values():
+            for group in pids:
+                signal_pids(group, signal.SIGCONT)
+        for at in sorted(schedule):
+            stop.wait(max(0.0, started + at - time.time()))
+            for group in schedule[at]:
+                signal_pids(group, signal.SIGSTOP)
+        stop.wait(max(0.0, started + period - time.time()))
+    unfreeze_throttled()
+
+
+def start_throttle_worker():
+    """Started by the daemon, which is the only long-lived process that can hold
+    a duty cycle. Recovers first: anything left throttled by a daemon that died
+    mid-period is stopped right now and needs waking before the cycle resumes.
+    Measured: SIGKILL leaves the app frozen roughly as often as the duty cycle
+    says it should, and the restart releases it every time."""
+    unfreeze_throttled()
+    stop = threading.Event()
+    threading.Thread(target=throttle_worker, args=(stop,), daemon=True).start()
+
+    def bail(signum=None, frame=None):
+        stop.set()
+        unfreeze_throttled()
+        if signum is not None:
+            sys.exit(0)
+
+    atexit.register(bail)
+    # launchd stops the daemon with SIGTERM, whose default handler skips both
+    # `finally` and atexit. Without this every throttled app stays frozen.
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        with contextlib.suppress(ValueError, OSError):
+            signal.signal(sig, bail)
+    return stop
+
+
+def throttle(app, pct=None):
+    """`netmeter throttle APP [--pct N]` / `throttle APP off` / `throttle off` /
+    bare `throttle` for status."""
+    cfg = load_config()
+    current = read_throttled()
+    if app is None:
+        if not current:
+            print("Nothing is throttled.")
+            return
+        for name, v in sorted(current.items()):
+            why = "" if (v or {}).get("reason") == "manual" else f" (via {v['reason']})"
+            print(f"{name}: {(v or {}).get('pct', 25)}%{why}")
+        if not daemon_running():
+            print("The daemon is not running, so nothing is enforcing these.")
+        return
+    if app == "off":
+        for name in current:
+            signal_app(name, signal.SIGCONT)
+        save_json(THROTTLED_PATH, {})
+        print(f"Throttling off. Released {len(current)} app(s).")
+        return
+    name = canonical(app)
+    if pct == 0:
+        signal_app(name, signal.SIGCONT)
+        set_throttled(name, 0)
+        print(f"Throttling off for {name}.")
+        return
+    pct = max(1, min(95, int(pct if pct is not None else cfg.get("throttle_pct") or 25)))
+    n = len(app_pids(name))
+    set_throttled(name, pct, "manual")
+    if not n:
+        print(f"No running processes match '{app}', throttle saved, it applies "
+              f"as soon as the app starts.")
+    else:
+        print(f"Throttling {name} to {pct}% ({n} process(es)). It keeps working, "
+              f"just slower. Lift it with: netmeter throttle {app} off")
+    if not daemon_running():
+        print("Warning: the daemon is not running, so nothing will enforce this. "
+              "Start it with `netmeter start`.")
 
 
 def solo_freeze(cfg, names):
@@ -456,28 +718,193 @@ def status(name):
     if not pids:
         print("not running")
         return
+    # Check the throttle first: a throttled app's ps state flickers between T
+    # and S with the duty cycle, so reading ps would answer a coin flip.
+    t = read_throttled().get(canonical(name))
+    if t:
+        print(f"throttled ({t.get('pct', 25)}%)")
+        return
     out = subprocess.run(["ps", "-o", "stat=", "-p", ",".join(map(str, pids))],
                          capture_output=True, text=True).stdout
     print("paused" if any(s.startswith("T") for s in out.split()) else "running")
+
+
+def lowdata_apply(cfg):
+    """The acting half of `lowdata on`: freeze the freeze list, throttle the
+    throttle list. Split out so a network profile switching the mode on behaves
+    exactly like typing the command. Returns the pct it throttled to."""
+    for app in cfg["lowdata_apps"]:
+        pause(app, quiet=True)
+    pct = max(1, min(95, int(cfg.get("throttle_pct") or 25)))
+    for app in cfg.get("lowdata_throttle") or []:
+        set_throttled(canonical(app), pct, "lowdata")
+    return pct
+
+
+def lowdata_lift(cfg):
+    """The acting half of `lowdata off`. Returns how many throttles it lifted."""
+    for app in cfg["lowdata_apps"]:
+        signal_app(app, signal.SIGCONT)
+        set_paused(canonical(app), False)
+    return unthrottle_reason("lowdata")
 
 
 def lowdata(action):
     cfg = load_config()
     if action == "on":
         cfg = update_config(lowdata=True)
-        for app in cfg["lowdata_apps"]:
-            pause(app, quiet=True)
+        pct = lowdata_apply(cfg)
         frozen = f" Frozen: {', '.join(cfg['lowdata_apps'])}." if cfg["lowdata_apps"] else ""
-        print(f"Low data mode ON.{frozen} You'll get a notification every "
+        slowed = (f" Throttled to {pct}%: {', '.join(cfg['lowdata_throttle'])}."
+                  if cfg.get("lowdata_throttle") else "")
+        print(f"Low data mode ON.{frozen}{slowed} You'll get a notification every "
               f"{cfg['notify_every_mb']} MB of session data.")
     elif action == "off":
         cfg = update_config(lowdata=False)
-        for app in cfg["lowdata_apps"]:
-            signal_app(app, signal.SIGCONT)
-            set_paused(canonical(app), False)
-        print("Low data mode OFF. Apps unfrozen.")
+        n = lowdata_lift(cfg)
+        tail = f" {n} throttle(s) lifted." if n else ""
+        print(f"Low data mode OFF. Apps unfrozen.{tail}")
     else:
         print("on" if cfg["lowdata"] else "off")
+
+
+# --- per-network profiles ------------------------------------------------
+# A network can carry its own low data settings: join the hotspot and the mode
+# comes on by itself, throttles and burst cap included; leave and what was
+# there before comes back. The point is that the hotspot behind you should not
+# depend on remembering to flip a mode. Networks are identified by gateway MAC,
+# the same signal the tether counter trusts. profile.json is the stint memory:
+# which MAC the profile was applied for, what it applied, and what the settings
+# were before. It lives on disk so a daemon restart mid-stint still knows what
+# to put back. One rule governs the stint: a manual change while connected
+# stands. The daemon acts only when the MAC changes, so `lowdata off` typed on
+# a profiled network stays off until the network is left and rejoined.
+
+# The settings a profile may pin. Deliberately just the lowdata family: the
+# profile is "how careful should this network make me", not a second config.
+PROFILE_KEYS = ("lowdata", "lowdata_apps", "lowdata_throttle",
+                "throttle_pct", "burst_cap_mb")
+
+
+def profile_apply(mac, prof):
+    """Apply a profile's settings and remember what they replaced. The stint
+    file keeps the applied overlay alongside the saved values: on restore, only
+    keys still holding the profile's value go back, so a setting changed by
+    hand mid-stint is Sean's, not the profile's, and survives the departure."""
+    cfg = load_config()
+    settings = prof.get("settings") or {}
+    overlay = {k: settings[k] for k in PROFILE_KEYS if k in settings}
+    saved = {k: cfg.get(k, DEFAULT_CONFIG[k]) for k in overlay}
+    if cfg["lowdata"]:
+        lowdata_lift(cfg)   # clean slate: the profile may freeze a different list
+    save_json(PROFILE_PATH, {"mac": mac, "name": prof.get("name", ""),
+                             "applied": overlay, "saved": saved})
+    if overlay:
+        cfg = update_config(**overlay)
+    if cfg["lowdata"]:
+        lowdata_apply(cfg)
+    notify(f"On {prof.get('name') or mac}: network profile applied, "
+           f"low data {'on' if cfg['lowdata'] else 'off'}")
+
+
+def profile_restore(stint):
+    """Put back what the profile changed, honoring mid-stint manual edits."""
+    applied, saved = stint.get("applied") or {}, stint.get("saved") or {}
+    cfg = load_config()
+    back = {k: v for k, v in saved.items() if cfg.get(k) == applied.get(k)}
+    if cfg["lowdata"]:
+        lowdata_lift(cfg)   # lift with the profile-era lists before they change back
+    if back:
+        cfg = update_config(**back)
+    if cfg["lowdata"]:
+        lowdata_apply(cfg)
+    notify(f"Left {stint.get('name') or stint.get('mac', '')}: settings restored")
+
+
+def profile_check(cfg, gw_mac):
+    """Called once per daemon tick with the MAC already read for the tether
+    counter. Returns True when it rewrote config, so the caller reloads.
+
+    A None MAC means the route was unreadable, not that the network changed:
+    wi-fi blips read as None for a beat, and treating one as a departure would
+    restore-and-reapply around every blip, quietly undoing a manual override
+    mid-stint. Unknown holds the stint; only a definite different MAC ends it."""
+    if gw_mac is None:
+        return False
+    stint = read_json(PROFILE_PATH) or {}
+    if stint.get("mac") == gw_mac:
+        return False        # same stint: manual changes stand until we leave
+    changed = False
+    if stint:
+        profile_restore(stint)
+        with contextlib.suppress(OSError):
+            os.remove(PROFILE_PATH)
+        changed = True
+    prof = (cfg.get("network_profiles") or {}).get(gw_mac)
+    if prof:
+        profile_apply(gw_mac, prof)
+        changed = True
+    return changed
+
+
+def profile_here(name):
+    """`netmeter profile-here NAME`, in the spirit of tether-here: get the
+    modes how you want them first, then run this while connected, and this
+    network applies them by itself from then on."""
+    cfg = load_config()
+    ip, gw = gateway_mac(cfg.get("wifi_if", "en0"))
+    if not gw:
+        print("Could not read the gateway MAC. Are you on wi-fi?")
+        return
+    settings = {k: cfg[k] for k in PROFILE_KEYS}
+    profiles = dict(cfg.get("network_profiles") or {})
+    profiles[gw] = {"name": name, "settings": settings}
+    update_config(network_profiles=profiles)
+    print(f"Pinned to this network (router {ip}, MAC {gw}) as '{name}': "
+          f"{profile_summary(settings)}. Joining it applies these; leaving "
+          f"restores what they replaced.")
+
+
+def profile_summary(s):
+    parts = [f"low data {'on' if s.get('lowdata') else 'off'}"]
+    if s.get("lowdata_apps"):
+        parts.append("freeze " + ", ".join(s["lowdata_apps"]))
+    if s.get("lowdata_throttle"):
+        parts.append(f"throttle {', '.join(s['lowdata_throttle'])} "
+                     f"to {s.get('throttle_pct', 25)}%")
+    if s.get("burst_cap_mb"):
+        parts.append(f"burst cap {s['burst_cap_mb']} MB/min")
+    return ", ".join(parts)
+
+
+def profile_cmd(action, name):
+    """`netmeter profile` lists, `netmeter profile rm NAME` forgets one."""
+    cfg = load_config()
+    profiles = cfg.get("network_profiles") or {}
+    if action == "rm":
+        if not name:
+            print("Usage: netmeter profile rm NAME")
+            return
+        keep = {m: p for m, p in profiles.items() if p.get("name") != name}
+        if len(keep) == len(profiles):
+            print(f"No profile named '{name}'.")
+            return
+        update_config(network_profiles=keep)
+        print(f"Forgot profile '{name}'. If it is applied right now it stays "
+              f"applied until you leave the network.")
+        return
+    if not profiles:
+        print("No network profiles. Set the modes how you want them, then run "
+              "`netmeter profile-here NAME` while on the network.")
+        return
+    _, gw = gateway_mac(cfg.get("wifi_if", "en0"))
+    stint = read_json(PROFILE_PATH) or {}
+    for mac, prof in sorted(profiles.items(), key=lambda kv: kv[1].get("name", "")):
+        marks = [m for m, on in (("here now", mac == gw),
+                                 ("applied", stint.get("mac") == mac)) if on]
+        tail = f"  [{', '.join(marks)}]" if marks else ""
+        print(f"{prof.get('name', '?')}  (MAC {mac}): "
+              f"{profile_summary(prof.get('settings') or {})}{tail}")
 
 
 def notify(text):
@@ -492,8 +919,9 @@ def run_daemon(interval, ticks=None):
     counters are NOT monotonic — they drop when sockets close — so computing our
     own deltas double-counted traffic.)"""
     state = {"date": None, "data": None, "notified_mb": None,
-             "bucket_min": None, "bucket": {}, "appends": 0}
+             "bucket_min": None, "bucket": {}, "capped": set(), "appends": 0}
     blocks_done = 0
+    throttle_stop = start_throttle_worker()
 
     def handle_block(rows):
         nonlocal blocks_done
@@ -537,6 +965,7 @@ def run_daemon(interval, ticks=None):
         elif minute != state["bucket_min"]:
             append_recent(state["bucket_min"], state["bucket"])
             state["bucket_min"], state["bucket"] = minute, {}
+            state["capped"] = set()
             state["appends"] += 1
             if state["appends"] % 60 == 0:
                 prune_recent()
@@ -577,6 +1006,15 @@ def run_daemon(interval, ticks=None):
                                f"{cfg.get('tether_cap_gb')} GB used ({mark}%)")
             save_json(TETHER_PATH, tether)
 
+        # Per-network profiles ride the same MAC read as the tether counter.
+        # Wrapped hard: a profile bug must never take the sampler down with it,
+        # and a failed check just means this tick behaves like the last one.
+        try:
+            if profile_check(cfg, gw_mac):
+                cfg = load_config()   # the profile just rewrote config
+        except Exception as e:
+            print(f"netmeter: profile check failed: {e}")
+
         save_json(NOW_PATH, {
             "ts": now_ts,
             "down_bps": tick_in / elapsed,
@@ -589,6 +1027,9 @@ def run_daemon(interval, ticks=None):
             "tether_cap_gb": cfg.get("tether_cap_gb", 0),
             "tether_on": tether_on,
             "tether_setup": bool(macs),
+            # The bar's "always Low Data here" row needs to know which network
+            # it is standing on; the profile lookup itself stays in config.json.
+            "net_mac": gw_mac or "",
             "tether_resets": tether_next_reset(
                 datetime.date.fromisoformat(tether["period_start"])).isoformat(),
         })
@@ -598,6 +1039,11 @@ def run_daemon(interval, ticks=None):
         if cfg["lowdata"]:
             for app in cfg["lowdata_apps"]:
                 signal_app(app, signal.SIGSTOP)
+            cap = cfg.get("burst_cap_mb") or 0
+            if cap:
+                for name, moved in burst_cap_check(state["bucket"], cap, state["capped"]):
+                    notify(f"Froze {name}: {fmt(moved)} in under a minute "
+                           f"(cap {cap} MB). Resume with: netmeter resume {name}")
             step = cfg.get("notify_every_mb") or 0
             if step:
                 total_mb = (s_in + s_out) / MB
@@ -610,36 +1056,40 @@ def run_daemon(interval, ticks=None):
             state["notified_mb"] = None
         blocks_done += 1
 
-    while ticks is None or blocks_done < ticks:
-        cmd = ["nettop", "-P", "-x", "-d", "-s", str(max(1, int(interval))),
-               "-L", "0" if ticks is None else str(ticks + 1),
-               "-J", "bytes_in,bytes_out"]
-        # Run under a pty (`script`), else nettop block-buffers and samples arrive bunched.
-        proc = subprocess.Popen(["script", "-q", "/dev/null"] + cmd,
-                                stdout=subprocess.PIPE, text=True)
-        block_idx = 0
-        pending = []
-        try:
-            for line in proc.stdout:
-                if line.startswith(","):  # header row marks the start of a sample
-                    if block_idx > 1 and pending:  # block 1 is cumulative; skip it
-                        handle_block(pending)
-                        if ticks is not None and blocks_done >= ticks:
-                            proc.kill()
-                            break
-                    block_idx += 1
-                    pending = []
+    try:
+        while ticks is None or blocks_done < ticks:
+            cmd = ["nettop", "-P", "-x", "-d", "-s", str(max(1, int(interval))),
+                   "-L", "0" if ticks is None else str(ticks + 1),
+                   "-J", "bytes_in,bytes_out"]
+            # Run under a pty (`script`), else nettop block-buffers and samples arrive bunched.
+            proc = subprocess.Popen(["script", "-q", "/dev/null"] + cmd,
+                                    stdout=subprocess.PIPE, text=True)
+            block_idx = 0
+            pending = []
+            try:
+                for line in proc.stdout:
+                    if line.startswith(","):  # header row marks the start of a sample
+                        if block_idx > 1 and pending:  # block 1 is cumulative; skip it
+                            handle_block(pending)
+                            if ticks is not None and blocks_done >= ticks:
+                                proc.kill()
+                                break
+                        block_idx += 1
+                        pending = []
+                    else:
+                        pending.append(line)
                 else:
-                    pending.append(line)
-            else:
-                # nettop exited: flush the final block on bounded runs, then respawn/stop
-                if ticks is not None and block_idx > 1 and pending and blocks_done < ticks:
-                    handle_block(pending)
-        finally:
-            proc.kill()
-            proc.wait()
-        if ticks is None:
-            time.sleep(interval)  # nettop died; breathe before respawning
+                    # nettop exited: flush the final block on bounded runs, then respawn/stop
+                    if ticks is not None and block_idx > 1 and pending and blocks_done < ticks:
+                        handle_block(pending)
+            finally:
+                proc.kill()
+                proc.wait()
+            if ticks is None:
+                time.sleep(interval)  # nettop died; breathe before respawning
+    finally:
+        throttle_stop.set()
+        unfreeze_throttled()
 
 
 def fmt(b):
@@ -727,8 +1177,18 @@ def main():
     for name in ("pause", "resume", "status"):
         ap = sub.add_parser(name)
         ap.add_argument("app")
+    thp = sub.add_parser("throttle", help="slow an app instead of freezing it")
+    thp.add_argument("app", nargs="?", help="app name or alias, or `off` for all")
+    thp.add_argument("state", nargs="?", choices=["off"], help="lift this app's throttle")
+    thp.add_argument("--pct", type=int, help="percent of full speed (default 25)")
     lp = sub.add_parser("lowdata", help="low data mode on/off")
     lp.add_argument("action", nargs="?", choices=["on", "off"])
+    php = sub.add_parser("profile-here",
+                         help="pin the current lowdata settings to this network")
+    php.add_argument("name")
+    pfp = sub.add_parser("profile", help="list per-network profiles; `profile rm NAME` forgets one")
+    pfp.add_argument("action", nargs="?", choices=["list", "rm"])
+    pfp.add_argument("name", nargs="?")
     slp = sub.add_parser("solo", help="only APP may use the network; `solo off` lifts it")
     slp.add_argument("app", nargs="?", help="app name or alias, or `off`")
     dp = sub.add_parser("display", help="menu bar display options")
@@ -774,8 +1234,14 @@ def main():
         resume(args.app)
     elif args.cmd == "status":
         status(args.app)
+    elif args.cmd == "throttle":
+        throttle(args.app, 0 if args.state == "off" else args.pct)
     elif args.cmd == "lowdata":
         lowdata(args.action)
+    elif args.cmd == "profile-here":
+        profile_here(args.name)
+    elif args.cmd == "profile":
+        profile_cmd(args.action, args.name)
     elif args.cmd == "solo":
         solo(args.app)
     elif args.cmd == "display":
