@@ -63,6 +63,7 @@ Status legend: ☐ needs photo · ⊘ also a stub (needs written content + de-st
 | ☐ | `2025-05-27-Finding-Your-Gaps.md` | `golux_racing.jpg` *(already named)* | Racing aboard Golux / the cockpit |
 | ☐ | `2025-06-15-yutori.md` | `dirt_roads.jpg` *(already named)* | The yutori subject / dirt roads |
 | ☐ | `2026-02-23-Coastal-Systems.md` | `coastal-systems.jpg` | Coastal monitoring subject or location |
+| ☐ | `_pages/projects/micmeter.md` | `micmeter-menu.png` | The menu open with the two-row meter in the bar (commented slot in the page); grab with the menu showing the button row and a lit meter |
 
 ## Stub language to clear (3, same as the ⊘ rows above)
 
