@@ -687,6 +687,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var recentNames: [NSTextField] = []
     var recentValues: [NSTextField] = []
     var recentBars: [BarView] = []
+    // Per-app rows past the top 8. Built into the menu but hidden, so the
+    // "more" row can show them in place: fixed items toggling isHidden is the
+    // one mutation a tracking menu tolerates.
+    var appsOpen = false
+    var appExtraItems: [NSMenuItem] = []
+    var appsMoreLabel: NSTextField?
     var soloCandidates: [String] = []
     var soloPickOpen = false
     var soloPickItems: [NSMenuItem] = []
@@ -819,13 +825,30 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                today: (todayTotal, todayAge), since: clock))
 
         // Per-app rows with an inline on/off switch (on = running, off = frozen).
+        // Top 8 always; the next dozen build hidden behind a "more" row.
+        appsOpen = (cfg["apps_open"] as? Bool) ?? false
+        appExtraItems = []
         var listed = Set<String>()
         let minBytes: Double = showSession ? 100 * KB : MB
-        for r in rows.prefix(10) where r.1 + r.2 >= minBytes {
+        for (i, r) in rows.filter({ $0.1 + $0.2 >= minBytes }).prefix(20).enumerated() {
             listed.insert(r.0)
-            menu.addItem(appRow(r.0, r.1 + r.2,
-                                pausable: !PAUSE_DENY.contains(r.0),
-                                frozen: paused[r.0] != nil))
+            let frozen = paused[r.0] != nil
+            let item = appRow(r.0, r.1 + r.2,
+                              pausable: !PAUSE_DENY.contains(r.0),
+                              frozen: frozen)
+            // A frozen row past the fold stays visible either way: the switch
+            // that unfreezes it must not be hidden by the fold that lists it.
+            if i >= 8 && !frozen {
+                item.isHidden = !appsOpen
+                appExtraItems.append(item)
+            }
+            menu.addItem(item)
+        }
+        if appExtraItems.isEmpty {
+            appsMoreLabel = nil
+        } else {
+            menu.addItem(appsMoreRow())
+            refreshAppsMore()
         }
         // Anything still frozen but no longer in today's top list stays reachable.
         for (name, _) in paused where !listed.contains(name) {
@@ -1125,6 +1148,36 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             soloPickItems.append(item)
             soloPickLabels.append(label)
         }
+    }
+
+    // The fold under the top 8 app rows. A PickRow, so clicking it flips the
+    // hidden rows without closing the menu; the state persists via config so
+    // the menu reopens the way it was left.
+    func appsMoreRow() -> NSMenuItem {
+        let item = NSMenuItem()
+        let row = PickRow(frame: NSRect(x: 0, y: 0, width: 348, height: 22))
+        let label = NSTextField(labelWithString: "")
+        label.font = NSFont.menuFont(ofSize: 13)
+        label.textColor = .secondaryLabelColor
+        label.frame = NSRect(x: 24, y: 3, width: 300, height: 17)
+        row.addSubview(label)
+        row.onClick = { [weak self] in self?.toggleAppsOpen() }
+        item.view = row
+        appsMoreLabel = label
+        return item
+    }
+
+    func refreshAppsMore() {
+        appsMoreLabel?.stringValue = appsOpen
+            ? "\u{25BE} Show fewer"
+            : "\u{25B8} \(appExtraItems.count) more app\(appExtraItems.count == 1 ? "" : "s")"
+    }
+
+    func toggleAppsOpen() {
+        appsOpen.toggle()
+        for item in appExtraItems { item.isHidden = !appsOpen }
+        refreshAppsMore()
+        runNetmeter(["display", "--apps-open", appsOpen ? "on" : "off"])
     }
 
     func pickSoloAt(_ i: Int) {

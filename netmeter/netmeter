@@ -28,6 +28,12 @@ Usage:
                           leaving it restores what they replaced. A mode flipped by
                           hand while connected stands until you leave and rejoin
   netmeter profile        list per-network profiles; `profile rm NAME` forgets one
+  netmeter networks       list the networks the daemon remembers. Every network's
+                          mode settings (low data family plus solo) are written as
+                          they change, and rejoining a remembered network brings
+                          back how it was last used; explicit profiles still win.
+                          `networks rm NAME|MAC` forgets one, `networks on|off`
+                          toggles the remembering itself
   netmeter solo APP       solo mode: only APP may use the network. Every other app that
                           tries to send or receive gets frozen, system daemons excepted
   netmeter solo off       lift solo mode and unfreeze whatever solo froze
@@ -73,6 +79,7 @@ THROTTLED_PATH = os.path.join(STATE_DIR, "throttled.json")
 RECENT_PATH = os.path.join(STATE_DIR, "recent.jsonl")
 TETHER_PATH = os.path.join(STATE_DIR, "tether.json")
 PROFILE_PATH = os.path.join(STATE_DIR, "profile.json")
+NETWORKS_PATH = os.path.join(STATE_DIR, "networks.json")
 CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
 
 # lowdata_apps is empty by default: low data mode only watches and notifies.
@@ -95,8 +102,13 @@ DEFAULT_CONFIG = {
     # what actually stops a bulk download. Only armed while low data mode is on.
     "burst_cap_mb": 0,
     "solo": False, "solo_app": "",
+    # remember_networks: every network the daemon sees gets its mode settings
+    # (the lowdata family plus solo) written to networks.json as they change,
+    # and rejoining a remembered network brings back how it was last used.
+    # Explicit profiles in network_profiles still win where both exist.
+    "remember_networks": True,
     "combine_updown": False, "show_rate": True, "show_total": True,
-    "recent_window": 60, "recent_open": True,
+    "recent_window": 60, "recent_open": True, "apps_open": False,
     "tether_name": "", "tether_cap_gb": 0, "tether_reset_day": 1,
     "tether_gateway_macs": [], "wifi_if": "en0",
     # network_profiles pins lowdata settings to a network, keyed by gateway MAC,
@@ -785,26 +797,50 @@ def lowdata(action):
 PROFILE_KEYS = ("lowdata", "lowdata_apps", "lowdata_throttle",
                 "throttle_pct", "burst_cap_mb")
 
+# What network memory remembers: the profile family plus solo. A profile is a
+# deliberate pin; memory is "how were the modes the last time I was here", and
+# solo is as much a part of that answer as low data.
+MEMORY_KEYS = PROFILE_KEYS + ("solo", "solo_app")
+
+
+def solo_sync(cfg, overlay):
+    """Lift solo's freezes when an overlay turns the mode off or points it at
+    a different app. The daemon's next tick re-freezes under the new rules."""
+    if not cfg["solo"]:
+        return
+    if not overlay.get("solo", True) or \
+            overlay.get("solo_app", cfg["solo_app"]) != cfg["solo_app"]:
+        resume_reason("solo")
+
 
 def profile_apply(mac, prof):
     """Apply a profile's settings and remember what they replaced. The stint
     file keeps the applied overlay alongside the saved values: on restore, only
     keys still holding the profile's value go back, so a setting changed by
-    hand mid-stint is Sean's, not the profile's, and survives the departure."""
+    hand mid-stint is Sean's, not the profile's, and survives the departure.
+    The overlay holds only the keys that actually differ, so joining a network
+    whose settings already match is a silent no-op rather than a lift-and-
+    refreeze blip with a notification on top. Returns True when config moved."""
     cfg = load_config()
     settings = prof.get("settings") or {}
-    overlay = {k: settings[k] for k in PROFILE_KEYS if k in settings}
+    overlay = {k: settings[k] for k in MEMORY_KEYS
+               if k in settings and cfg.get(k, DEFAULT_CONFIG[k]) != settings[k]}
     saved = {k: cfg.get(k, DEFAULT_CONFIG[k]) for k in overlay}
-    if cfg["lowdata"]:
-        lowdata_lift(cfg)   # clean slate: the profile may freeze a different list
     save_json(PROFILE_PATH, {"mac": mac, "name": prof.get("name", ""),
                              "applied": overlay, "saved": saved})
-    if overlay:
-        cfg = update_config(**overlay)
+    if not overlay:
+        return False
+    if cfg["lowdata"]:
+        lowdata_lift(cfg)   # clean slate: the profile may freeze a different list
+    solo_sync(cfg, overlay)
+    cfg = update_config(**overlay)
     if cfg["lowdata"]:
         lowdata_apply(cfg)
-    notify(f"On {prof.get('name') or mac}: network profile applied, "
-           f"low data {'on' if cfg['lowdata'] else 'off'}")
+    kind = "settings remembered" if prof.get("auto") else "network profile applied"
+    tail = f", solo {cfg['solo_app']}" if cfg["solo"] else ""
+    notify(f"On {prof.get('name') or mac}: {kind}, "
+           f"low data {'on' if cfg['lowdata'] else 'off'}{tail}")
+    return True
 
 
 def profile_restore(stint):
@@ -814,6 +850,7 @@ def profile_restore(stint):
     back = {k: v for k, v in saved.items() if cfg.get(k) == applied.get(k)}
     if cfg["lowdata"]:
         lowdata_lift(cfg)   # lift with the profile-era lists before they change back
+    solo_sync(cfg, back)
     if back:
         cfg = update_config(**back)
     if cfg["lowdata"]:
@@ -821,29 +858,83 @@ def profile_restore(stint):
     notify(f"Left {stint.get('name') or stint.get('mac', '')}: settings restored")
 
 
-def profile_check(cfg, gw_mac):
+def network_remember(cfg, mac, ip=None):
+    """One entry of memory per network: the mode settings as they stand, first
+    written on join and refreshed as they change, so rejoining a known network
+    can bring back how it was last used. Named after the explicit profile where
+    one exists; otherwise the MAC is the name. Skips the write when nothing
+    moved, which is every tick but the interesting ones."""
+    settings = {k: cfg.get(k, DEFAULT_CONFIG[k]) for k in MEMORY_KEYS}
+    nets = read_json(NETWORKS_PATH) or {}
+    entry = dict(nets.get(mac) or {})
+    today = datetime.date.today().isoformat()
+    prof = (cfg.get("network_profiles") or {}).get(mac)
+    name = (prof or {}).get("name") or entry.get("name", "")
+    if (entry.get("settings") == settings and entry.get("last_seen") == today
+            and entry.get("name", "") == name
+            and (not ip or entry.get("router") == ip)):
+        return
+    entry.update({"settings": settings, "last_seen": today, "name": name})
+    if ip:
+        entry["router"] = ip
+    nets[mac] = entry
+    save_json(NETWORKS_PATH, nets)
+
+
+def profile_check(cfg, gw_mac, gw_ip=None):
     """Called once per daemon tick with the MAC already read for the tether
     counter. Returns True when it rewrote config, so the caller reloads.
 
     A None MAC means the route was unreadable, not that the network changed:
     wi-fi blips read as None for a beat, and treating one as a departure would
     restore-and-reapply around every blip, quietly undoing a manual override
-    mid-stint. Unknown holds the stint; only a definite different MAC ends it."""
+    mid-stint. Unknown holds the stint; only a definite different MAC ends it.
+
+    The stint file now tracks every network, not just profiled ones: a bare
+    stint ({"applied": {}}) marks where we are so that leaving it is a real
+    event, which is what lets memory snapshot the settings a stint ends with."""
     if gw_mac is None:
         return False
+    remember = bool(cfg.get("remember_networks", True))
     stint = read_json(PROFILE_PATH) or {}
     if stint.get("mac") == gw_mac:
-        return False        # same stint: manual changes stand until we leave
+        # Same stint: manual changes stand until we leave, and memory keeps
+        # up with them so the next join starts where this stint ends.
+        if remember:
+            network_remember(cfg, gw_mac, gw_ip)
+        return False
     changed = False
-    if stint:
-        profile_restore(stint)
+    if stint.get("mac"):
+        if remember:
+            network_remember(cfg, stint["mac"])   # the stint's parting snapshot
+        if stint.get("applied"):
+            profile_restore(stint)
+            changed = True
         with contextlib.suppress(OSError):
             os.remove(PROFILE_PATH)
-        changed = True
+        if changed:
+            cfg = load_config()
     prof = (cfg.get("network_profiles") or {}).get(gw_mac)
+    entry = ((read_json(NETWORKS_PATH) or {}).get(gw_mac) or {}) if remember else {}
+    mem = entry.get("settings") or {}
+    if prof and mem:
+        # The profile pins what it pins; memory answers for the rest. Without
+        # the merge, a solo mode left on at the previous network sails straight
+        # through a profiled join, because the profile only speaks lowdata.
+        merged = dict(mem)
+        merged.update(prof.get("settings") or {})
+        prof = dict(prof, settings=merged)
+    elif mem:
+        prof = {"name": entry.get("name", ""), "settings": mem, "auto": True}
     if prof:
-        profile_apply(gw_mac, prof)
-        changed = True
+        if profile_apply(gw_mac, prof):
+            changed = True
+    else:
+        save_json(PROFILE_PATH, {"mac": gw_mac, "name": "",
+                                 "applied": {}, "saved": {}})
+    if remember:
+        cfg = load_config() if changed else cfg
+        network_remember(cfg, gw_mac, gw_ip)
     return changed
 
 
@@ -874,6 +965,8 @@ def profile_summary(s):
                      f"to {s.get('throttle_pct', 25)}%")
     if s.get("burst_cap_mb"):
         parts.append(f"burst cap {s['burst_cap_mb']} MB/min")
+    if s.get("solo"):
+        parts.append(f"solo {s.get('solo_app') or '?'}")
     return ", ".join(parts)
 
 
@@ -900,11 +993,67 @@ def profile_cmd(action, name):
     _, gw = gateway_mac(cfg.get("wifi_if", "en0"))
     stint = read_json(PROFILE_PATH) or {}
     for mac, prof in sorted(profiles.items(), key=lambda kv: kv[1].get("name", "")):
+        # Every network writes a stint now, so the mac matching is not enough
+        # to mean "this profile got applied"; the stint carrying the profile's
+        # name is what says the apply path wrote it.
+        applied = (stint.get("mac") == mac
+                   and stint.get("name") == prof.get("name"))
         marks = [m for m, on in (("here now", mac == gw),
-                                 ("applied", stint.get("mac") == mac)) if on]
+                                 ("applied", applied)) if on]
         tail = f"  [{', '.join(marks)}]" if marks else ""
         print(f"{prof.get('name', '?')}  (MAC {mac}): "
               f"{profile_summary(prof.get('settings') or {})}{tail}")
+
+
+def networks_cmd(action, name):
+    """`netmeter networks` lists every network the daemon remembers, `networks
+    rm NAME|MAC` forgets one, `networks on|off` toggles the remembering."""
+    if action in ("on", "off"):
+        update_config(remember_networks=(action == "on"))
+        if action == "on":
+            print("Remembering networks: rejoining one brings back the modes "
+                  "you last used there.")
+        else:
+            print("Not remembering networks. Existing entries stay listed but "
+                  "nothing applies or updates; `netmeter networks on` resumes.")
+        return
+    nets = read_json(NETWORKS_PATH) or {}
+    if action == "rm":
+        if not name:
+            print("Usage: netmeter networks rm NAME|MAC")
+            return
+        keep = {m: e for m, e in nets.items()
+                if m != name and (e.get("name") or "") != name}
+        if len(keep) == len(nets):
+            print(f"No remembered network named '{name}'.")
+            return
+        save_json(NETWORKS_PATH, keep)
+        print(f"Forgot {len(nets) - len(keep)} network(s). The next join "
+              f"starts from whatever settings you arrive with.")
+        return
+    cfg = load_config()
+    on = cfg.get("remember_networks", True)
+    if not nets:
+        print("No networks remembered yet." if on else
+              "No networks remembered, and remembering is off: "
+              "`netmeter networks on` starts it.")
+        return
+    print(f"Remembering is {'on' if on else 'off'}. Rejoining a network "
+          f"below brings back the modes it lists:")
+    _, gw = gateway_mac(cfg.get("wifi_if", "en0"))
+    ranked = sorted(nets.items(),
+                    key=lambda kv: kv[1].get("last_seen", ""), reverse=True)
+    for mac, e in ranked:
+        # An unnamed network's label is its MAC; don't say it twice.
+        detail = [mac] if e.get("name") else []
+        if e.get("router"):
+            detail.append(f"router {e['router']}")
+        label = e.get("name") or mac
+        paren = f" ({', '.join(detail)})" if detail else ""
+        here = "  [here now]" if mac == gw else ""
+        print(f"  {label}{paren} · last seen "
+              f"{e.get('last_seen', '?')} · "
+              f"{profile_summary(e.get('settings') or {})}{here}")
 
 
 def notify(text):
@@ -983,7 +1132,7 @@ def run_daemon(interval, ticks=None):
         # tracks what the carrier bills), counted only while the gateway MAC
         # matches a linked tether network.
         iface = cfg.get("wifi_if", "en0")
-        _, gw_mac = gateway_mac(iface)
+        gw_ip, gw_mac = gateway_mac(iface)
         macs = cfg.get("tether_gateway_macs") or []
         tether_on = gw_mac is not None and gw_mac in macs
         wb = wifi_bytes(iface)
@@ -1010,7 +1159,7 @@ def run_daemon(interval, ticks=None):
         # Wrapped hard: a profile bug must never take the sampler down with it,
         # and a failed check just means this tick behaves like the last one.
         try:
-            if profile_check(cfg, gw_mac):
+            if profile_check(cfg, gw_mac, gw_ip):
                 cfg = load_config()   # the profile just rewrote config
         except Exception as e:
             print(f"netmeter: profile check failed: {e}")
@@ -1189,6 +1338,11 @@ def main():
     pfp = sub.add_parser("profile", help="list per-network profiles; `profile rm NAME` forgets one")
     pfp.add_argument("action", nargs="?", choices=["list", "rm"])
     pfp.add_argument("name", nargs="?")
+    nwp = sub.add_parser("networks",
+                         help="networks the daemon remembers the mode settings for; "
+                              "`networks rm NAME|MAC` forgets one, on|off toggles remembering")
+    nwp.add_argument("action", nargs="?", choices=["list", "rm", "on", "off"])
+    nwp.add_argument("name", nargs="?")
     slp = sub.add_parser("solo", help="only APP may use the network; `solo off` lifts it")
     slp.add_argument("app", nargs="?", help="app name or alias, or `off`")
     dp = sub.add_parser("display", help="menu bar display options")
@@ -1200,6 +1354,8 @@ def main():
                     help="minutes covered by the recent-usage table")
     dp.add_argument("--recent-open", choices=["on", "off"], dest="recent_open",
                     help="expand or collapse the recent-usage table")
+    dp.add_argument("--apps-open", choices=["on", "off"], dest="apps_open",
+                    help="show the per-app list past the top 8")
     rcp = sub.add_parser("recent", help="per-app usage over a recent window")
     rcp.add_argument("minutes", nargs="?", type=int, default=60)
     sub.add_parser("resume-all", help="unfreeze every paused app")
@@ -1242,6 +1398,8 @@ def main():
         profile_here(args.name)
     elif args.cmd == "profile":
         profile_cmd(args.action, args.name)
+    elif args.cmd == "networks":
+        networks_cmd(args.action, args.name)
     elif args.cmd == "solo":
         solo(args.app)
     elif args.cmd == "display":
@@ -1256,6 +1414,8 @@ def main():
             changes["recent_window"] = max(1, min(720, args.recent_window))
         if args.recent_open is not None:
             changes["recent_open"] = args.recent_open == "on"
+        if args.apps_open is not None:
+            changes["apps_open"] = args.apps_open == "on"
         cfg = update_config(**changes) if changes else load_config()
         shown = []
         if cfg["show_rate"]:
