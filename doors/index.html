@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B242B" id="themeColor">
+<title>Doors · two readings of one fact</title>
+<meta name="description" content="A deck for thinking about the openings in front of you. Every card carries two readings of the same situation and one cheap move.">
+<script>
+/* Runs before the body parses, so the page never paints in the wrong theme.
+   A saved choice wins; otherwise follow the system. */
+(function(){
+  var BAR = {day:"#E3D7BF", dusk:"#1B242B", night:"#0D0605"}, t = null;
+  try { t = localStorage.getItem("doors.theme"); } catch(e){}
+  if (!BAR[t]) t = matchMedia("(prefers-color-scheme: light)").matches ? "day" : "dusk";
+  if (t !== "dusk") document.documentElement.className = t;
+  var m = document.getElementById("themeColor");
+  if (m) m.setAttribute("content", BAR[t]);
+})();
+</script>
+<style>
+:root{
+  --ground:#1B242B; --ground-2:#131A1F;
+  --text:#EFE4CE;
+  --text-dim:rgba(239,228,206,.55);
+  --text-faint:rgba(239,228,206,.32);
+  --hair:rgba(239,228,206,.20);
+  --hair-soft:rgba(239,228,206,.10);
+  --card-bg:#EFE4CE; --card-ink:#1A1712; --card-hair:rgba(26,23,18,.22);
+  --accent:#B08D57; --hot:#D0961F;
+  --action:#C8422C; --action-hi:#D64E36; --action-text:#EFE4CE;
+  --back:#2E5A8E; --back-line:rgba(239,228,206,.16); --back-frame:#EFE4CE;
+  --shadow:rgba(0,0,0,.40);
+  --panel:rgba(0,0,0,.28);
+  --kind-heavy:#3E7A63; --kind-costly:#C8422C; --kind-locked:#2E5A8E; --kind-hidden:#D0961F;
+  --wash:linear-gradient(180deg,#22303A 0%, #1B242B 45%, #131A1F 100%);
+  --display:Copperplate,"Copperplate Gothic Light",Optima,"Palatino Linotype",Palatino,Georgia,serif;
+  --body:"Iowan Old Style",Charter,"Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Courier New",monospace;
+  --card-w:104px;
+}
+html.day{
+  color-scheme:light;
+  --ground:#E3D7BF; --ground-2:#D6C8AC;
+  --text:#1F1A12;
+  --text-dim:rgba(31,26,18,.62);
+  --text-faint:rgba(31,26,18,.42);
+  --hair:rgba(31,26,18,.26);
+  --hair-soft:rgba(31,26,18,.11);
+  --card-bg:#FBF7ED; --card-ink:#1A1712; --card-hair:rgba(26,23,18,.22);
+  --accent:#7A5A28; --hot:#8A5A0C;
+  --action:#AE3722; --action-hi:#C2432C; --action-text:#FBF7ED;
+  --back:#2E5A8E; --back-line:rgba(255,255,255,.18); --back-frame:#EFE4CE;
+  --shadow:rgba(58,44,20,.24);
+  --panel:rgba(255,255,255,.44);
+  --kind-heavy:#2F6350; --kind-costly:#AE3722; --kind-locked:#26496F; --kind-hidden:#8A6212;
+  --wash:linear-gradient(180deg,#EDE3CE 0%, #E3D7BF 45%, #D6C8AC 100%);
+}
+html.night{
+  --ground:#0D0605; --ground-2:#050202;
+  --text:#C05C3D;
+  --text-dim:rgba(192,92,61,.60);
+  --text-faint:rgba(192,92,61,.34);
+  --hair:rgba(192,92,61,.24);
+  --hair-soft:rgba(192,92,61,.12);
+  --card-bg:#1A0806; --card-ink:#C4603E; --card-hair:rgba(196,96,62,.30);
+  --accent:#9E4A2C; --hot:#E07A3C;
+  --action:#7A2A17; --action-hi:#93341C; --action-text:#E59065;
+  --back:#2A0D07; --back-line:rgba(196,96,62,.22); --back-frame:#8E3F26;
+  --shadow:rgba(0,0,0,.7);
+  --panel:rgba(0,0,0,.45);
+  --kind-heavy:#A8622C; --kind-costly:#D0563A; --kind-locked:#9A5348; --kind-hidden:#CE913F;
+  --wash:linear-gradient(180deg,#150807 0%, #0D0605 45%, #050202 100%);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,.05) 0 1px, transparent 1px 4px),
+    var(--wash);
+  color:var(--text);font-family:var(--body);font-size:16px;line-height:1.5;
+  -webkit-text-size-adjust:100%;
+  padding:0 18px calc(48px + env(safe-area-inset-bottom));
+  transition:background-color .35s ease, color .35s ease;
+}
+.wrap{max-width:620px;margin:0 auto}
+
+header{padding:34px 0 0;text-align:center;position:relative}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+h1{font-family:var(--display);font-size:clamp(40px,15vw,64px);font-weight:400;letter-spacing:.2em;margin:0;text-indent:.2em;color:var(--text)}
+.rule{display:flex;align-items:center;gap:12px;margin:16px 0 0}
+.rule::before,.rule::after{content:"";flex:1;height:1px;background:var(--hair)}
+.rule span{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-dim)}
+.themebtn{position:absolute;top:26px;right:0;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent);background:transparent;border:1px solid var(--hair);
+  border-radius:2px;padding:7px 9px;cursor:pointer;line-height:1}
+.themebtn:hover{border-color:var(--accent)}
+
+.tape{margin:26px 0 0;border:1px solid var(--hair);background:var(--panel);border-radius:2px;overflow:hidden}
+.tape-head{display:flex;justify-content:space-between;align-items:baseline;padding:7px 10px;border-bottom:1px solid var(--hair-soft);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.tape-head b{font-weight:400;color:var(--text-dim)}
+.tape-strip{font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:9px 10px;white-space:nowrap;
+  overflow:hidden;direction:rtl;color:var(--text-faint);height:34px;display:flex;align-items:center}
+.tape-strip .hot{color:var(--hot)}
+.tape.live{border-color:var(--hot)}
+.footnote{font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--text-faint);margin:8px 2px 0}
+
+.deck-zone{margin:30px 0 0;display:flex;align-items:center;gap:22px}
+.stack{position:relative;width:var(--card-w);height:calc(var(--card-w)*1.72);flex:none}
+.cardback{border-radius:4px;
+  background:
+    repeating-linear-gradient(45deg, var(--back-line) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-45deg, var(--back-line) 0 1px, transparent 1px 7px),
+    var(--back);
+  border:1px solid rgba(0,0,0,.6);
+  box-shadow:inset 0 0 0 3px var(--back-frame), inset 0 0 0 4px var(--back);position:relative}
+.cardback::after{content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;
+  border:1px solid var(--back-frame);border-radius:50%;
+  box-shadow:inset 0 0 0 3px var(--back), inset 0 0 0 4px var(--back-frame)}
+.back{position:absolute;inset:0;transform-origin:50% 120%}
+.stack.riffle .back{animation:riffle .62s cubic-bezier(.36,.06,.2,1) var(--d) both}
+@keyframes riffle{
+  0%{transform:translate(0,0) rotate(0)}
+  30%{transform:translate(var(--x),-9%) rotate(var(--r))}
+  62%{transform:translate(calc(var(--x)*.35),-3%) rotate(calc(var(--r)*.4))}
+  100%{transform:translate(0,0) rotate(0)}
+}
+.deck-meta{flex:1;min-width:0}
+.count{font-family:var(--display);font-size:34px;letter-spacing:.06em;line-height:1;margin:0}
+.count small{font-size:12px;letter-spacing:.18em;color:var(--text-dim);display:block;margin-top:8px;font-family:var(--mono)}
+.state{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:14px 0 0}
+
+.controls{margin:24px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+button{font-family:var(--display);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text);background:transparent;border:1px solid var(--hair);border-radius:2px;
+  padding:14px 6px;cursor:pointer;transition:background .15s,border-color .15s,color .15s;
+  -webkit-tap-highlight-color:transparent}
+button:hover:not(:disabled){background:var(--hair-soft);border-color:var(--text-dim)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.3;cursor:default}
+button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+.draw{margin:9px 0 0;width:100%;background:var(--action);border-color:var(--action);
+  color:var(--action-text);font-size:15px;padding:17px 10px;letter-spacing:.18em}
+.draw:hover:not(:disabled){background:var(--action-hi);border-color:var(--action-hi)}
+/* the filled draw button dims to cream-on-pale-pink in day mode, which is unreadable;
+   outline it instead so the disabled state stays legible on paper */
+html.day .draw:disabled{background:transparent;border-color:var(--hair);color:var(--text-dim);opacity:1}
+
+.pills,.spreadrow{margin:18px 0 0;display:flex;border:1px solid var(--hair);border-radius:2px;overflow:hidden}
+.pills button,.spreadrow button{flex:1;border:0;border-right:1px solid var(--hair);border-radius:0}
+.pills button:last-child,.spreadrow button:last-child{border-right:0}
+.pills button{padding:11px 4px;font-size:11px;letter-spacing:.14em}
+.pills button[aria-pressed="true"],.spreadrow button[aria-pressed="true"]{background:var(--hair-soft);color:var(--hot)}
+.spreadrow{margin-top:8px;border-color:var(--hair-soft)}
+.spreadrow button{padding:9px 4px;font-size:9.5px;letter-spacing:.1em;font-family:var(--mono);color:var(--text-dim);border-right-color:var(--hair-soft)}
+.spreadrow[hidden]{display:none}
+.toggle{margin:16px 2px 0;display:flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
+.toggle input{accent-color:var(--action);width:16px;height:16px}
+
+.spread{margin:34px 0 0;display:flex;gap:12px;justify-content:center}
+.slot{flex:1;max-width:180px;display:flex;flex-direction:column;align-items:center;gap:9px}
+.slot .pos{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);text-align:center}
+.slot.open .pos{color:var(--text-faint)}
+.flip{width:100%;aspect-ratio:100/172;perspective:900px}
+.flip-in{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+  transform:rotateY(180deg);transition:transform .7s cubic-bezier(.3,.9,.3,1)}
+.flip.up .flip-in{transform:rotateY(0deg)}
+.flip.instant .flip-in{transition:none}
+.face,.rear{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.rear{transform:rotateY(180deg)}
+.face{background:var(--card-bg);color:var(--card-ink);border-radius:4px;
+  border:1px solid rgba(0,0,0,.55);box-shadow:0 2px 10px var(--shadow);
+  overflow:hidden;display:flex;flex-direction:column}
+.face.rev .art{transform:rotate(180deg)}
+.art{flex:1;position:relative;padding:5%;display:flex;align-items:center;justify-content:center}
+.art svg{width:100%;height:100%;overflow:visible}
+.emb{fill:none;stroke:var(--card-ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.pip{fill:none;stroke:var(--kind);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.plaque{fill:none;stroke:var(--card-ink);stroke-width:1.6}
+.ctext{fill:var(--card-ink)}
+.roman{font-family:var(--display);font-size:11px;letter-spacing:.14em;text-align:center;padding:6px 4px 2px;border-bottom:1px solid var(--card-hair)}
+.cname{font-family:var(--display);font-size:9px;letter-spacing:.09em;text-align:center;padding:5px 3px 7px;
+  border-top:1px solid var(--card-hair);line-height:1.25;text-transform:uppercase}
+.revtag{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:8px;letter-spacing:.1em;
+  color:var(--action);border:1px solid var(--action);padding:1px 3px;border-radius:1px;background:var(--card-bg);z-index:2}
+html.night .revtag{color:var(--hot);border-color:var(--hot)}
+.slotback{padding:0;border:0;background:transparent;width:100%;aspect-ratio:100/172;
+  cursor:pointer;opacity:.42;transition:opacity .18s;position:relative}
+.slotback .cardback{position:absolute;inset:0}
+.slotback:hover:not(:disabled){opacity:.85}
+.slotback:disabled{opacity:.16;cursor:default}
+.slotback:focus-visible{outline:2px solid var(--hot);outline-offset:3px}
+
+.readings{margin:32px 0 0}
+.reading{border-top:1px solid var(--hair);padding:18px 0 4px}
+.reading.new{opacity:0;transform:translateY(8px);animation:rise .5s ease forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.reading .kicker{display:flex;align-items:center;gap:8px;margin:0 0 7px}
+.swatch{width:18px;height:3px;flex:none;border-radius:1px}
+.reading .pos2{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.reading h3{font-family:var(--display);font-size:19px;letter-spacing:.06em;font-weight:400;margin:0 0 6px;color:var(--text)}
+.reading h3 em{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--action);text-transform:uppercase;margin-left:8px}
+html.night .reading h3 em{color:var(--hot)}
+.reading p{margin:0;color:var(--text);opacity:.85;font-size:15.5px}
+.keys{margin:11px 0 0 !important;font-family:var(--mono);font-size:10.5px;line-height:1.9;
+  letter-spacing:.03em;color:var(--text-faint);opacity:1 !important;text-transform:none}
+.keys b{font-weight:400;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-right:7px}
+.empty{border:1px dashed var(--hair);border-radius:2px;padding:26px 20px;text-align:center;color:var(--text-dim);font-size:15px}
+
+details{margin:20px 0 0;border-top:1px solid var(--hair);padding-top:14px}
+details:first-of-type{margin-top:34px}
+summary{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸ "}
+details[open] summary::before{content:"▾ "}
+.log{margin:12px 0 0;padding:0;list-style:none;font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim)}
+.log li{border-bottom:1px solid var(--hair-soft);padding:3px 0}
+.log .t{color:var(--accent)}
+
+/* ---------- guide ---------- */
+.guide{margin:14px 0 0;font-size:15.5px}
+.guide h4{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--accent);margin:22px 0 9px;font-weight:400}
+.guide h4:first-child{margin-top:6px}
+.guide p{margin:0 0 11px;color:var(--text);opacity:.82}
+.guide .lede{opacity:.7}
+.defs{margin:0;padding:0;list-style:none}
+.defs li{padding:6px 0;border-bottom:1px solid var(--hair-soft);display:flex;gap:11px;align-items:baseline}
+.defs li:last-child{border-bottom:0}
+.defs .k{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--accent);flex:none;width:78px}
+.defs .v{flex:1;opacity:.82;font-size:15px}
+.defs .k .sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:baseline}
+.schools{margin:0;padding:0 0 0 20px}
+.schools li{margin:0 0 9px;opacity:.82}
+.schools b{font-weight:400;color:var(--accent)}
+
+.find{width:100%;margin:14px 0 6px;padding:11px 12px;background:var(--panel);
+  border:1px solid var(--hair);border-radius:2px;color:var(--text);
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em}
+.find::placeholder{color:var(--text-faint)}
+.find:focus{outline:none;border-color:var(--accent)}
+.idxhead{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--accent);margin:24px 0 4px;font-weight:400;border-bottom:1px solid var(--hair);padding-bottom:7px}
+.idx{padding:12px 0;border-bottom:1px solid var(--hair-soft)}
+.idx h5{font-family:var(--display);font-size:15px;letter-spacing:.05em;font-weight:400;margin:0 0 5px;color:var(--text)}
+.idx h5 .sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+.idx p{margin:0 0 3px;font-size:14.5px;opacity:.8;line-height:1.45}
+.idx p b{font-weight:400;font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--accent);margin-right:7px}
+.idx[hidden],.idxhead[hidden]{display:none}
+.nohits{font-family:var(--mono);font-size:11px;color:var(--text-faint);padding:14px 0}
+
+@media (min-width:520px){:root{--card-w:118px}}
+@media (max-width:380px){.spread{gap:7px}.controls{gap:7px}.defs .k{width:66px}}
+@media (prefers-reduced-motion:reduce){
+  .stack.riffle .back{animation:none}
+  .flip-in{transition:none}
+  .reading.new{animation:none;opacity:1;transform:none}
+}
+
+/* ---- doors additions ---- */
+.doorline{margin:22px 0 0}
+.doorline label{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 7px}
+.doorline input{width:100%;padding:12px 13px;background:var(--panel);border:1px solid var(--hair);
+  border-radius:2px;color:var(--text);font-family:var(--body);font-size:16px;line-height:1.4}
+.doorline input::placeholder{color:var(--text-faint);font-style:italic}
+.doorline input:focus{outline:none;border-color:var(--accent)}
+.caption{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--text-faint);margin:0 0 12px;padding:0 0 9px;border-bottom:1px solid var(--hair-soft)}
+.caption b{font-weight:400;color:var(--accent);font-style:normal}
+
+.view{margin:0 0 4px}
+.view .vlabel{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 4px}
+.view p{margin:0}
+.view.other{margin-top:12px;padding-top:11px;border-top:1px dashed var(--hair)}
+.view.other .vlabel{color:var(--hot)}
+.turn{margin:11px 0 0;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);background:transparent;border:1px solid var(--hair);border-radius:2px;
+  padding:8px 11px;cursor:pointer;line-height:1}
+.turn:hover{border-color:var(--accent)}
+.turn[hidden]{display:none}
+.move{margin:12px 0 0;padding:9px 11px;border-left:2px solid var(--hot);background:var(--panel);
+  font-size:15px;line-height:1.45}
+.move b{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--hot);font-weight:400;margin:0 0 3px}
+.idx .move{font-size:14px;margin-top:7px}
+</style></head>
+<body>
+<div class="wrap">
+
+<header>
+  <button class="themebtn" id="themeBtn">Night</button>
+  <p class="eyebrow">Seventy-eight doors</p>
+  <h1>Doors</h1>
+  <div class="rule"><span>shuffle · draw · turn it over</span></div>
+</header>
+
+<p class="footnote" style="margin-top:20px">Not a deck that predicts anything. Every card carries two readings of the same
+situation: the obstacle is out there, or the obstacle is something you have not admitted preferring. The deck picks
+which one to lead with. You decide whether it is right before you are shown the other one.</p>
+
+<section class="doorline">
+  <label for="doorText">The door you are thinking about</label>
+  <input id="doorText" type="text" autocomplete="off" spellcheck="true"
+    placeholder="the thing you keep almost deciding">
+</section>
+
+<section class="tape" id="tape" aria-label="Entropy readout">
+  <div class="tape-head"><span>Entropy · crypto.getRandomValues</span><b id="byteCount">0 bytes</b></div>
+  <div class="tape-strip" id="strip">waiting for the first shuffle</div>
+</section>
+<p class="footnote">Fisher-Yates over the full deck, one unbiased draw per position, and a coin flip for which
+reading leads.<br>The randomness is the point: it hands you the framing you would not have volunteered.</p>
+
+<section class="deck-zone">
+  <div class="stack" id="stack" aria-hidden="true"></div>
+  <div class="deck-meta">
+    <p class="count"><span id="remain">78</span><small>cards left in the stack</small></p>
+    <p class="state" id="state">Unshuffled · factory order</p>
+  </div>
+</section>
+
+<div class="controls">
+  <button id="btnShuffle">Shuffle</button>
+  <button id="btnCut">Cut</button>
+  <button id="btnClear">Clear table</button>
+</div>
+<button class="draw" id="btnDraw">Shuffle first</button>
+
+<div class="pills" role="group" aria-label="How many places in the spread">
+  <button data-n="1" aria-pressed="true">One place</button>
+  <button data-n="2" aria-pressed="false">Two</button>
+  <button data-n="3" aria-pressed="false">Three</button>
+</div>
+<div class="spreadrow" id="spreadRow" hidden role="group" aria-label="Three card spread">
+  <button data-s="0" aria-pressed="true">Door · What holds it · The move</button>
+  <button data-s="1" aria-pressed="false">Door · Price · The other side</button>
+</div>
+<label class="toggle"><input type="checkbox" id="flipToggle" checked> Let the deck choose which reading leads</label>
+
+<section class="spread" id="spread"></section>
+<section class="readings" id="readings"></section>
+
+<details><summary>Draw log</summary>
+  <ul class="log" id="log"><li>Nothing drawn yet.</li></ul>
+</details>
+
+<details><summary>The grammar</summary>
+  <div class="guide" id="grammar"></div>
+</details>
+
+<details id="indexBox"><summary>Card index · all 78</summary>
+  <input class="find" id="find" type="search" placeholder="filter by name, kind or keyword" autocomplete="off" spellcheck="false">
+  <div id="index"></div>
+</details>
+
+<p class="footnote" style="margin-top:34px">A vocabulary for looking at your own situation twice, not scripture.
+The reading that means something specific to you beats the reading that means the standard thing.<br>
+Its older cousin, a straight tarot deck, is at <a href="/tarot/" style="color:var(--accent)">/tarot</a>.</p>
+
+</div>
+
+<script>
+"use strict";
+
+/* ============ randomness ============ */
+const entropy = []; let bytesUsed = 0;
+const stripEl = document.getElementById('strip');
+const byteEl  = document.getElementById('byteCount');
+const tapeEl  = document.getElementById('tape');
+
+function rand32(){
+  const a = new Uint32Array(1);
+  crypto.getRandomValues(a);
+  bytesUsed += 4;
+  entropy.push(a[0] & 0xFF);
+  if (entropy.length > 64) entropy.splice(0, entropy.length - 64);
+  return a[0];
+}
+function randInt(n){
+  if (n <= 1) return 0;
+  const limit = Math.floor(0x100000000 / n) * n;
+  let v; do { v = rand32(); } while (v >= limit);
+  return v % n;
+}
+let tapeQueued = false;
+function paintTape(){
+  if (tapeQueued) return;
+  tapeQueued = true;
+  requestAnimationFrame(()=>{
+    tapeQueued = false;
+    const hex = entropy.map(b => b.toString(16).toUpperCase().padStart(2,'0'));
+    stripEl.innerHTML = '<span class="hot">'+ hex.slice(-6).join(' ') +'</span> ' + hex.slice(0,-6).join(' ');
+    byteEl.textContent = bytesUsed.toLocaleString() + ' bytes';
+  });
+}
+
+/* ============ deck data ============ */
+/* Every card carries two readings of one fact, plus a move.
+   OUT: the obstacle is out there.  IN: the obstacle is a preference you have not admitted. */
+const CONDITIONS = [
+["0", "The Room You Are In", "where you actually are, described without flattery. Before any door, an honest inventory of the current room.", "you are describing a room you left years ago, or one you have not moved into yet. The account is out of date.", "Write four true sentences about your situation that you would not post."],
+["I", "The Rent", "what it costs to stay exactly here. Standing still is not free, and it is charged monthly.", "you have stopped noticing the charge. It is being paid out of something you cannot see draining.", "Name this month's rent in one currency that is not money."],
+["II", "The Clock", "the door has a schedule you do not set. Windows open and close whether or not you are ready.", "the urgency is manufactured. You are running at a deadline you invented so you would not have to choose.", "Find out whether the deadline is real. One question to one person."],
+["III", "The Map That Is Wrong", "you are navigating from an old picture of the building. Things have moved since you drew it.", "the map is fine and you refuse to read it, because the route it shows is one you do not want.", "Check one fact you have been assuming for over a year."],
+["IV", "The Corridor", "this door opens onto more doors, not onto a room. The decision is smaller than it feels.", "you are treating a corridor as a destination, and will be surprised when arriving changes nothing.", "Ask what the door after this one is. If you cannot name it, this is a corridor."],
+["V", "The One-Way Door", "you cannot come back through this one. Slow down and decide properly, once.", "you are treating a reversible door as permanent. Most doors let you back through, and you could have tried already.", "Say out loud what returning would actually cost. Usually it is embarrassment."],
+["VI", "The Revolving Door", "motion that returns you where you started. Effort is not the same as progress.", "you know it is a loop, you like the loop, and you have started calling it a career.", "List the last three times you did this. Look at the dates."],
+["VII", "The Fire Exit", "the door that opens outward, in an emergency, and costs you the building. It is real and it is available.", "you keep the fire exit in view for comfort, and it is the reason you have not unpacked.", "Write down the conditions under which you would actually use it."],
+["VIII", "The Threshold", "standing in the frame, one foot on each side. This is the most expensive place to live.", "you have built a life in the doorway and called it keeping your options open.", "Set a date. In or out, and the date is the whole exercise."],
+["IX", "The Key You Already Have", "permission already granted and never used. Somebody said yes and you did not walk in.", "you know about the key and will not touch it, because using it would remove the excuse.", "Find the yes you were given and never spent. Spend it this week."],
+["X", "The Waiting Room", "a place built to hold you comfortably. Pleasant, provisional, and it has chairs.", "you are not waiting for anything specific. The waiting has become the activity.", "Name the event you are waiting for. If you cannot, you are not waiting, you are staying."],
+["XI", "The Ledger", "the honest count of what this has cost so far. Sunk, and still worth knowing.", "you are staying in order to justify the spend. The money is gone either way.", "Total the years. Then decide as though you had spent nothing."],
+["XII", "The Door You Already Went Through", "an old decision still shaping the floor plan. You are living in the room it opened.", "you are relitigating a door that closed. That energy has nowhere to go and it is going there anyway.", "Say the old decision out loud in the past tense, once, and then stop."],
+["XIII", "The Wall You Call A Door", "this one will never open. Naming it a wall gives you back the year you were spending on it.", "it is a door, and you have decided it is a wall, which is easier than being refused.", "Test it once, properly, and then either quit it or stop pretending you have."],
+["XIV", "The Draft", "cold air from somewhere. There is an opening you have not found. Follow it to the source.", "you feel the draft and keep the door shut, because a real opening would require a decision.", "Follow the restlessness to the specific thing. Write the specific thing down."],
+["XV", "The Comfortable Lock", "a constraint you would keep even if handed the key. Genuine, and worth admitting out loud.", "you call it a constraint. It is a preference wearing a constraint's coat.", "Ask what you would do if it vanished tonight. Watch whether you feel relief or panic."],
+["XVI", "The Collapse", "the wall comes down and makes a door you did not choose. Layoff, diagnosis, ending. The opening is real anyway.", "you are waiting for the collapse to choose for you, and calling that patience.", "Decide one thing before it is decided for you."],
+["XVII", "The Light Under The Door", "proof that something is on the other side. Not a plan, but enough to justify the knock.", "you have seen the light and are treating it as sufficient. Seeing is not entering.", "Knock once this week, in the cheapest way available."],
+["XVIII", "The Fog In The Hall", "you cannot tell doors from walls right now. Do not choose today. Gather, and set a date to choose.", "the fog has become the address. Confusion is doing work for you and you know what work.", "Set the date you will decide by, with or without clarity."],
+["XIX", "Open Daylight", "the door is open, the room is plainly good, and you may simply walk through. Rare. Do not overthink it.", "it is open and you are hunting for the catch, because unearned things frighten you.", "Walk through. Today, if the door is genuinely open."],
+["XX", "The Roll Call", "someone is asking who is coming. An answer is required, and silence is one of the answers.", "you were called and heard it as pressure. It was an invitation, and it expires.", "Answer the person who asked. Yes or no, this week."],
+["XXI", "The New Room", "through. The circuit closes. Look around properly before you start noticing the doors, and there are doors.", "you arrived and immediately started leaving. Nothing lands because nothing is allowed to land.", "Stay put for one season. Write down what the room is actually like."]
+];
+
+const RANKS = ["One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Gatekeeper", "Guide", "Companion", "Ghost"];
+
+/* rank -> [short key for the reading, longer line for the guide] */
+const STAGES = [
+["notice, the door exists", "notice. You have just admitted the door is there. Nothing else has happened yet, and that is fine."],
+["name, saying what is behind it", "name. Putting words to what is on the other side. A named want can be refused. An unnamed one stays perfect."],
+["scout, finding who went through", "scout. Somebody has walked this hall already. Their route beats the official one."],
+["the cheapest test", "the cheapest test. The smallest thing that returns real information. Buy information before you buy the decision."],
+["the refusal, the failed test", "the refusal. The no, the failed test, the map that was wrong. This is the measurement, not the verdict."],
+["revise, the second version", "revise. The second attempt, built out of what the no taught you. Most yeses are second asks."],
+["the wait", "the wait. You have knocked and nothing has come back. The hardest stage to sit in without flinching."],
+["the reps", "the reps. Doing it enough times that it stops being a question. Unglamorous, and where most doors actually open."],
+["the threshold, and it costs", "the threshold. You can go, and going costs exactly what you were told it would. The most expensive place to stand."],
+["through, and the next room", "through. The door is behind you. The room has its own doors, and you will notice them shortly."],
+["the one who can say no", "the Gatekeeper. Whoever can refuse you: a person, a committee, a rule, or your idea of them."],
+["the one already through", "the Guide. Someone who has done it and would tell you. Costs one message, and most people never send it."],
+["the one going with you", "the Companion. Whoever is coming, or paying, or waiting. They change what is survivable."],
+["who you would stop being", "the Ghost. The person you would have to stop being to fit through. The quietest reason people stay."]
+];
+
+const KINDS = {
+hidden:[
+["a draft from somewhere. There is more floor plan than you have walked.", "you have noticed nothing because you have not looked up in months. The building is not small, your attention is.", "Write down the one thing you suspect exists and cannot yet name."],
+["the thing you want has a word, and probably a field, and probably people in it.", "you keep it vague on purpose. Vague cannot be refused, and it stays perfect.", "Spend twenty minutes finding out what it is called."],
+["someone has walked this hall already and left an account of it.", "you have read plenty and asked no one. Research has become the way you avoid contact.", "Find three people who did the thing. Read what they wrote."],
+["one coffee, one job listing, one afternoon watching somebody do it.", "you keep testing what you already know, to postpone testing what you do not.", "Buy the cheapest hour of information available this week."],
+["the map was wrong. What you learned kills the plan, which is the plan working.", "the map was fine and you did not read it. The information arrived and you filed it.", "Write down which specific belief just died."],
+["the second look, better aimed. The wrong answer taught you the sharper question.", "you are redrawing the map instead of walking. Another version is not another step.", "Ask the sharper question, of the same person, this week."],
+["the question is out and the answer has not come back.", "nobody is answering because nobody was clearly asked.", "Sit with not knowing for a set number of days, then act on the best guess."],
+["learning it properly. Reps at the material until the hall has a shape.", "study as shelter. You are becoming an expert on the door instead of opening it.", "One hour a day against the actual material. Start tomorrow."],
+["you can see it now, and seeing costs. What you know makes staying harder.", "you know, and you are unknowing it on purpose. The comfortable version is available and false.", "Say the thing you now know out loud, to one person."],
+["through, and the fog is behind you.", "you got through and told nobody. The map dies with the crossing.", "Write the map you wish you had had, for whoever is behind you."],
+["the person who could simply tell you, and has not been asked. Confusion is often an unsent question.", "the gatekeeper is your assumption that asking will look stupid.", "Ask the obvious question of the obvious person."],
+["someone holds the map and would hand it over.", "you have the guide and will not use them, because using them makes the want real.", "One paragraph, sent today, no apology in it."],
+["someone lost in the same hall. Two maps of one fog beat one.", "you are comparing notes with people equally lost and calling it progress.", "Find one person further along than the ones you talk to."],
+["you would have to stop being the person who has it figured out.", "not knowing has become the identity. Being the one still searching is now the point.", "Say I do not know, out loud, to someone whose opinion you care about."]
+],
+locked:[
+["there is a door and you do not hold the key. Most locked doors are anonymous only because nobody looked.", "you decided it was locked without ever touching the handle.", "Name who actually holds the key. A person, not an institution."],
+["a specific ask can be granted. A hint cannot.", "you are hinting so that a no will not count as a no.", "Write the ask as one sentence you could send unedited."],
+["someone got this key. What they did is rarely the stated process.", "you are studying the official route because it is the one that cannot embarrass you.", "Ask one person who got in how they actually got in."],
+["knock. The email, the application, the ask, sized so a no costs you nothing.", "you knocked on an easier door in order to feel like you had knocked.", "Send it this week. Sized so the no is survivable."],
+["the no. A real one, and it is information. Ask what would change it.", "you heard no once, years ago, and have been treating it as policy ever since.", "Ask what would have to be true for the answer to be yes."],
+["the second ask, built from the first refusal. Same door, better case.", "you are asking again without having changed anything, which reads as pressure.", "Change one thing about the case, then ask again."],
+["you knocked and nothing came back. The silence is not yet an answer.", "you have not knocked, you have been drafting.", "Send it unfinished. Set one follow-up date and stop refreshing."],
+["making yourself undeniable. Build the record that makes the yes easy for them.", "you are collecting credentials the gatekeeper never asked for.", "Ship one piece of visible work they could point at."],
+["the key is offered, and taking it binds you to something.", "you want the key more than the room, and you know it.", "Read what you would be agreeing to before the relief makes you sign."],
+["granted. You are inside.", "you got in and pulled the ladder up behind you.", "Write down the real route and hand it to one person outside."],
+["whoever can say no. Learn what they are protecting. Nobody guards a door for no reason.", "the gatekeeper is a story. There is no committee, only your idea of one.", "Find out what the gatekeeper is actually afraid of."],
+["someone inside who could vouch. A referral outruns an application.", "you will not ask for the vouch, because owing someone is worse to you than being outside.", "Ask for the introduction, by name, specifically."],
+["someone asking alongside you. Two asking is a pattern.", "you are treating a fellow applicant as the obstacle. The gate is the obstacle.", "Coordinate with the person you have been quietly racing."],
+["you would have to stop being someone who does not need permission.", "the self-sufficiency is the lock. You built it and you are proud of it.", "Ask plainly, without irony, and let it be an ask."]
+],
+heavy:[
+["unlocked, and it does not move. Nobody is stopping you.", "you call it locked because heavy is a verdict on you and locked is not.", "Put your shoulder to it once, so you learn the real weight."],
+["not I am not good enough, but I cannot yet do this specific thing.", "the vagueness protects you. Unmeasured, the gap can be any size, including infinite.", "Write the specific missing capability in one line."],
+["someone lighter than you got it open.", "you are comparing your beginning to their middle and calling it evidence.", "Find out what their first year looked like."],
+["ten minutes, badly, today. The test is whether you come back tomorrow.", "you are planning the training instead of training. The plan is the avoidance.", "Do the smallest rep today. Then do it again tomorrow."],
+["you tried and it did not move. That is a measurement.", "you stopped at the first strain and read it as proof. Strain is what the door feels like.", "Note precisely which part failed. Not that it failed."],
+["smaller reps, aimed at the part that failed.", "you switched doors instead of getting stronger. Again.", "Rebuild the practice around the specific weakness."],
+["the plateau. Nothing visibly improves and the work is still working.", "you are waiting to feel ready. Readiness comes after the reps, never before.", "Keep the streak. Stop checking the scale for two weeks."],
+["the reps that make the thing. This is the whole card and most of the suit.", "volume without feedback. You are practising your mistakes with great discipline.", "Show up on the day you do not want to."],
+["it moves now, and moving it costs everything you have that week.", "you can carry it, and you are proving something to somebody who is not watching.", "Decide whether you can pay that repeatedly, or only once."],
+["through, and the weight is normal now.", "you got strong for a door you no longer want, and you are still training.", "Notice what became easy. Then find the next thing you cannot lift."],
+["the standard itself. Real, indifferent, and not interested in your argument.", "the bar you are training for is one you invented, set high enough never to be attempted.", "Find out the actual standard. Not the one in your head."],
+["a coach. Someone who will tell you what is wrong with your form.", "you avoid coaching because a witness makes the gap official.", "Buy one hour of somebody telling you what you are doing wrong."],
+["someone doing the reps beside you. Attendance is contagious.", "your training partners let you skip. That is company, not practice.", "Set a standing time with one person who shows up."],
+["you would have to stop being naturally good at things.", "the talent story is the weight. Effort would mean you were never gifted.", "Be a beginner somewhere visible."]
+],
+costly:[
+["the door is open. You could walk through this month.", "you keep calling it impossible, because possible means the choice is yours.", "Write the price down in plain numbers."],
+["money, years, a city, a relationship, a version of yourself.", "you are pricing only the money, because the money is the least of it.", "Name every currency this would be paid in. All of them."],
+["find someone who paid. Ask what it cost a year later, not on the day.", "you are collecting stories from people who paid and regret it. On purpose.", "Ask one person who paid what the second year was like."],
+["rent a piece of it. A week of the life, one trip, one month at the lower number.", "you took the sample and called it the experience. Sampling is not paying.", "Buy the smallest real piece of it you can afford."],
+["the bill arrives and it is larger than quoted.", "you paid a price nobody asked for, so the decision would feel already made.", "Reprice it honestly. Do not defend the first number."],
+["the same door at a different price. Part-time, later, smaller, with help.", "you are negotiating with yourself to avoid deciding. Every discount is a delay.", "Find the cheaper version of the door nobody advertises."],
+["waiting for the price to fall. Sometimes it does.", "you are waiting for it to be free, which is waiting forever with good manners.", "Set the date you pay full price anyway."],
+["building the runway that makes the price survivable.", "the saving has become the plan. No number will ever feel like enough.", "Automate the saving and stop deliberating over it."],
+["the threshold, and it costs exactly what you were told.", "you can pay and you are haggling, because paying makes it yours.", "Pay it or walk away clean. Do not stand here another season."],
+["paid, and through.", "you are through and still itemising the bill. The cost is the only thing you talk about.", "Stop auditing the price. Look at the room."],
+["the ledger. Rent, dependents, obligations, the real ones. They are allowed to be the answer.", "you are hiding behind obligations that would survive this decision fine.", "Count the real obligations honestly. Then count the decorative ones."],
+["someone who paid and would tell you the true number.", "you only ask the people who will tell you it was worth it.", "Ask what they wish they had known about the cost."],
+["the person who pays alongside you. They get a vote and have not been given one.", "you are spending somebody else's money and calling it your courage.", "Ask them tonight. Actually ask, do not announce."],
+["you would have to stop being someone with options. Choosing closes the rest.", "you are keeping every door ajar, which is a way of never entering a room.", "Close one door on purpose, out loud, this week."]
+]
+};
+
+const KINDMETA = {
+  hidden: {label:"Hidden", alt:"Fog, The Unseen", holds:"Knowledge", domain:"you cannot see it from where you are standing",
+         short:"knowledge · you cannot see it", plain:"you do not know it is there", v:"var(--kind-hidden)"},
+  locked: {label:"Locked", alt:"Gates, Keys", holds:"Permission", domain:"someone else holds the key and has to hand it over",
+         short:"permission · someone holds the key", plain:"somebody else decides", v:"var(--kind-locked)"},
+  heavy: {label:"Heavy", alt:"Stone, Weight", holds:"Capacity", domain:"unlocked already, and you are not strong enough yet",
+         short:"capacity · not strong enough yet", plain:"you cannot do it yet", v:"var(--kind-heavy)"},
+  costly: {label:"Costly", alt:"Tolls, The Price", holds:"Price", domain:"wide open, and walking through costs something real",
+         short:"price · open, and it costs", plain:"you do not want to pay", v:"var(--kind-costly)"},
+};
+const KIND_ORDER = ["hidden", "locked", "heavy", "costly"];
+
+const EMBLEM = [
+ "<path d=\"M20 20h60v22M80 62v18H20V20\"/><path d=\"M80 42a20 20 0 0 0-20 20\"/>",
+ "<path d=\"M28 84V28h30v56\"/><circle cx=\"76\" cy=\"34\" r=\"7\"/><circle cx=\"76\" cy=\"55\" r=\"7\"/><circle cx=\"76\" cy=\"76\" r=\"7\"/>",
+ "<path d=\"M28 86V24h44v62\"/><circle cx=\"50\" cy=\"50\" r=\"15\"/><path d=\"M50 41v9l7 5\"/>",
+ "<path d=\"M16 30l22-8 24 8 22-8v48l-22 8-24-8-22 8z\"/><path d=\"M38 22v48M62 30v48\"/>",
+ "<path d=\"M14 16l24 22v24l-24 22zM86 16L62 38v24l24 22\"/><path d=\"M38 38h24v24H38z\"/>",
+ "<path d=\"M30 86V22h36v64\"/><path d=\"M18 54h64\"/><path d=\"M70 44l14 10-14 10\"/>",
+ "<circle cx=\"50\" cy=\"50\" r=\"28\"/><path d=\"M50 22v56M22 50h56\"/><path d=\"M72 26a34 34 0 0 1 6 10\" stroke-width=\"3.2\"/>",
+ "<rect x=\"18\" y=\"24\" width=\"64\" height=\"26\" rx=\"2\"/><path d=\"M34 37h24M50 29l8 8-8 8\"/><path d=\"M28 62v22h44V62\"/>",
+ "<path d=\"M26 86V22h48v64\"/><path d=\"M50 22v64\"/><circle cx=\"50\" cy=\"38\" r=\"6\"/><path d=\"M50 44v20M50 64l-11 22M50 64l11 22M38 52h24\"/>",
+ "<circle cx=\"34\" cy=\"36\" r=\"13\"/><circle cx=\"34\" cy=\"36\" r=\"4\"/><path d=\"M42 45l32 32\"/><path d=\"M60 63l9 9M52 55l9 9\"/>",
+ "<path d=\"M16 40h68\"/><path d=\"M20 78V54h18v24M20 62h18\"/><path d=\"M41 78V54h18v24M41 62h18\"/><path d=\"M62 78V54h18v24M62 62h18\"/>",
+ "<path d=\"M18 24h30v54H18zM52 24h30v54H52z\"/><path d=\"M24 37h18M24 47h18M24 57h18M58 37h18M58 47h18\"/>",
+ "<path d=\"M56 82V20h26v62\"/><path d=\"M50 50H16\"/><path d=\"M28 40L16 50l12 10\"/>",
+ "<path d=\"M18 22h64v54H18z\"/><path d=\"M18 40h64M18 58h64M42 22v18M64 40v18M30 58v18M72 22v18\"/><path d=\"M38 76V46h24v30\" stroke-dasharray=\"5 4\"/>",
+ "<path d=\"M30 18h40v52H30z\"/><path d=\"M20 80c8-7 15 7 23 0s15 7 23 0\" stroke-width=\"3.2\"/><path d=\"M24 89c8-7 15 7 23 0s15 7 23 0\" stroke-width=\"3.2\"/>",
+ "<rect x=\"28\" y=\"46\" width=\"44\" height=\"36\" rx=\"4\"/><path d=\"M37 46V33a13 13 0 0 1 26 0v13\"/><circle cx=\"50\" cy=\"61\" r=\"4\"/><path d=\"M50 65v8\"/>",
+ "<path d=\"M18 80V24h64v56\"/><path d=\"M36 80V58l9-11-7-13 13-10\"/><path d=\"M66 80V62l-9-9 7-12-9-11\"/>",
+ "<path d=\"M30 16h40v58H30z\"/><path d=\"M22 86l9-9M50 90V78M78 86l-9-9M36 89l5-10M64 89l-5-10\"/>",
+ "<path d=\"M26 26h18v48H26zM56 26h18v48H56z\" stroke-dasharray=\"4 5\"/><path d=\"M12 44h76M12 56h76M12 68h76\" stroke-width=\"3.4\"/>",
+ "<path d=\"M24 86V22h30v64\"/><path d=\"M54 22l24 9v55H54\"/><circle cx=\"68\" cy=\"50\" r=\"9\"/><path d=\"M68 36v-5M68 69v5M53 50h-4M83 50h-4\"/>",
+ "<path d=\"M18 40l32-14v46L18 58z\"/><path d=\"M50 36h16\"/><path d=\"M56 64l9 9 17-22\"/>",
+ "<path d=\"M14 84V20h34v64\"/><path d=\"M48 20l38 13v51H48\"/><path d=\"M58 44h9v24h-9zM74 49h7v19h-7\"/>"
+];
+
+function kindGlyph(kind){
+  if (kind==="hidden") return "<path d=\"M3 7.5c3-2.2 5.5 2.2 9 0s6 2.2 9 0M3 12.5c3-2.2 5.5 2.2 9 0s6 2.2 9 0M3 17.5c3-2.2 5.5 2.2 9 0s6 2.2 9 0\"/>";
+  if (kind==="locked") return "<path d=\"M5 22V8a7 7 0 0 1 14 0v14z\"/><circle cx=\"12\" cy=\"12\" r=\"2.1\"/><path d=\"M12 14.1V18\"/>";
+  if (kind==="heavy") return "<path d=\"M5 2.5h14v19H5z\"/><path d=\"M5 9h14M5 15.5h14M12 2.5V9M8.5 9v6.5M16 15.5V22\"/>";
+  return "<path d=\"M12.5 2H21v8.5L11 21 2 12z\"/><circle cx=\"17.2\" cy=\"6.4\" r=\"1.7\"/>";
+}
+
+function buildDeck(){
+  const d = [];
+  CONDITIONS.forEach((m,i)=> d.push({type:"condition", idx:i, roman:m[0], title:m[1], out:m[2], inn:m[3], move:m[4]}));
+  KIND_ORDER.forEach(k=>{
+    KINDS[k].forEach((m,i)=> d.push({type:"door", door:k, rank:i,
+      roman: i < 10 ? String(i+1) : "\u00b7",
+      title: (i < 10 ? RANKS[i] : "The " + RANKS[i]) + " of " + KINDMETA[k].label,
+      out:m[0], inn:m[1], move:m[2]}));
+  });
+  return d;
+}
+
+/* ============ card art ============ */
+const PIPS = {
+ 1:[[50,50]], 2:[[50,28],[50,72]], 3:[[50,22],[50,50],[50,78]],
+ 4:[[32,26],[68,26],[32,74],[68,74]],
+ 5:[[32,25],[68,25],[50,50],[32,75],[68,75]],
+ 6:[[32,20],[68,20],[32,50],[68,50],[32,80],[68,80]],
+ 7:[[32,20],[68,20],[50,35],[32,50],[68,50],[32,80],[68,80]],
+ 8:[[32,18],[68,18],[32,40],[68,40],[32,62],[68,62],[32,84],[68,84]],
+ 9:[[32,17],[68,17],[32,38],[68,38],[50,50],[32,62],[68,62],[32,83],[68,83]],
+10:[[32,15],[68,15],[50,28],[32,38],[68,38],[32,62],[68,62],[50,72],[32,85],[68,85]]
+};
+function doorArt(card){
+  const g = '<g class="pip">'+kindGlyph(card.door)+'</g>';
+  if (card.rank <= 9){
+    const n = card.rank+1, pts = PIPS[n];
+    const size = n >= 8 ? 13 : (n >= 5 ? 16 : 21);
+    let out = '';
+    pts.forEach(p=>{ out += '<g transform="translate('+(p[0]-size/2)+','+(p[1]-size/2)+') scale('+(size/24)+')">'+g+'</g>'; });
+    return '<svg viewBox="0 0 100 100">'+out+'</svg>';
+  }
+  /* the four people at every door get a plaque, sized down for the longer names */
+  const name = RANKS[card.rank].toUpperCase();
+  const fs = Math.min(10.5, 74 / name.length), ls = fs > 9.5 ? 1.6 : 0.9;
+  return '<svg viewBox="0 0 100 100">'
+    + '<rect class="plaque" x="16" y="10" width="68" height="80" rx="3"/>'
+    + '<g transform="translate(29,22) scale(1.78)">'+g+'</g>'
+    + '<text class="ctext" x="50" y="80" text-anchor="middle" font-family="Copperplate, Optima, Georgia, serif" font-size="'
+    + fs.toFixed(1) + '" letter-spacing="' + ls + '">' + name + '</text></svg>';
+}
+function faceHTML(card, flipped){
+  const art = card.type === "condition"
+    ? '<svg viewBox="0 0 100 100"><g class="emb">'+EMBLEM[card.idx]+'</g></svg>'
+    : doorArt(card);
+  const top = card.type === "condition" ? card.roman : KINDMETA[card.door].label.toUpperCase();
+  const kindVar = card.type === "condition" ? '' : ' style="--kind:'+KINDMETA[card.door].v+'"';
+  return '<div class="face'+(flipped?' rev':'')+'"'+kindVar+'>'
+    + (flipped ? '<span class="revtag">IN</span>' : '')
+    + '<div class="roman">'+top+'</div><div class="art">'+art+'</div>'
+    + '<div class="cname">'+card.title+'</div></div>';
+}
+
+/* ============ state ============ */
+let deck = buildDeck();
+let shuffled = false, size = 1, spreadKind = 0, justDrawn = -1;
+let table = [null];
+let history = [];
+
+const SPREADS = {
+  1:[["The door"]],
+  2:[["The door","The cheapest test"]],
+  3:[["The door","What holds it","The move this week"],["The door","The price","The room on the other side"]]
+};
+const labels = () => SPREADS[size][size===3 ? spreadKind : 0];
+
+const stackEl=document.getElementById('stack'), remainEl=document.getElementById('remain'),
+      stateEl=document.getElementById('state'), spreadEl=document.getElementById('spread'),
+      readEl=document.getElementById('readings'), logEl=document.getElementById('log'),
+      btnDraw=document.getElementById('btnDraw'), btnCut=document.getElementById('btnCut'),
+      btnClear=document.getElementById('btnClear'), spreadRow=document.getElementById('spreadRow'),
+      flipToggle=document.getElementById('flipToggle'), doorText=document.getElementById('doorText');
+
+/* the door under consideration survives a reload, because people close the tab and come back */
+try {
+  const saved = localStorage.getItem('doors.text');
+  if (saved) doorText.value = saved;
+} catch(e){}
+doorText.addEventListener('input', ()=>{
+  try { localStorage.setItem('doors.text', doorText.value); } catch(e){}
+  paintCaption();
+});
+
+for (let i=0;i<16;i++){
+  const b = document.createElement('div');
+  b.className = 'back cardback';
+  b.style.transform = 'translateY(' + (-i*0.9) + 'px)';
+  b.style.zIndex = i;
+  stackEl.appendChild(b);
+}
+const nextOpen = () => table.indexOf(null);
+const filled   = () => table.filter(Boolean).length;
+
+function refresh(){
+  remainEl.textContent = deck.length;
+  const backs = stackEl.children;
+  const show = Math.max(1, Math.round(deck.length / 78 * 16));
+  for (let i=0;i<backs.length;i++) backs[i].style.opacity = i < show ? 1 : 0;
+  btnCut.disabled = !shuffled;
+  btnClear.disabled = filled() === 0;
+  const open = nextOpen();
+  btnDraw.disabled = !(shuffled && open !== -1 && deck.length > 0);
+  btnDraw.textContent = !shuffled ? "Shuffle first"
+    : deck.length === 0 ? "Stack empty \u00b7 shuffle again"
+    : open === -1 ? "Spread complete \u00b7 clear to start again"
+    : size === 1 ? "Draw a card"
+    : "Draw into " + labels()[open];
+}
+
+function shuffle(){
+  deck = buildDeck();
+  for (let i = deck.length - 1; i > 0; i--){
+    const j = randInt(i+1);
+    const t = deck[i]; deck[i] = deck[j]; deck[j] = t;
+  }
+  shuffled = true;
+  paintTape();
+  stateEl.textContent = "Shuffled \u00b7 full deck, new order";
+  tapeEl.classList.add('live');
+  setTimeout(()=>tapeEl.classList.remove('live'), 900);
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    stackEl.classList.remove('riffle'); void stackEl.offsetWidth;
+    Array.from(stackEl.children).forEach((b,i)=>{
+      b.style.setProperty('--d', (i*22)+'ms');
+      b.style.setProperty('--x', (i%2 ? '34%' : '-34%'));
+      b.style.setProperty('--r', (i%2 ? '7deg' : '-7deg'));
+    });
+    stackEl.classList.add('riffle');
+  }
+  refresh();
+}
+
+function cut(){
+  const lo = Math.floor(deck.length*0.25), hi = Math.floor(deck.length*0.75);
+  const at = lo + randInt(Math.max(1, hi-lo));
+  deck = deck.slice(at).concat(deck.slice(0, at));
+  paintTape();
+  stateEl.textContent = "Cut at " + at + " \u00b7 " + deck.length + " in the stack";
+  refresh();
+}
+
+function drawInto(i){
+  if (!shuffled || table[i] || deck.length === 0) return;
+  const card = deck.shift();
+  /* the coin decides which of the two readings you have to react to first */
+  const flipped = flipToggle.checked && randInt(2) === 1;
+  table[i] = {card:card, flipped:flipped, turned:false};
+  justDrawn = i;
+  paintTape();
+  stateEl.textContent = "Drawn from the top \u00b7 " + deck.length + " left";
+  logDraw(card, flipped, labels()[i]);
+  render(); refresh();
+}
+function clearTable(){
+  table = new Array(size).fill(null); justDrawn = -1;
+  stateEl.textContent = "Table cleared \u00b7 " + deck.length + " left in the stack";
+  render(); refresh();
+}
+function setSize(n){
+  const old = table.slice();
+  table = new Array(n).fill(null);
+  for (let i=0;i<Math.min(n, old.length);i++) table[i] = old[i];
+  size = n; justDrawn = -1;
+  render(); refresh();
+}
+
+/* ============ render ============ */
+const OUT_LABEL = "The door is the door";
+const IN_LABEL  = "The door is you";
+
+function keysHTML(c){
+  if (c.type === "condition")
+    return '<p class="keys"><b>Condition</b>'+c.roman+' \u00b7 a fact about the building, not about one door</p>';
+  const k = KINDMETA[c.door];
+  return '<p class="keys"><b>'+k.label+'</b>'+k.short+'<br><b>'+RANKS[c.rank]+'</b>'+STAGES[c.rank][0]+'</p>';
+}
+
+function paintCaption(){
+  const t = doorText.value.trim();
+  document.querySelectorAll('.caption').forEach(el=>{
+    el.hidden = !t;
+    el.textContent = '';
+    if (!t) return;
+    /* build by node rather than innerHTML, so an ampersand in the door survives intact */
+    el.appendChild(document.createTextNode('Read against \u00b7 '));
+    const b = document.createElement('b');
+    b.textContent = t;
+    el.appendChild(b);
+  });
+}
+
+function render(){
+  const L = labels();
+  spreadEl.innerHTML = ''; readEl.innerHTML = '';
+
+  table.forEach((entry, i)=>{
+    const slot = document.createElement('div');
+    slot.className = 'slot' + (entry ? '' : ' open');
+    const pos = '<span class="pos">'+L[i]+'</span>';
+    if (!entry){
+      const dis = (!shuffled || deck.length === 0) ? ' disabled' : '';
+      slot.innerHTML = pos + '<button class="slotback" data-i="'+i+'"'+dis
+        + ' aria-label="Draw into '+L[i]+'"><span class="cardback"></span></button>';
+      spreadEl.appendChild(slot); return;
+    }
+    const fresh = (i === justDrawn);
+    slot.innerHTML = pos + '<div class="flip'+(fresh?'':' up instant')+'"><div class="flip-in">'
+      + faceHTML(entry.card, entry.flipped) + '<div class="rear cardback"></div></div></div>';
+    spreadEl.appendChild(slot);
+    if (fresh){
+      const flip = slot.querySelector('.flip');
+      requestAnimationFrame(()=> requestAnimationFrame(()=> flip.classList.add('up')));
+    }
+  });
+
+  if (filled() > 0){
+    const cap = document.createElement('p');
+    cap.className = 'caption'; cap.hidden = true;
+    readEl.appendChild(cap);
+  }
+
+  table.forEach((entry, i)=>{
+    if (!entry) return;
+    const c = entry.card;
+    const v = c.type === "condition" ? "var(--accent)" : KINDMETA[c.door].v;
+    const lead  = entry.flipped ? c.inn : c.out;
+    const other = entry.flipped ? c.out : c.inn;
+    const leadL = entry.flipped ? IN_LABEL : OUT_LABEL;
+    const otherL= entry.flipped ? OUT_LABEL : IN_LABEL;
+    const r = document.createElement('div');
+    r.className = 'reading' + (i === justDrawn ? ' new' : '');
+    if (i === justDrawn) r.style.animationDelay = '340ms';
+    r.innerHTML = '<div class="kicker"><span class="swatch" style="background:'+v+'"></span>'
+      + '<span class="pos2">'+L[i]+'</span></div>'
+      + '<h3>'+c.title+'</h3>'
+      + '<div class="view"><span class="vlabel">'+leadL+'</span><p>'+lead+'</p></div>'
+      + '<button class="turn" data-i="'+i+'"'+(entry.turned?' hidden':'')+'>Turn it over</button>'
+      + '<div class="view other"'+(entry.turned?'':' hidden')+'><span class="vlabel">'+otherL+'</span><p>'+other+'</p></div>'
+      + '<p class="move"><b>The move</b>'+c.move+'</p>'
+      + keysHTML(c);
+    readEl.appendChild(r);
+  });
+
+  if (filled() === 0){
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = shuffled
+      ? "Draw one at a time. Read what it says, decide whether you believe it, then turn it over."
+      : "Name the door above, shuffle, then draw. Each card gives you one reading. The second one is behind a button, on purpose.";
+    readEl.appendChild(e);
+  }
+  paintCaption();
+}
+
+function logDraw(card, flipped, pos){
+  const t = new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  history.unshift('<span class="t">'+t+'</span> \u00b7 '+pos+' \u00b7 '+card.title+(flipped?' (led inward)':''));
+  if (history.length > 40) history.pop();
+  logEl.innerHTML = history.map(h => '<li>'+h+'</li>').join('');
+}
+
+/* ============ the grammar ============ */
+function buildGrammar(){
+  let h = '';
+  h += '<p class="lede">A door card is roughly <b>kind x stage</b>. The kind says what is actually holding the door shut. '
+     + 'The stage says how far along you are. Learn those two lists and most of the 56 door cards decode themselves.</p>';
+
+  h += '<h4>The four kinds of shut</h4>'
+     + '<p class="lede">Every real opening is stuck in one of four ways, and the diagnosis decides the verb. '
+     + 'Most wasted years are a misdiagnosis: doing reps at a locked door, or asking permission at a heavy one.</p><ul class="defs">';
+  KIND_ORDER.forEach(k=>{
+    const m = KINDMETA[k];
+    h += '<li><span class="k"><span class="sw" style="background:'+m.v+'"></span>'+m.label+'</span>'
+       + '<span class="v">'+m.holds+' \u00b7 '+m.domain+'<br><span style="opacity:.6">also called '+m.alt+' \u00b7 '+m.plain+'</span></span></li>';
+  });
+  h += '</ul>';
+  h += '<p style="margin-top:11px">Shorthand: Hidden is you cannot see it, Locked is somebody else decides, '
+     + 'Heavy is you cannot do it yet, Costly is you do not want to pay. Costly gets called the easy suit and it is the '
+     + 'hardest one, because there is nothing left to blame.</p>';
+
+  h += '<h4>The ten stages</h4><p class="lede">The same arc runs through all four kinds.</p><ul class="defs">';
+  for (let i=0;i<10;i++) h += '<li><span class="k">'+RANKS[i]+'</span><span class="v">'+STAGES[i][1]+'</span></li>';
+  h += '</ul>';
+  h += '<p style="margin-top:11px">Track one kind across the stages and the shape shows up. Five of Locked is the no. '
+     + 'Six of Locked is the second ask that gets a yes. Five of Heavy is the rep that failed, Six of Heavy is the '
+     + 'smaller rep aimed at the part that failed.</p>';
+
+  h += '<h4>The four people at every door</h4>'
+     + '<p class="lede">Not a personality type. Somebody in the actual situation, or a role nobody is filling.</p><ul class="defs">';
+  for (let i=10;i<14;i++) h += '<li><span class="k">'+RANKS[i]+'</span><span class="v">'+STAGES[i][1]+'</span></li>';
+  h += '</ul>';
+
+  h += '<h4>The Conditions</h4>'
+     + '<p>Twenty-two cards with no kind, numbered 0 to XXI. These describe the building rather than a door: '
+     + 'the rent, the clock, the corridor, the room you are in. Count them in a spread. Zero Conditions is a decision. '
+     + 'Two or three is a life, and the door in front of you is probably not the real subject.</p>';
+
+  h += '<h4>The two readings</h4>'
+     + '<p class="lede">This is the whole instrument. Every card carries the same fact read two ways, and the deck '
+     + 'flips a coin for which one you see first.</p><ol class="schools">'
+     + '<li><b>The door is the door.</b> The obstacle is out there. A gatekeeper, a price, a genuine gap in skill. '
+     + 'Real constraints exist and most of them are boring.</li>'
+     + '<li><b>The door is you.</b> The obstacle is a preference you have not admitted to. You would rather not know, '
+     + 'not ask, not pay, not be a beginner. Also real, and much quieter.</li>'
+     + '</ol>'
+     + '<p>Both readings are always true to some degree, and the useful question is the ratio. Decide which one you '
+     + 'think it is <b>before</b> you press Turn it over. Being wrong is the point of the exercise. If you agree with '
+     + 'every card the deck deals you, you are reading horoscopes.</p>'
+     + '<p>The inward reading is not an accusation. Half the time the honest answer is that the door is genuinely '
+     + 'locked and you have been blaming yourself for a key you were never issued.</p>';
+
+  h += '<h4>The move</h4>'
+     + '<p>Every card ends in one action, sized to be cheap and doable this week. That line is the difference between '
+     + 'a thinking tool and a fortune. If a reading leaves you with a feeling and no move, the card has failed, '
+     + 'and you should read the move anyway.</p>';
+
+  h += '<h4>Reading a spread, not three cards</h4><ul class="defs">'
+     + '<li><span class="k">Conditions</span><span class="v">Count them. Zero is a decision. Three says the building is the subject.</span></li>'
+     + '<li><span class="k">Kinds</span><span class="v">Three Costly in a row is a spread about money and nerve, whatever the positions say.</span></li>'
+     + '<li><span class="k">Stages</span><span class="v">One, Four, Eight is a spread about starting. Seven, Seven, Nine is a spread about waiting too long.</span></li>'
+     + '<li><span class="k">Position</span><span class="v">Five of Locked in The door is a refusal you already had. In The move it is one you have not asked for yet.</span></li>'
+     + '<li><span class="k">Which led</span><span class="v">Three cards leading inward is a nudge, not a verdict. It is a coin, and coins run hot.</span></li>'
+     + '</ul>'
+     + '<p style="margin-top:14px;opacity:.65">Nothing here is predictive and nothing here is mystical. It is a randomiser '
+     + 'pointed at your own framing, which is the one thing you cannot audit from the inside.</p>';
+
+  document.getElementById('grammar').innerHTML = h;
+}
+
+/* ============ card index ============ */
+function buildIndex(){
+  let h = '<h4 class="idxhead">The Conditions \u00b7 facts about the building</h4>';
+  CONDITIONS.forEach(m=>{
+    h += '<article class="idx" data-k="'+(m[0]+' '+m[1]+' condition '+m[2]+' '+m[3]+' '+m[4]).toLowerCase()+'">'
+       + '<h5><span class="sw" style="background:var(--accent)"></span>'+m[0]+' \u00b7 '+m[1]+'</h5>'
+       + '<p><b>Out</b>'+m[2]+'</p><p><b>In</b>'+m[3]+'</p>'
+       + '<p class="move"><b>The move</b>'+m[4]+'</p></article>';
+  });
+  KIND_ORDER.forEach(k=>{
+    const m = KINDMETA[k];
+    h += '<h4 class="idxhead">'+m.label+' \u00b7 '+m.holds+' \u00b7 '+m.plain+'</h4>';
+    KINDS[k].forEach((c,i)=>{
+      const name = (i < 10 ? RANKS[i] : "The " + RANKS[i]) + " of " + m.label;
+      h += '<article class="idx" data-k="'+(name+' '+m.label+' '+m.alt+' '+m.holds+' '+c[0]+' '+c[1]+' '+c[2]).toLowerCase()+'">'
+         + '<h5><span class="sw" style="background:'+m.v+'"></span>'+name+'</h5>'
+         + '<p><b>Out</b>'+c[0]+'</p><p><b>In</b>'+c[1]+'</p>'
+         + '<p class="move"><b>The move</b>'+c[2]+'</p>'
+         + '<p class="keys"><b>'+RANKS[i]+'</b>'+STAGES[i][0]+'</p></article>';
+    });
+  });
+  h += '<p class="nohits" id="noHits" hidden>Nothing matches that.</p>';
+  document.getElementById('index').innerHTML = h;
+}
+
+function filterIndex(q){
+  q = q.trim().toLowerCase();
+  const cards = document.querySelectorAll('.idx');
+  const heads = document.querySelectorAll('.idxhead');
+  let hits = 0;
+  cards.forEach(c=>{
+    const on = !q || c.dataset.k.indexOf(q) !== -1;
+    c.hidden = !on; if (on) hits++;
+  });
+  heads.forEach(hd=>{ hd.hidden = !!q; });
+  document.getElementById('noHits').hidden = hits > 0;
+}
+
+/* ============ wiring ============ */
+document.getElementById('btnShuffle').addEventListener('click', ()=>{ shuffle(); render(); });
+btnCut.addEventListener('click', cut);
+btnClear.addEventListener('click', clearTable);
+btnDraw.addEventListener('click', ()=>{ const i = nextOpen(); if (i !== -1) drawInto(i); });
+spreadEl.addEventListener('click', e=>{
+  const b = e.target.closest('.slotback');
+  if (b && !b.disabled) drawInto(+b.dataset.i);
+});
+/* turning a card over is recorded on the entry so a re-render does not re-hide it */
+readEl.addEventListener('click', e=>{
+  const b = e.target.closest('.turn');
+  if (!b) return;
+  const entry = table[+b.dataset.i];
+  if (entry) entry.turned = true;
+  b.hidden = true;
+  const other = b.parentNode.querySelector('.view.other');
+  if (other) other.hidden = false;
+});
+document.querySelectorAll('.pills button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.pills button').forEach(x=>x.setAttribute('aria-pressed', x===b));
+    spreadRow.hidden = +b.dataset.n !== 3;
+    setSize(+b.dataset.n);
+  });
+});
+document.querySelectorAll('.spreadrow button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.spreadrow button').forEach(x=>x.setAttribute('aria-pressed', x===b));
+    spreadKind = +b.dataset.s; justDrawn = -1;
+    render(); refresh();
+  });
+});
+document.getElementById('find').addEventListener('input', e=> filterIndex(e.target.value));
+
+const themeBtn = document.getElementById('themeBtn');
+const themeMeta = document.getElementById('themeColor');
+
+/* day: readable in sunlight. dusk: the default, cream on slate.
+   night: red-light, for below deck with adjusted eyes. */
+const THEMES = [
+  {id:"day",   cls:"day",   label:"Day",   bar:"#E3D7BF"},
+  {id:"dusk",  cls:"",      label:"Dusk",  bar:"#1B242B"},
+  {id:"night", cls:"night", label:"Night", bar:"#0D0605"}
+];
+const THEME_KEY = "doors.theme";
+
+const root = document.documentElement;
+
+function applyTheme(i, save){
+  const t = THEMES[i];
+  THEMES.forEach(x => { if (x.cls) root.classList.toggle(x.cls, x === t); });
+  const next = THEMES[(i + 1) % THEMES.length];
+  themeBtn.textContent = next.label;
+  themeBtn.setAttribute('aria-label', 'Switch to ' + next.label.toLowerCase() + ' theme, currently ' + t.label.toLowerCase());
+  themeMeta.setAttribute('content', t.bar);
+  themeIdx = i;
+  if (save){ try { localStorage.setItem(THEME_KEY, t.id); } catch(e){} }
+}
+
+/* the head script already resolved and applied the theme before first paint;
+   read it back off the root so the button label agrees with what is on screen */
+let themeIdx = 1;
+applyTheme(Math.max(0, THEMES.findIndex(t => t.cls ? root.classList.contains(t.cls) : !root.className)), false);
+
+themeBtn.addEventListener('click', ()=> applyTheme((themeIdx + 1) % THEMES.length, true));
+
+/* follow the system until the reader picks for themselves */
+matchMedia('(prefers-color-scheme: light)').addEventListener('change', e=>{
+  let s = null;
+  try { s = localStorage.getItem(THEME_KEY); } catch(err){}
+  if (!s) applyTheme(e.matches ? 0 : 1, false);
+});
+
+buildGrammar();
+buildIndex();
+render();
+refresh();
+</script>
+</body>
+</html>
