@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1B242B" id="themeColor">
-<title>Doors · two readings of one fact</title>
-<meta name="description" content="A deck for thinking about the openings in front of you. Every card carries two readings of the same situation and one cheap move.">
+<title>Doors · two readings of one passage</title>
+<meta name="description" content="A deck for thinking about the openings in front of you. Four suits, Perception, Navigation, Paths and Doors. Every card carries two readings of one situation and one cheap move.">
 <script>
 /* Runs before the body parses, so the page never paints in the wrong theme.
    A saved choice wins; otherwise follow the system. */
@@ -32,7 +32,7 @@
   --back:#2E5A8E; --back-line:rgba(239,228,206,.16); --back-frame:#EFE4CE;
   --shadow:rgba(0,0,0,.40);
   --panel:rgba(0,0,0,.28);
-  --kind-heavy:#3E7A63; --kind-costly:#C8422C; --kind-locked:#2E5A8E; --kind-hidden:#D0961F;
+  --suit-paths:#3E7A63; --suit-doors:#C8422C; --suit-navigation:#2E5A8E; --suit-perception:#D0961F;
   --wash:linear-gradient(180deg,#22303A 0%, #1B242B 45%, #131A1F 100%);
   --display:Copperplate,"Copperplate Gothic Light",Optima,"Palatino Linotype",Palatino,Georgia,serif;
   --body:"Iowan Old Style",Charter,"Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
@@ -53,7 +53,7 @@ html.day{
   --back:#2E5A8E; --back-line:rgba(255,255,255,.18); --back-frame:#EFE4CE;
   --shadow:rgba(58,44,20,.24);
   --panel:rgba(255,255,255,.44);
-  --kind-heavy:#2F6350; --kind-costly:#AE3722; --kind-locked:#26496F; --kind-hidden:#8A6212;
+  --suit-paths:#2F6350; --suit-doors:#AE3722; --suit-navigation:#26496F; --suit-perception:#8A6212;
   --wash:linear-gradient(180deg,#EDE3CE 0%, #E3D7BF 45%, #D6C8AC 100%);
 }
 html.night{
@@ -69,7 +69,7 @@ html.night{
   --back:#2A0D07; --back-line:rgba(196,96,62,.22); --back-frame:#8E3F26;
   --shadow:rgba(0,0,0,.7);
   --panel:rgba(0,0,0,.45);
-  --kind-heavy:#A8622C; --kind-costly:#D0563A; --kind-locked:#9A5348; --kind-hidden:#CE913F;
+  --suit-paths:#A8622C; --suit-doors:#D0563A; --suit-navigation:#9A5348; --suit-perception:#CE913F;
   --wash:linear-gradient(180deg,#150807 0%, #0D0605 45%, #050202 100%);
 }
 
@@ -180,7 +180,7 @@ html.day .draw:disabled{background:transparent;border-color:var(--hair);color:va
 .art{flex:1;position:relative;padding:5%;display:flex;align-items:center;justify-content:center}
 .art svg{width:100%;height:100%;overflow:visible}
 .emb{fill:none;stroke:var(--card-ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
-.pip{fill:none;stroke:var(--kind);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.pip{fill:none;stroke:var(--suit);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .plaque{fill:none;stroke:var(--card-ink);stroke-width:1.6}
 .ctext{fill:var(--card-ink)}
 .roman{font-family:var(--display);font-size:11px;letter-spacing:.14em;text-align:center;padding:6px 4px 2px;border-bottom:1px solid var(--card-hair)}
@@ -338,12 +338,13 @@ details[open] summary::before{content:"▾ "}
   <button class="themebtn" id="themeBtn">Night</button>
   <p class="eyebrow">Seventy-eight doors</p>
   <h1>Doors</h1>
-  <div class="rule"><span>shuffle · draw · turn it over</span></div>
+  <div class="rule"><span>perception · navigation · paths · doors</span></div>
 </header>
 
-<p class="footnote" style="margin-top:20px">Not a deck that predicts anything. Every card carries two readings of the same
-situation: the obstacle is out there, or the obstacle is something you have not admitted preferring. The deck picks
-which one to lead with. You decide whether it is right before you are shown the other one.</p>
+<p class="footnote" style="margin-top:20px">Not a deck that predicts anything. Four suits: two are yours, how you see and how you
+steer, and two are the world's, the routes that exist and the crossings at the end of them. Every card carries one situation read
+two ways, what is there and how you are seeing it. The deck picks which one to lead with, and you decide whether it is right
+before you are shown the other.</p>
 
 <section class="doorline">
   <label for="doorText">The door you are thinking about</label>
@@ -390,8 +391,8 @@ reading leads.<br>The randomness is the point: it hands you the framing you woul
   <button data-n="3" aria-pressed="false">Three</button>
 </div>
 <div class="spreadrow" id="spreadRow" hidden role="group" aria-label="Three card spread">
-  <button data-s="0" aria-pressed="true">Door · What holds it · The move</button>
-  <button data-s="1" aria-pressed="false">Door · Price · The other side</button>
+  <button data-s="0" aria-pressed="true">Where · What sets you · Next leg</button>
+  <button data-s="1" aria-pressed="false">Crossing · Price · Water beyond</button>
 </div>
 <label class="toggle"><input type="checkbox" id="flipToggle" checked> Let the deck choose which reading leads</label>
 
@@ -410,12 +411,13 @@ reading leads.<br>The randomness is the point: it hands you the framing you woul
 </details>
 
 <details id="indexBox"><summary>Card index · 78 cards and 16 routes</summary>
-  <input class="find" id="find" type="search" placeholder="filter by name, kind or keyword" autocomplete="off" spellcheck="false">
+  <input class="find" id="find" type="search" placeholder="filter by name, suit or keyword" autocomplete="off" spellcheck="false">
   <div id="index"></div>
 </details>
 
-<p class="footnote" style="margin-top:34px">A vocabulary for looking at your own situation twice, not scripture.
-The reading that means something specific to you beats the reading that means the standard thing.<br>
+<p class="footnote" style="margin-top:34px">A vocabulary for reading your own situation twice, not scripture.
+The reading that means something specific to you beats the one that means the standard thing.<br>
+Card art generated from geometry by <span style="color:var(--accent)">art-gen.py</span>, in the idiom of Island Lab's figure-gen.
 Its older cousin, a straight tarot deck, is at <a href="/tarot/" style="color:var(--accent)">/tarot</a>.</p>
 
 </div>
@@ -456,131 +458,132 @@ function paintTape(){
 }
 
 /* ============ deck data ============ */
-/* Every card carries two readings of one fact, plus a move.
-   OUT: the obstacle is out there.  IN: the obstacle is a preference you have not admitted. */
+/* Every card carries one situation read two ways, plus a move.
+   OUT: the situation as a fact of the world.  IN: the same fact, framed by
+   something you have not admitted preferring. */
 const CONDITIONS = [
-["0", "The Room You Are In", "where you actually are, described without flattery. Before any door, an honest inventory of the current room.", "you are describing a room you left years ago, or one you have not moved into yet. The account is out of date.", "Write four true sentences about your situation that you would not post."],
-["I", "The Rent", "what it costs to stay exactly here. Standing still is not free, and it is charged monthly.", "you have stopped noticing the charge. It is being paid out of something you cannot see draining.", "Name this month's rent in one currency that is not money."],
-["II", "The Clock", "the door has a schedule you do not set. Windows open and close whether or not you are ready.", "the urgency is manufactured. You are running at a deadline you invented so you would not have to choose.", "Find out whether the deadline is real. One question to one person."],
-["III", "The Map That Is Wrong", "you are navigating from an old picture of the building. Things have moved since you drew it.", "the map is fine and you refuse to read it, because the route it shows is one you do not want.", "Check one fact you have been assuming for over a year."],
-["IV", "The Corridor", "this door opens onto more doors, not onto a room. The decision is smaller than it feels.", "you are treating a corridor as a destination, and will be surprised when arriving changes nothing.", "Ask what the door after this one is. If you cannot name it, this is a corridor."],
-["V", "The One-Way Door", "you cannot come back through this one. Slow down and decide properly, once.", "you are treating a reversible door as permanent. Most doors let you back through, and you could have tried already.", "Say out loud what returning would actually cost. Usually it is embarrassment."],
-["VI", "The Revolving Door", "motion that returns you where you started. Effort is not the same as progress.", "you know it is a loop, you like the loop, and you have started calling it a career.", "List the last three times you did this. Look at the dates."],
-["VII", "The Fire Exit", "the door that opens outward, in an emergency, and costs you the building. It is real and it is available.", "you keep the fire exit in view for comfort, and it is the reason you have not unpacked.", "Write down the conditions under which you would actually use it."],
-["VIII", "The Threshold", "standing in the frame, one foot on each side. This is the most expensive place to live.", "you have built a life in the doorway and called it keeping your options open.", "Set a date. In or out, and the date is the whole exercise."],
-["IX", "The Key You Already Have", "permission already granted and never used. Somebody said yes and you did not walk in.", "you know about the key and will not touch it, because using it would remove the excuse.", "Find the yes you were given and never spent. Spend it this week."],
-["X", "The Waiting Room", "a place built to hold you comfortably. Pleasant, provisional, and it has chairs.", "you are not waiting for anything specific. The waiting has become the activity.", "Name the event you are waiting for. If you cannot, you are not waiting, you are staying."],
-["XI", "The Ledger", "the honest count of what this has cost so far. Sunk, and still worth knowing.", "you are staying in order to justify the spend. The money is gone either way.", "Total the years. Then decide as though you had spent nothing."],
-["XII", "The Door You Already Went Through", "an old decision still shaping the floor plan. You are living in the room it opened.", "you are relitigating a door that closed. That energy has nowhere to go and it is going there anyway.", "Say the old decision out loud in the past tense, once, and then stop."],
-["XIII", "The Wall You Call A Door", "this one will never open. Naming it a wall gives you back the year you were spending on it.", "it is a door, and you have decided it is a wall, which is easier than being refused.", "Test it once, properly, and then either quit it or stop pretending you have."],
-["XIV", "The Draft", "cold air from somewhere. There is an opening you have not found. Follow it to the source.", "you feel the draft and keep the door shut, because a real opening would require a decision.", "Follow the restlessness to the specific thing. Write the specific thing down."],
-["XV", "The Comfortable Lock", "a constraint you would keep even if handed the key. Genuine, and worth admitting out loud.", "you call it a constraint. It is a preference wearing a constraint's coat.", "Ask what you would do if it vanished tonight. Watch whether you feel relief or panic."],
-["XVI", "The Collapse", "the wall comes down and makes a door you did not choose. Layoff, diagnosis, ending. The opening is real anyway.", "you are waiting for the collapse to choose for you, and calling that patience.", "Decide one thing before it is decided for you."],
-["XVII", "The Light Under The Door", "proof that something is on the other side. Not a plan, but enough to justify the knock.", "you have seen the light and are treating it as sufficient. Seeing is not entering.", "Knock once this week, in the cheapest way available."],
-["XVIII", "The Fog In The Hall", "you cannot tell doors from walls right now. Do not choose today. Gather, and set a date to choose.", "the fog has become the address. Confusion is doing work for you and you know what work.", "Set the date you will decide by, with or without clarity."],
-["XIX", "Open Daylight", "the door is open, the room is plainly good, and you may simply walk through. Rare. Do not overthink it.", "it is open and you are hunting for the catch, because unearned things frighten you.", "Walk through. Today, if the door is genuinely open."],
-["XX", "The Roll Call", "someone is asking who is coming. An answer is required, and silence is one of the answers.", "you were called and heard it as pressure. It was an invitation, and it expires.", "Answer the person who asked. Yes or no, this week."],
-["XXI", "The New Room", "through. The circuit closes. Look around properly before you start noticing the doors, and there are doors.", "you arrived and immediately started leaving. Nothing lands because nothing is allowed to land.", "Stay put for one season. Write down what the room is actually like."]
+["0", "The Water You Are In", "where you actually are, described without flattery. Depth, set, what the boat is doing, what is aboard and what is not. Every decision after this one is built on this reading.", "you are reading water you sailed three years ago, or water you have not reached yet. The log is out of date and you keep quoting it.", "Write four true sentences about your situation that you would not post."],
+["I", "The Cost of Staying", "holding station is not free. The engine runs, the fuel burns, the crew ages, and the bill arrives monthly in a currency nobody printed on the invoice.", "you have stopped reading the gauge. Something is draining and you have decided it is not worth measuring, which is exactly how it keeps draining.", "Name this month's cost in one currency that is not money."],
+["II", "The Tide", "the tide runs on its own schedule. The gate opens for two hours whether or not the boat is ready, and missing it costs six hours, or a fortnight.", "the deadline is one you invented so you would not have to choose. Real tides are printed in a book, and you have not opened the book.", "Find out whether the deadline is real. One question, one person."],
+["III", "The Chart That Is Wrong", "you are working from an old survey. The bank has moved, the mark is gone, and the depths were sounded by a man with a lead line in 1974.", "the chart is fine and you will not read it, because the route it shows goes somewhere you have already decided not to go.", "Check one fact you have been assuming for over a year."],
+["IV", "The Channel", "this opens onto more water, not onto a harbour. A channel is a way through. Getting through it changes your position, and it does not change your life.", "you are treating a channel as a destination, and you will be surprised when arriving feels like nothing at all.", "Name the passage after this one. If you cannot, this is a channel."],
+["V", "The One-Way Passage", "you cannot come back through this one. The bar breaks behind you, the season shuts, the money is spent. Decide slowly, and decide once.", "you are treating a passage you could reverse as permanent. Most of them let you turn round, and the cost of turning round is usually embarrassment.", "Say out loud what turning back would cost. Then price it honestly."],
+["VI", "The Circle", "you have sailed a shape that returns you to the same anchorage. The log reads sixty miles and the position reads unchanged. Effort is not progress.", "you know it is a circuit, you like the circuit, and somewhere along the way you started calling it a career.", "List the last three times you did this. Look at the dates."],
+["VII", "The Lee Shore", "the wind is setting you down onto rocks while you do nothing wrong. Nobody makes a mistake on a lee shore. You work off it early and hard, or you do not get off it.", "you can feel the set and you are still calling it fine, because getting off costs a tack you do not want to make.", "Name the drift. Make one hard move upwind this week."],
+["VIII", "The Threshold", "one foot on the dock and one on the boat, warps still on. This is the most expensive place to live, and the fenders wear through while you stand in it.", "you have built a life in the gap and called it keeping your options open. The gap is a choice, and you make it again every morning.", "Set a date. On or off, and the date is the whole exercise."],
+["IX", "The Permission Already Given", "somebody said yes. The berth is yours, the invitation stands, the money was approved. None of it has been used and all of it has a shelf life.", "you know about the yes and will not spend it, because spending it removes the excuse and leaves only the work.", "Find the yes you never spent. Spend it this week."],
+["X", "The Comfortable Harbour", "good holding, hot showers, decent neighbours, and a bar that knows your name. Everything here is pleasant and every bit of it is provisional.", "you are not waiting for weather. You are waiting for nothing in particular, and the waiting has quietly become the activity.", "Name the weather you are waiting for. If you cannot, you are staying."],
+["XI", "The Ledger", "the honest count of what this has cost so far. Years, money, two friendships, one back. It is spent either way, and it is still worth reading.", "you are carrying on in order to justify the spend. The fuel burned yesterday does not come back because you finish the passage.", "Total the years. Then decide as though you had spent nothing."],
+["XII", "The Passage Already Made", "an old decision put you in this water. The boat you bought, the city you moved to, the person you said yes to. You are sailing in what it opened.", "you are still arguing that passage in your head at 0300. The argument has nowhere to go and it takes the watch anyway.", "Say the old decision out loud in the past tense. Once."],
+["XIII", "The Passage That Is Not There", "the chart shows a channel and the ground does not have one. It shoaled, it silted, it was never properly surveyed. You can spend a year proving this.", "the channel is open and you have decided it is not, because deciding that is cheaper than being turned back at the entrance.", "Sound it once, properly. Then quit it or stop pretending you have."],
+["XIV", "The Swell From Somewhere", "a long swell with no wind behind it. Something is blowing hard over the horizon, two days out, and the water has arrived ahead of the news.", "you feel the swell and hold the course, because tracing it back would turn a mood into a fact you would have to act on.", "Follow the restlessness to the specific thing. Write the thing down."],
+["XV", "The Mooring You Would Keep", "a line you would put back on yourself if somebody cut it tonight. A kid, a promise, a boat you will not sell. A real constraint, freely chosen.", "you call it a constraint because a constraint needs no defending. A preference does, and what you have here is a preference.", "Ask what you would do if it vanished tonight. Watch for relief or panic."],
+["XVI", "The Squall", "it comes over the ridge in ten minutes, lays the boat down, and leaves you somewhere you would never have chosen. Layoff, diagnosis, a death. The new water is real water.", "you are half hoping for the squall, because a squall decides for you. That is not patience. That is waiting to be forced.", "Decide one thing before it is decided for you."],
+["XVII", "The Light On The Water", "a loom on the horizon where the chart shows nothing. It is proof that something is out there. It is not a plan, and it does not have to be one.", "you have seen the light and are treating the seeing as the trip. Looking from here costs nothing, which is why you keep doing it.", "Go and look. The cheapest way available, this week."],
+["XVIII", "The Fog", "visibility two hundred metres. Headlands and open water look the same, the radar shows returns you cannot name, and anything decided now is a guess wearing a heading.", "the fog has become the address. Not knowing is doing work for you, and you know exactly what work.", "Set the date you will decide by, fog or no fog."],
+["XIX", "Open Water", "sea room, fair wind, nothing to hit for sixty miles. It is plainly good and plainly available, and it happens perhaps twice a season.", "it is open and you are hunting for the catch, because a thing you did not suffer for does not yet feel like yours.", "Go. Today, while it holds."],
+["XX", "The Roll Call", "someone is asking who is coming. A crew list, a proposal, a date on a calendar. An answer is required, and silence is one of the answers.", "you heard the ask as pressure. It was an invitation, it has a closing date, and not answering will answer it for you.", "Answer the person who asked. Yes or no, this week."],
+["XXI", "The New Water", "through, and the circuit closes. Different tides, different holding, a different set of hazards nobody warned you about. This water has its own weather.", "you arrived and started planning the next passage before the anchor was down. Nothing lands here, because you do not let anything land.", "Stay one season. Write down what this water is actually like."]
 ];
 
-const RANKS = ["One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Gatekeeper", "Guide", "Companion", "Ghost"];
+const RANKS = ["One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Pilot", "Crew", "Beacon", "Wake"];
 
 /* rank -> [short key for the reading, longer line for the guide] */
 const STAGES = [
-["notice, the door exists", "notice. You have just admitted the door is there. Nothing else has happened yet, and that is fine."],
-["name, saying what is behind it", "name. Putting words to what is on the other side. A named want can be refused. An unnamed one stays perfect."],
-["scout, finding who went through", "scout. Somebody has walked this hall already. Their route beats the official one."],
-["the cheapest test", "the cheapest test. The smallest thing that returns real information. Buy information before you buy the decision."],
-["the refusal, the failed test", "the refusal. The no, the failed test, the map that was wrong. This is the measurement, not the verdict."],
-["revise, the second version", "revise. The second attempt, built out of what the no taught you. Most yeses are second asks."],
-["the wait", "the wait. You have knocked and nothing has come back. The hardest stage to sit in without flinching."],
-["the reps", "the reps. Doing it enough times that it stops being a question. Unglamorous, and where most doors actually open."],
-["the threshold, and it costs", "the threshold. You can go, and going costs exactly what you were told it would. The most expensive place to stand."],
-["through, and the next room", "through. The door is behind you. The room has its own doors, and you will notice them shortly."],
-["the one who can say no", "the Gatekeeper. Whoever can refuse you: a person, a committee, a rule, or your idea of them."],
-["the one already through", "the Guide. Someone who has done it and would tell you. Costs one message, and most people never send it."],
-["the one going with you", "the Companion. Whoever is coming, or paying, or waiting. They change what is survivable."],
-["who you would stop being", "the Ghost. The person you would have to stop being to fit through. The quietest reason people stay."]
+["the stir, before a destination", "the stir. Restlessness before there is anywhere to go. Not lost, because lost needs somewhere you meant to be."],
+["the heading, not yet a place", "the heading. A bearing rather than an address. Enough to steer by, and not enough to arrive at."],
+["the chart, other people's work", "the chart. What somebody already surveyed and wrote down. Charts are built out of other people's groundings."],
+["departure, the last honest fix", "departure. Leaving is a discrete act. The last fixed point before open water, and everything after is measured off it."],
+["the drift, off course unnoticed", "the drift. Set sideways while the helm never moved. Every Five is this shape: wrong without an error, and quiet about it."],
+["the fix, from outside yourself", "the fix. Two bearings crossed on something real. It costs five minutes and ends an argument you have been having with yourself."],
+["the passage, the long middle", "the passage. The unremarkable middle, where nothing is wrong and nothing is happening. Most of any crossing looks like this."],
+["the crossing, committed", "the crossing. Past the point where turning back costs more than going on. The decision was made earlier than it feels."],
+["landfall, and the rocks", "landfall. Land in sight and the pilotage not done. More boats are lost on arrival than at sea."],
+["the next horizon", "the next horizon. Tied up, and the next chart already in the drawer. Arriving is how you learn what the next passage is."],
+["someone who knows this water", "the Pilot. Somebody who knows this water and is not you. A pilot does not take the helm, they tell you where the rock is."],
+["who is aboard at 0300", "the Crew. Who is with you, and what they can do at the worst hour. Not enthusiasm. Competence at three in the morning."],
+["the one thing that holds still", "the Beacon. The single fixed thing everything else gets measured against. A light, a rule, a person, a number you will not go below."],
+["the track behind you", "the Wake. Who you were, still readable astern. It shows the corrections you actually made, not the ones you meant to."]
 ];
 
-const KINDS = {
-hidden:[
-["a draft from somewhere. There is more floor plan than you have walked.", "you have noticed nothing because you have not looked up in months. The building is not small, your attention is.", "Write down the one thing you suspect exists and cannot yet name."],
-["the thing you want has a word, and probably a field, and probably people in it.", "you keep it vague on purpose. Vague cannot be refused, and it stays perfect.", "Spend twenty minutes finding out what it is called."],
-["someone has walked this hall already and left an account of it.", "you have read plenty and asked no one. Research has become the way you avoid contact.", "Find three people who did the thing. Read what they wrote."],
-["one coffee, one job listing, one afternoon watching somebody do it.", "you keep testing what you already know, to postpone testing what you do not.", "Buy the cheapest hour of information available this week."],
-["the map was wrong. What you learned kills the plan, which is the plan working.", "the map was fine and you did not read it. The information arrived and you filed it.", "Write down which specific belief just died."],
-["the second look, better aimed. The wrong answer taught you the sharper question.", "you are redrawing the map instead of walking. Another version is not another step.", "Ask the sharper question, of the same person, this week."],
-["the question is out and the answer has not come back.", "nobody is answering because nobody was clearly asked.", "Sit with not knowing for a set number of days, then act on the best guess."],
-["learning it properly. Reps at the material until the hall has a shape.", "study as shelter. You are becoming an expert on the door instead of opening it.", "One hour a day against the actual material. Start tomorrow."],
-["you can see it now, and seeing costs. What you know makes staying harder.", "you know, and you are unknowing it on purpose. The comfortable version is available and false.", "Say the thing you now know out loud, to one person."],
-["through, and the fog is behind you.", "you got through and told nobody. The map dies with the crossing.", "Write the map you wish you had had, for whoever is behind you."],
-["the person who could simply tell you, and has not been asked. Confusion is often an unsent question.", "the gatekeeper is your assumption that asking will look stupid.", "Ask the obvious question of the obvious person."],
-["someone holds the map and would hand it over.", "you have the guide and will not use them, because using them makes the want real.", "One paragraph, sent today, no apology in it."],
-["someone lost in the same hall. Two maps of one fog beat one.", "you are comparing notes with people equally lost and calling it progress.", "Find one person further along than the ones you talk to."],
-["you would have to stop being the person who has it figured out.", "not knowing has become the identity. Being the one still searching is now the point.", "Say I do not know, out loud, to someone whose opinion you care about."]
+const SUITS = {
+perception:[
+["you keep looking up at the same thing and you cannot say why. Whatever is out there does not need your name for it to be there.", "you throw out anything you cannot yet describe, so the only things that reach you are the ones you already had a word for.", "Write down three things you caught yourself looking at this week. Do not explain them."],
+["a smudge on the horizon that could be cloud or could be land. At this range nobody can tell. That is a fact about distance, not about your eyes.", "you want it named before you will look at it twice, so you look away and call it nothing.", "Look at the smudge again every day for a week. Write what resolves."],
+["the pilot book says what the entrance looks like from seaward: a white house, a notch in the ridge. Someone stood where you are standing and wrote down what they saw.", "you read the description so hard that you see the white house before it is there. A borrowed picture paints itself over the water.", "Read the description once. Then put it down and say out loud what you actually see."],
+["the last hour when the land still has detail. Windows, a road, one particular tree. After that it is a grey line, and then it is nothing.", "you are photographing it instead of looking at it. That is how six years in a place becomes eleven pictures.", "Spend ten minutes looking at what you are leaving. No camera."],
+["your eyes need twenty minutes to adapt to the dark and one second of white light to lose it. The screen has been on all watch.", "you believe you are watching the water. You are watching a screen and calling the result night.", "Kill the screens for an hour. Count what you can see after that you could not before."],
+["every instrument carries a known error, and half of what you misread was labelled wrong to start with. The door that says pull and opens by pushing is not a test of your intelligence.", "you file every misreading as evidence about yourself, so you never check the offset, the gauge, or the sign on the door.", "Check one instrument against the real thing this week. Write the error down and keep it."],
+["hour after hour of the same grey water. Nothing appears. The whole job is to keep looking at a sea that has given you nothing for two days.", "your eyes have settled on the middle distance, which is how ships arrive out of nowhere. Nothing arrives out of nowhere.", "Sweep the full horizon every ten minutes, near water to far. Especially when it is empty."],
+["the coast behind is under the horizon and nothing ahead is up yet. For a day or two the only thing in sight is your own boat.", "you read having no landmark as having no proof, and go hunting the horizon for comfort instead of reading what is ten feet away.", "Look at what is close: the rig, the sea state, the faces on watch. Read those."],
+["the coast comes up as one flat wall and then, over an hour, separates into headlands, a gap, a beach. The detail was always there. Your range was the problem.", "you named the gap an hour ago, and every new detail since has been bent to fit the name.", "Say what you see before you say what it is. Re-name it every twenty minutes."],
+["from the deck the horizon is three miles off. From the hill behind the harbour it is fifteen. The other twelve miles were there the whole time.", "you treat the edge of what you can see as the edge of what exists, and then call the rest of it surprise.", "Get above your usual eye height once this month. Look, then come down."],
+["the local points at flat water and says there is a reef there. You look and see water. They are not seeing more than you. They have been seeing longer.", "you want the rule instead of the pointing finger, because being shown what you walked past costs something.", "Stand next to someone who has watched your problem for ten years. Ask what they see."],
+["the headsail hides a whole sector of water, and from the helm you cannot know that. A second pair of eyes is not courtesy. It is the sector you do not have.", "you ask people what they think and never what they see. One is an opinion. The other is the thing you missed.", "Ask one person what they notice about this that you have not mentioned."],
+["a light is known by its rhythm, not its brightness. Four seconds on, six off, timed with a watch before you trust the name on it.", "you rank lights by how bright they look from where you stand, which is how the nearest thing keeps getting mistaken for the important one.", "Time one thing before you believe it. Watch the pattern for a month, not the flare."],
+["the fitting on deck you stopped seeing three years ago. New, then normal, then invisible. Still there. Still corroding.", "your eye writes over whatever stays put, so the room you live in is the one you last actually looked at in 2023.", "Walk one room of your own life as a stranger. Name three things you stopped seeing."]
 ],
-locked:[
-["there is a door and you do not hold the key. Most locked doors are anonymous only because nobody looked.", "you decided it was locked without ever touching the handle.", "Name who actually holds the key. A person, not an institution."],
-["a specific ask can be granted. A hint cannot.", "you are hinting so that a no will not count as a no.", "Write the ask as one sentence you could send unedited."],
-["someone got this key. What they did is rarely the stated process.", "you are studying the official route because it is the one that cannot embarrass you.", "Ask one person who got in how they actually got in."],
-["knock. The email, the application, the ask, sized so a no costs you nothing.", "you knocked on an easier door in order to feel like you had knocked.", "Send it this week. Sized so the no is survivable."],
-["the no. A real one, and it is information. Ask what would change it.", "you heard no once, years ago, and have been treating it as policy ever since.", "Ask what would have to be true for the answer to be yes."],
-["the second ask, built from the first refusal. Same door, better case.", "you are asking again without having changed anything, which reads as pressure.", "Change one thing about the case, then ask again."],
-["you knocked and nothing came back. The silence is not yet an answer.", "you have not knocked, you have been drafting.", "Send it unfinished. Set one follow-up date and stop refreshing."],
-["making yourself undeniable. Build the record that makes the yes easy for them.", "you are collecting credentials the gatekeeper never asked for.", "Ship one piece of visible work they could point at."],
-["the key is offered, and taking it binds you to something.", "you want the key more than the room, and you know it.", "Read what you would be agreeing to before the relief makes you sign."],
-["granted. You are inside.", "you got in and pulled the ladder up behind you.", "Write down the real route and hand it to one person outside."],
-["whoever can say no. Learn what they are protecting. Nobody guards a door for no reason.", "the gatekeeper is a story. There is no committee, only your idea of one.", "Find out what the gatekeeper is actually afraid of."],
-["someone inside who could vouch. A referral outruns an application.", "you will not ask for the vouch, because owing someone is worse to you than being outside.", "Ask for the introduction, by name, specifically."],
-["someone asking alongside you. Two asking is a pattern.", "you are treating a fellow applicant as the obstacle. The gate is the obstacle.", "Coordinate with the person you have been quietly racing."],
-["you would have to stop being someone who does not need permission.", "the self-sufficiency is the lock. You built it and you are proud of it.", "Ask plainly, without irony, and let it be an ask."]
+navigation:[
+["you are underway with no destination entered. Not lost, because lost requires somewhere you meant to be. Moving, and that is all.", "you call it exploring. It has been three years, and exploring without a waypoint is called drifting.", "Name one place you would be glad to end up. It does not have to be the right one."],
+["a bearing, not an address. Northwest is enough to steer by and it will not get you a berth.", "you are holding out for the address, because a heading feels like settling for less than you deserve.", "Hold the bearing one month without promoting it to a plan."],
+["somebody surveyed this water and wrote it down. Charts are built out of other people's groundings.", "you trust the chart over the depth sounder, because reading is easier than leaning over the side.", "Read the chart. Then check one thing on it against the actual water."],
+["the last fixed point before open water. Every position you compute from here is measured off this one mark, so it had better be honest.", "you keep re-checking the mooring lines. The boat has been ready for a month.", "Write down where you actually are today, unflattered. Then go."],
+["the current set you sideways the whole watch. Your heading never changed and your track did.", "you are steering beautifully and watching only the compass. Nothing on a compass shows leeway.", "Compare where you meant to be a year ago with where you are. Measure the gap before you explain it."],
+["two bearings crossed on something real. A fix costs five minutes and ends an argument you have been having with yourself since spring.", "you have avoided taking one, because a fix can disagree with you and dead reckoning never does.", "Take the fix. One number, one outside source, this week."],
+["day four. Nothing is wrong, nothing is happening, and the log entries get shorter. Most of any crossing looks exactly like this.", "you read the boredom as proof of a wrong turn. It is proof of a passage.", "Keep the log anyway. Dull entries are how you spot the drift later."],
+["past the point where turning back costs more than carrying on. The decision was made two days ago and you are only feeling it now.", "you are still shopping for an exit, which is how people arrive exhausted at a place they chose.", "Stop pricing the retreat. Sail the boat you are on."],
+["land in sight and the pilotage not yet done. More boats are lost on arrival than at sea, because the crew stops navigating once they can see the hill.", "you have already told people you made it. The last six miles hold the rocks.", "Work the final leg as carefully as the first. Announce nothing yet."],
+["tied up, and the chart for the next stretch already in the drawer. Arriving is how you learn what the next passage is.", "you left the moment you arrived, and have never once actually been in a harbour.", "Stay long enough to know the place. Then open the drawer."],
+["somebody who knows this water and is not on your boat. A pilot does not take the helm. They tell you where the rock is.", "you would rather run it yourself than admit you are in water you cannot read.", "Ask the person who has run this passage what they wish they had known."],
+["who is aboard, and what they can actually do at three in the morning. Crew is not enthusiasm. It is competence at the worst hour.", "you picked the crew you enjoy over the crew you need, and you will find out in the dark.", "Name who you would want on watch at 0300. Ask them this week."],
+["the one thing that does not move. A light, a rule, a person, a number you will not go below. Everything else gets measured against it.", "you have been steering by another boat. Boats move.", "Name the one thing you will not trade. Write it where you will see it."],
+["the track behind you, still readable. It shows every correction you actually made, not the ones you meant to.", "you are steering by the wake, which is how a course that stopped making sense years ago still gets held.", "Look at your last three big decisions. Ask whether you would make them again from here."]
 ],
-heavy:[
-["unlocked, and it does not move. Nobody is stopping you.", "you call it locked because heavy is a verdict on you and locked is not.", "Put your shoulder to it once, so you learn the real weight."],
-["not I am not good enough, but I cannot yet do this specific thing.", "the vagueness protects you. Unmeasured, the gap can be any size, including infinite.", "Write the specific missing capability in one line."],
-["someone lighter than you got it open.", "you are comparing your beginning to their middle and calling it evidence.", "Find out what their first year looked like."],
-["ten minutes, badly, today. The test is whether you come back tomorrow.", "you are planning the training instead of training. The plan is the avoidance.", "Do the smallest rep today. Then do it again tomorrow."],
-["you tried and it did not move. That is a measurement.", "you stopped at the first strain and read it as proof. Strain is what the door feels like.", "Note precisely which part failed. Not that it failed."],
-["smaller reps, aimed at the part that failed.", "you switched doors instead of getting stronger. Again.", "Rebuild the practice around the specific weakness."],
-["the plateau. Nothing visibly improves and the work is still working.", "you are waiting to feel ready. Readiness comes after the reps, never before.", "Keep the streak. Stop checking the scale for two weeks."],
-["the reps that make the thing. This is the whole card and most of the suit.", "volume without feedback. You are practising your mistakes with great discipline.", "Show up on the day you do not want to."],
-["it moves now, and moving it costs everything you have that week.", "you can carry it, and you are proving something to somebody who is not watching.", "Decide whether you can pay that repeatedly, or only once."],
-["through, and the weight is normal now.", "you got strong for a door you no longer want, and you are still training.", "Notice what became easy. Then find the next thing you cannot lift."],
-["the standard itself. Real, indifferent, and not interested in your argument.", "the bar you are training for is one you invented, set high enough never to be attempted.", "Find out the actual standard. Not the one in your head."],
-["a coach. Someone who will tell you what is wrong with your form.", "you avoid coaching because a witness makes the gap official.", "Buy one hour of somebody telling you what you are doing wrong."],
-["someone doing the reps beside you. Attendance is contagious.", "your training partners let you skip. That is company, not practice.", "Set a standing time with one person who shows up."],
-["you would have to stop being naturally good at things.", "the talent story is the weight. Effort would mean you were never gifted.", "Be a beginner somewhere visible."]
+paths:[
+["three tracks leave this valley. Not one of them was cut for you, and not one of them is closed.", "you are waiting for one of them to be signposted. Paths get named after people walk them, not before.", "Walk the first mile of one of them this week. The first mile only."],
+["two roads run north. One is forty miles of gravel that never gets steep, the other is twelve miles across a bog. The direction is settled. The route is not.", "you keep re-opening the question of north. Comparing the two routes means pricing them in days, and a price is harder to hold than a direction.", "Price both routes in days, not in miles. Take the cheaper one."],
+["the track is worn a foot deep. That groove is other people's feet, and it goes the long way round the hill for a reason nobody wrote down.", "you want the reason before you will use the path. The wear is the reason.", "Follow the worn line once, the whole way. Mark where it does something you would not have done."],
+["the trailhead. Road behind, route ahead, and the last place a vehicle reaches you for four days. What is not in the pack is not coming.", "you are still repacking at the trailhead. The route does not get shorter while you sort the food into bags.", "Fix the start date. Whatever is in the pack that morning goes."],
+["the road is well graded and it was built for logging. It runs your way for nine miles and then climbs to a cut block, which is where it was always going.", "the surface is easy, so you kept taking it. Easy is a fact about the road and says nothing about where it ends.", "Find out where the road you are on actually ends. Look it up this week."],
+["your track crosses a numbered road two miles east. That junction is the only place this route touches anything with a name on it.", "you will not spend the two miles sideways, because a detour feels like distance lost. It is the cheapest two miles on the route.", "Take the detour to the junction. Two miles sideways against forty forward."],
+["eleven switchbacks. Each one hands you back ground you can already see, and together they are the only way up this face.", "you read the zigzag as wasted distance. It is the grade being paid off in instalments, which is the only way this grade gets paid.", "Walk every switchback. Cutting one costs the trail more than it saves you."],
+["the channel carries water for ninety minutes either side of high tide. You are in it, the tide is falling, and the way you came is already mud.", "you are measuring the mud behind you instead of the miles ahead. Mud is not a route, whatever it was two hours ago.", "Spend the falling tide getting to the far bank. Look behind you at slack, not before."],
+["the trail is good for nineteen miles and the last one is alder and windfall. Nobody maintains that mile, because everybody who lives there arrives from the other side.", "you costed the whole route at trail speed. The last mile takes longer than the six before it.", "Budget the last mile at four times the rest. Book nothing for that evening."],
+["you got here and it is a junction, not an end. Four routes leave the far side, and not one of them was on the map you carried in.", "you are reading the new routes as an insult to the one you just walked. They are what walking it bought.", "Draw the four onward routes on paper. Choose none of them this month."],
+["somebody walked this in June and knows the lower trail is under snowmelt until the tenth. That is on no map, and it decides which side of the river you take.", "you keep reading about the route instead of finding the one person who has been on it.", "Find someone who has walked it. Ask which section they would skip."],
+["a party moves at the pace of its slowest member, so the route has to be cut to that pace. The line you would take alone is not available to four people.", "you picked the route for your own good day, alone. Then you invited three people and did not pick again.", "Re-plan the route around the slowest person coming. Tell them you did."],
+["one road stays open all winter. Every route in this country is described by how many days it lies from that road, which is the only honest measure of how far out you are.", "you have been counting miles. Miles do not tell you how many days you are from help.", "Count the days from your current plan back to the open road. Write the number down."],
+["the way you came is a path now. You wore it in by using it, and it is what you will take without thinking next time, and so will anyone behind you.", "you are still walking the line you cut when the ground was different. It was the best route in 2019.", "Cut one new line to a place you go often. Once is enough to start it."]
 ],
-costly:[
-["the door is open. You could walk through this month.", "you keep calling it impossible, because possible means the choice is yours.", "Write the price down in plain numbers."],
-["money, years, a city, a relationship, a version of yourself.", "you are pricing only the money, because the money is the least of it.", "Name every currency this would be paid in. All of them."],
-["find someone who paid. Ask what it cost a year later, not on the day.", "you are collecting stories from people who paid and regret it. On purpose.", "Ask one person who paid what the second year was like."],
-["rent a piece of it. A week of the life, one trip, one month at the lower number.", "you took the sample and called it the experience. Sampling is not paying.", "Buy the smallest real piece of it you can afford."],
-["the bill arrives and it is larger than quoted.", "you paid a price nobody asked for, so the decision would feel already made.", "Reprice it honestly. Do not defend the first number."],
-["the same door at a different price. Part-time, later, smaller, with help.", "you are negotiating with yourself to avoid deciding. Every discount is a delay.", "Find the cheaper version of the door nobody advertises."],
-["waiting for the price to fall. Sometimes it does.", "you are waiting for it to be free, which is waiting forever with good manners.", "Set the date you pay full price anyway."],
-["building the runway that makes the price survivable.", "the saving has become the plan. No number will ever feel like enough.", "Automate the saving and stop deliberating over it."],
-["the threshold, and it costs exactly what you were told.", "you can pay and you are haggling, because paying makes it yours.", "Pay it or walk away clean. Do not stand here another season."],
-["paid, and through.", "you are through and still itemising the bill. The cost is the only thing you talk about.", "Stop auditing the price. Look at the room."],
-["the ledger. Rent, dependents, obligations, the real ones. They are allowed to be the answer.", "you are hiding behind obligations that would survive this decision fine.", "Count the real obligations honestly. Then count the decorative ones."],
-["someone who paid and would tell you the true number.", "you only ask the people who will tell you it was worth it.", "Ask what they wish they had known about the cost."],
-["the person who pays alongside you. They get a vote and have not been given one.", "you are spending somebody else's money and calling it your courage.", "Ask them tonight. Actually ask, do not announce."],
-["you would have to stop being someone with options. Choosing closes the rest.", "you are keeping every door ajar, which is a way of never entering a room.", "Close one door on purpose, out loud, this week."]
+doors:[
+["you keep ending up at the same door with no errand on the other side. No plan, no reason, just a hand on the latch.", "you are waiting for a reason good enough to justify opening it. Reasons get written afterward, by people already through.", "Open one door this week with nothing planned behind it. Ten minutes in the room is enough."],
+["you know you want through, not through what. That is a wall with several doors in it and no sign over any of them.", "you are holding out for the door that comes labelled. Labels get painted on later, by whoever walked through first.", "Name the building you are trying to leave. The door can wait a week."],
+["someone has already been through this door and knows what the room costs to live in. That price exists, usually written down by the ones who did not stay.", "you keep asking people how hard the door was to open. They answer about the doorway, which was never the expensive part.", "Find two people on the far side. Ask what year three cost, not week one."],
+["the sill. One step wide, about a second long. Everything before it was preparation and everything after it is a different problem entirely.", "you have stood in the doorway long enough to call it deciding. A doorway is not a room, and nobody lives in one.", "Name the hour you will cross. Cross at that hour."],
+["the door behind you latched at some point and nobody heard it. You have been making plans all year that quietly assume it is still open.", "you are keeping the way back warm because holding it seems free. It is not free. It is the reason nothing has started.", "Go and try one door you assume is still open. Do it this week, before the plan needs it."],
+["the only honest test of a door is the handle from the other side. Most people never try it and carry an opinion instead.", "you have called this one a one way door because coming back would look foolish. Embarrassment is not a lock.", "Take the door you swore was one way. Try it once this week."],
+["week six in the new room. Nothing here is new any more, nobody mentions the door, and the work looks like work. This is what crossing actually buys.", "you are waiting for the room to feel the way the doorway felt. Rooms never do, and that is what makes them rooms.", "Do one thing this week that only makes sense if you are staying."],
+["the lock gate behind you is shut and the water has already changed level. Ahead is a gate that opens. Behind is a wall.", "you keep checking the gate behind for a handle. It has none on this side, which is what a lock gate is.", "Put the next hour into the gate ahead of you. It is the only one with a handle."],
+["you are through, standing just inside with your coat still on. The room has its own doors and its own rules, and none of them came with the door you crossed.", "you are treating the crossing as the achievement. The crossing took a second. Living here takes years.", "Take the coat off. Find out who holds the keys in this room."],
+["there is another door in the far wall of the room you just entered. Rooms are built that way. From outside, a door is the only part of a room you get.", "you wanted that to be the last one, so you are treating the next door as proof the first was wrong. It is just the shape of rooms.", "Walk the far wall. Name the next door while this room is still new."],
+["someone went through this door and stayed. They know the hinges, what the second year cost, and the parts nobody puts in the story.", "you want to be told to go. What is useful is an hour with someone who cannot be flattered by your plan.", "Buy one hour from someone on the far side. Ask what they would not do again."],
+["some doors only open from the inside. Somebody already in there has to put a hand on it, and they have to want to.", "you are waiting until you deserve the introduction. The people who get let through are the ones who asked, usually badly.", "Ask one person to open one door for you. Name the door out loud."],
+["the door you will not go through, settled before anyone offers. A rule about crossings, made in daylight, outlives anything you can decide at 0300.", "you keep the rule soft so you can stay reasonable in the moment. A rule you can argue with at the sill is a preference.", "Write down one door you will not open. Decide it now, while nothing is on offer."],
+["a door you went through years ago, and you are still arguing the case for it. The room you stand in was built by that crossing, whichever way the argument lands.", "you reopen it because a verdict would feel like permission to stay. Nobody is coming to hand you one.", "Close the case out loud. Say the crossing was yours and so is the room."]
 ]
 };
 
-const KINDMETA = {
-  hidden: {label:"Hidden", alt:"Fog, The Unseen", holds:"Knowledge", domain:"you cannot see it from where you are standing",
-         short:"knowledge · you cannot see it", plain:"you do not know it is there", v:"var(--kind-hidden)"},
-  locked: {label:"Locked", alt:"Gates, Keys", holds:"Permission", domain:"someone else holds the key and has to hand it over",
-         short:"permission · someone holds the key", plain:"somebody else decides", v:"var(--kind-locked)"},
-  heavy: {label:"Heavy", alt:"Stone, Weight", holds:"Capacity", domain:"unlocked already, and you are not strong enough yet",
-         short:"capacity · not strong enough yet", plain:"you cannot do it yet", v:"var(--kind-heavy)"},
-  costly: {label:"Costly", alt:"Tolls, The Price", holds:"Price", domain:"wide open, and walking through costs something real",
-         short:"price · open, and it costs", plain:"you do not want to pay", v:"var(--kind-costly)"},
+const SUITMETA = {
+  perception: {label:"Perception", alt:"The Eye, Sight", side:"yours", domain:"what registers at all, what is distorted, and what you stopped looking at",
+         short:"yours · what registers", plain:"how you see it", v:"var(--suit-perception)"},
+  navigation: {label:"Navigation", alt:"The Helm, Steering", side:"yours", domain:"how you pick a direction, hold it, and learn where you actually are",
+         short:"yours · heading and fix", plain:"where you are going", v:"var(--suit-navigation)"},
+  paths: {label:"Paths", alt:"Routes, Tracks", side:"the world's", domain:"the routes that exist between here and there, and what they cost",
+         short:"the world's · routes and their cost", plain:"the ways there", v:"var(--suit-paths)"},
+  doors: {label:"Doors", alt:"Thresholds, Crossings", side:"the world's", domain:"the discrete crossings, what they cost to open and what they cost to live past",
+         short:"the world's · crossings and costs", plain:"the crossings", v:"var(--suit-doors)"},
 };
-const KIND_ORDER = ["hidden", "locked", "heavy", "costly"];
+const SUIT_ORDER = ["perception", "navigation", "paths", "doors"];
 
 /* a second, smaller deck: not what the door is, but which route you take at it */
 const APPROACHES = [
@@ -603,51 +606,53 @@ const APPROACHES = [
 ];
 
 
-const EMBLEM = [
- "<path d=\"M20 20h60v22M80 62v18H20V20\"/><path d=\"M80 42a20 20 0 0 0-20 20\"/>",
- "<path d=\"M28 84V28h30v56\"/><circle cx=\"76\" cy=\"34\" r=\"7\"/><circle cx=\"76\" cy=\"55\" r=\"7\"/><circle cx=\"76\" cy=\"76\" r=\"7\"/>",
- "<path d=\"M28 86V24h44v62\"/><circle cx=\"50\" cy=\"50\" r=\"15\"/><path d=\"M50 41v9l7 5\"/>",
- "<path d=\"M16 30l22-8 24 8 22-8v48l-22 8-24-8-22 8z\"/><path d=\"M38 22v48M62 30v48\"/>",
- "<path d=\"M14 16l24 22v24l-24 22zM86 16L62 38v24l24 22\"/><path d=\"M38 38h24v24H38z\"/>",
- "<path d=\"M30 86V22h36v64\"/><path d=\"M18 54h64\"/><path d=\"M70 44l14 10-14 10\"/>",
- "<circle cx=\"50\" cy=\"50\" r=\"28\"/><path d=\"M50 22v56M22 50h56\"/><path d=\"M72 26a34 34 0 0 1 6 10\" stroke-width=\"3.2\"/>",
- "<rect x=\"18\" y=\"24\" width=\"64\" height=\"26\" rx=\"2\"/><path d=\"M34 37h24M50 29l8 8-8 8\"/><path d=\"M28 62v22h44V62\"/>",
- "<path d=\"M26 86V22h48v64\"/><path d=\"M50 22v64\"/><circle cx=\"50\" cy=\"38\" r=\"6\"/><path d=\"M50 44v20M50 64l-11 22M50 64l11 22M38 52h24\"/>",
- "<circle cx=\"34\" cy=\"36\" r=\"13\"/><circle cx=\"34\" cy=\"36\" r=\"4\"/><path d=\"M42 45l32 32\"/><path d=\"M60 63l9 9M52 55l9 9\"/>",
- "<path d=\"M16 40h68\"/><path d=\"M20 78V54h18v24M20 62h18\"/><path d=\"M41 78V54h18v24M41 62h18\"/><path d=\"M62 78V54h18v24M62 62h18\"/>",
- "<path d=\"M18 24h30v54H18zM52 24h30v54H52z\"/><path d=\"M24 37h18M24 47h18M24 57h18M58 37h18M58 47h18\"/>",
- "<path d=\"M56 82V20h26v62\"/><path d=\"M50 50H16\"/><path d=\"M28 40L16 50l12 10\"/>",
- "<path d=\"M18 22h64v54H18z\"/><path d=\"M18 40h64M18 58h64M42 22v18M64 40v18M30 58v18M72 22v18\"/><path d=\"M38 76V46h24v30\" stroke-dasharray=\"5 4\"/>",
- "<path d=\"M30 18h40v52H30z\"/><path d=\"M20 80c8-7 15 7 23 0s15 7 23 0\" stroke-width=\"3.2\"/><path d=\"M24 89c8-7 15 7 23 0s15 7 23 0\" stroke-width=\"3.2\"/>",
- "<rect x=\"28\" y=\"46\" width=\"44\" height=\"36\" rx=\"4\"/><path d=\"M37 46V33a13 13 0 0 1 26 0v13\"/><circle cx=\"50\" cy=\"61\" r=\"4\"/><path d=\"M50 65v8\"/>",
- "<path d=\"M18 80V24h64v56\"/><path d=\"M36 80V58l9-11-7-13 13-10\"/><path d=\"M66 80V62l-9-9 7-12-9-11\"/>",
- "<path d=\"M30 16h40v58H30z\"/><path d=\"M22 86l9-9M50 90V78M78 86l-9-9M36 89l5-10M64 89l-5-10\"/>",
- "<path d=\"M26 26h18v48H26zM56 26h18v48H56z\" stroke-dasharray=\"4 5\"/><path d=\"M12 44h76M12 56h76M12 68h76\" stroke-width=\"3.4\"/>",
- "<path d=\"M24 86V22h30v64\"/><path d=\"M54 22l24 9v55H54\"/><circle cx=\"68\" cy=\"50\" r=\"9\"/><path d=\"M68 36v-5M68 69v5M53 50h-4M83 50h-4\"/>",
- "<path d=\"M18 40l32-14v46L18 58z\"/><path d=\"M50 36h16\"/><path d=\"M56 64l9 9 17-22\"/>",
- "<path d=\"M14 84V20h34v64\"/><path d=\"M48 20l38 13v51H48\"/><path d=\"M58 44h9v24h-9zM74 49h7v19h-7\"/>"
-];
 
-function kindGlyph(kind){
-  if (kind==="hidden") return "<path d=\"M3 7.5c3-2.2 5.5 2.2 9 0s6 2.2 9 0M3 12.5c3-2.2 5.5 2.2 9 0s6 2.2 9 0M3 17.5c3-2.2 5.5 2.2 9 0s6 2.2 9 0\"/>";
-  if (kind==="locked") return "<path d=\"M5 22V8a7 7 0 0 1 14 0v14z\"/><circle cx=\"12\" cy=\"12\" r=\"2.1\"/><path d=\"M12 14.1V18\"/>";
-  if (kind==="heavy") return "<path d=\"M5 2.5h14v19H5z\"/><path d=\"M5 9h14M5 15.5h14M12 2.5V9M8.5 9v6.5M16 15.5V22\"/>";
-  return "<path d=\"M12.5 2H21v8.5L11 21 2 12z\"/><circle cx=\"17.2\" cy=\"6.4\" r=\"1.7\"/>";
-}
 
 function buildDeck(){
   const d = [];
   CONDITIONS.forEach((m,i)=> d.push({type:"condition", idx:i, roman:m[0], title:m[1], out:m[2], inn:m[3], move:m[4]}));
-  KIND_ORDER.forEach(k=>{
-    KINDS[k].forEach((m,i)=> d.push({type:"door", door:k, rank:i,
+  SUIT_ORDER.forEach(k=>{
+    SUITS[k].forEach((m,i)=> d.push({type:"door", suit:k, rank:i,
       roman: i < 10 ? String(i+1) : "\u00b7",
-      title: (i < 10 ? RANKS[i] : "The " + RANKS[i]) + " of " + KINDMETA[k].label,
+      title: (i < 10 ? RANKS[i] : "The " + RANKS[i]) + " of " + SUITMETA[k].label,
       out:m[0], inn:m[1], move:m[2]}));
   });
   return d;
 }
 
 /* ============ card art ============ */
+/* generated by art-gen.py, do not hand-edit */
+const EMBLEM = [
+ "<path d=\"M10 38.0 L12.0 39.2 L14.0 40.2 L16.0 40.9 L18.0 41.2 L20.0 41.1 L22.0 40.6 L24.0 39.7 L26.0 38.6 L28.0 37.4 L30.0 36.3 L32.0 35.4 L34.0 34.9 L36.0 34.8 L38.0 35.1 L40.0 35.8 L42.0 36.8 L44.0 38.0 L46.0 39.2 L48.0 40.2 L50.0 40.9 L52.0 41.2 L54.0 41.1 L56.0 40.6 L58.0 39.7 L60.0 38.6 L62.0 37.4 L64.0 36.3 L66.0 35.4 L68.0 34.9 L70.0 34.8 L72.0 35.1 L74.0 35.8 L76.0 36.8 L78.0 38.0 L80.0 39.2 L82.0 40.2 L84.0 40.9 L86.0 41.2 L88.0 41.1 L90.0 40.6\"/><path d=\"M10 56.4 L12.0 56.5 L14.0 56.4 L16.0 56.0 L18.0 55.5 L20.0 54.8 L22.0 54.1 L24.0 53.4 L26.0 52.7 L28.0 52.1 L30.0 51.7 L32.0 51.5 L34.0 51.5 L36.0 51.8 L38.0 52.2 L40.0 52.8 L42.0 53.5 L44.0 54.3 L46.0 55.0 L48.0 55.6 L50.0 56.1 L52.0 56.4 L54.0 56.5 L56.0 56.4 L58.0 56.0 L60.0 55.5 L62.0 54.8 L64.0 54.1 L66.0 53.4 L68.0 52.7 L70.0 52.1 L72.0 51.7 L74.0 51.5 L76.0 51.5 L78.0 51.8 L80.0 52.2 L82.0 52.8 L84.0 53.5 L86.0 54.3 L88.0 55.0 L90.0 55.6\"/><path d=\"M10 70.9 L12.0 70.5 L14.0 70.1 L16.0 69.6 L18.0 69.2 L20.0 68.8 L22.0 68.5 L24.0 68.3 L26.0 68.2 L28.0 68.2 L30.0 68.3 L32.0 68.6 L34.0 68.9 L36.0 69.3 L38.0 69.7 L40.0 70.2 L42.0 70.6 L44.0 71.0 L46.0 71.3 L48.0 71.6 L50.0 71.8 L52.0 71.8 L54.0 71.7 L56.0 71.6 L58.0 71.3 L60.0 70.9 L62.0 70.5 L64.0 70.1 L66.0 69.6 L68.0 69.2 L70.0 68.8 L72.0 68.5 L74.0 68.3 L76.0 68.2 L78.0 68.2 L80.0 68.3 L82.0 68.6 L84.0 68.9 L86.0 69.3 L88.0 69.7 L90.0 70.2\"/><path d=\"M44 26 L56 26 L53 34 L47 34 Z\"/><path d=\"M50 26 L50 14\"/>",
+ "<path d=\"M40 18 v56\"/><path d=\"M28 30 h24\"/><path d=\"M22 58 a18 18 0 0 0 36 0\"/><circle cx=\"40\" cy=\"14\" r=\"5\"/><path d=\"M74 24 h14.0\"/><path d=\"M74 32 h12.3\"/><path d=\"M74 40 h10.6\"/><path d=\"M74 48 h8.9\"/><path d=\"M74 56 h7.2\"/><path d=\"M74 64 h5.5\"/><path d=\"M74 72 h3.8\"/>",
+ "<path d=\"M8 52.0 L10.0 56.2 L12.0 60.2 L14.0 63.8 L16.0 66.9 L18.0 69.1 L20.0 70.5 L22.0 71.0 L24.0 70.5 L26.0 69.1 L28.0 66.9 L30.0 63.8 L32.0 60.2 L34.0 56.2 L36.0 52.0 L38.0 47.8 L40.0 43.8 L42.0 40.2 L44.0 37.1 L46.0 34.9 L48.0 33.5 L50.0 33.0 L52.0 33.5 L54.0 34.9 L56.0 37.1 L58.0 40.2 L60.0 43.8 L62.0 47.8 L64.0 52.0 L66.0 56.2 L68.0 60.2 L70.0 63.8 L72.0 66.9 L74.0 69.1 L76.0 70.5 L78.0 71.0 L80.0 70.5 L82.0 69.1 L84.0 66.9 L86.0 63.8 L88.0 60.2 L90.0 56.2 L92.0 52.0\"/><path d=\"M8 42 h84\" stroke-dasharray=\"3 3\" opacity=\".5\"/><path d=\"M41 42 V88 M59 42 V88\"/><path d=\"M41 84 H59\" stroke-width=\"3.2\"/>",
+ "<path d=\"M12.0 62.0 L17.2 53.1 L22.4 46.7 L27.6 44.6 L32.8 47.1 L38.0 53.4 L43.2 61.5 L48.4 68.9 L53.6 73.2 L58.8 73.1 L64.0 68.3 L69.2 60.2 L74.4 51.0 L79.6 43.3 L84.8 39.2 L90.0 39.7\"/><path d=\"M12.0 71.0 L17.2 62.1 L22.4 55.7 L27.6 53.6 L32.8 56.1 L38.0 62.4 L43.2 70.5 L48.4 77.9 L53.6 82.2 L58.8 82.1 L64.0 77.3 L69.2 69.2 L74.4 60.0 L79.6 52.3 L84.8 48.2 L90.0 48.7\" stroke-dasharray=\"4 4\" opacity=\".6\"/>",
+ "<path d=\"M8 16 L34 16 L50 39.0 L66 16 L92 16\"/><path d=\"M8 84 L34 84 L50 61.0 L66 84 L92 84\"/><path d=\"M40 50.0 L42.0 51.3 L44.0 52.1 L46.0 52.1 L48.0 51.3 L50.0 50.0 L52.0 48.7 L54.0 47.9 L56.0 47.9 L58.0 48.7 L60.0 50.0 L62.0 51.3 L64.0 52.1 L66.0 52.1 L68.0 51.3 L70.0 50.0 L72.0 48.7 L74.0 47.9 L76.0 47.9 L78.0 48.7 L80.0 50.0 L82.0 51.3 L84.0 52.1 L86.0 52.1 L88.0 51.3 L90.0 50.0 L92.0 48.7\"/>",
+ "<path d=\"M24 50 L78 50M69.7 53.5 L78 50 L69.7 46.5\"/><path d=\"M10 66.0 L12.0 69.2 L14.0 70.5 L16.0 69.2 L18.0 66.0 L20.0 62.8 L22.0 61.5 L24.0 62.8 L26.0 66.0 L28.0 69.2 L30.0 70.5 L32.0 69.2 L34.0 66.0 L36.0 62.8 L38.0 61.5 L40.0 62.8 L42.0 66.0 L44.0 69.2\" opacity=\".8\"/><path d=\"M30 30 v40 M22 34 v32\" opacity=\".45\"/>",
+ "<path d=\"M81.0 50.0 L80.9 52.1 L80.5 54.2 L79.7 56.3 L78.7 58.3 L77.4 60.2 L75.8 62.0 L74.0 63.7 L72.0 65.3 L69.7 66.7 L67.3 68.0 L64.6 69.0 L61.9 70.0 L59.0 70.7 L56.1 71.2 L53.0 71.5 L50.0 71.6 L47.0 71.5 L43.9 71.2 L41.0 70.7 L38.1 70.0 L35.4 69.0 L32.7 68.0 L30.3 66.7 L28.0 65.3 L26.0 63.7 L24.2 62.0 L22.6 60.2 L21.3 58.3 L20.3 56.3 L19.5 54.2 L19.1 52.1 L19.0 50.0 L19.1 47.9 L19.5 45.8 L20.3 43.7 L21.3 41.7 L22.6 39.8 L24.2 38.0 L26.0 36.3 L28.0 34.7 L30.3 33.3 L32.7 32.0 L35.4 31.0 L38.1 30.0 L41.0 29.3 L43.9 28.8 L47.0 28.5 L50.0 28.4 L53.0 28.5 L56.1 28.8 L59.0 29.3 L61.9 30.0 L64.6 31.0 L67.3 32.0 L69.7 33.3 L72.0 34.7 L74.0 36.3 L75.8 38.0 L77.4 39.8 L78.7 41.7 L79.7 43.7 L80.5 45.8 L80.9 47.9 L81.0 50.0\"/><circle cx=\"81.0\" cy=\"50\" r=\"3.4\"/>",
+ "<path d=\"M12 22 L40 22M35.4 23.9 L40 22 L35.4 20.1\" opacity=\".55\"/><path d=\"M12 35 L40 35M35.4 36.9 L40 35 L35.4 33.1\" opacity=\".55\"/><path d=\"M12 48 L40 48M35.4 49.9 L40 48 L35.4 46.1\" opacity=\".55\"/><path d=\"M12 61 L40 61M35.4 62.9 L40 61 L35.4 59.1\" opacity=\".55\"/><path d=\"M12 74 L40 74M35.4 75.9 L40 74 L35.4 72.1\" opacity=\".55\"/><path d=\"M72 84 L76 62 L80 72 L84 50 L88 66 L92 58\"/><circle cx=\"52\" cy=\"50\" r=\"5\"/>",
+ "<path d=\"M10 62 h22.0\"/><path d=\"M58.0 62 h32.0\"/><circle cx=\"50\" cy=\"28\" r=\"6\"/><path d=\"M50 34 v20 M50 54 L38 62 M50 54 L62 62 M38 44 h24\"/>",
+ "<path d=\"M22 24 v56 M78 24 v56\"/><path d=\"M22 80 h56\" stroke-dasharray=\"5 5\"/><path d=\"M40 42 h20 M44 38 v8 M56 38 v8\"/><path d=\"M34 60 h32\" opacity=\".4\"/>",
+ "<path d=\"M6 24.0 L8.0 27.5 L10.0 29.7 L12.0 29.7 L14.0 27.5 L16.0 24.0 L18.0 20.5 L20.0 18.3 L22.0 18.3 L24.0 20.5 L26.0 24.0 L28.0 27.5 L30.0 29.7 L32.0 29.7 L34.0 27.5 L36.0 24.0 L38.0 20.5 L40.0 18.3 L42.0 18.3 L44.0 20.5 L46.0 24.0 L48.0 27.5 L50.0 29.7 L52.0 29.7 L54.0 27.5 L56.0 24.0 L58.0 20.5 L60.0 18.3 L62.0 18.3 L64.0 20.5 L66.0 24.0 L68.0 27.5 L70.0 29.7 L72.0 29.7 L74.0 27.5 L76.0 24.0 L78.0 20.5 L80.0 18.3 L82.0 18.3 L84.0 20.5 L86.0 24.0 L88.0 27.5 L90.0 29.7 L92.0 29.7 L94.0 27.5\"/><path d=\"M18 40 h64 v34 M18 40 v34\" opacity=\".9\"/><path d=\"M24 58.0 L26.0 58.4 L28.0 58.7 L30.0 58.8 L32.0 58.7 L34.0 58.5 L36.0 58.2 L38.0 57.8 L40.0 57.5 L42.0 57.3 L44.0 57.2 L46.0 57.3 L48.0 57.6 L50.0 58.0 L52.0 58.4 L54.0 58.7 L56.0 58.8 L58.0 58.7 L60.0 58.5 L62.0 58.2 L64.0 57.8 L66.0 57.5 L68.0 57.3 L70.0 57.2 L72.0 57.3 L74.0 57.6 L76.0 58.0\"/><path d=\"M24 68.0 L26.0 68.4 L28.0 68.7 L30.0 68.8 L32.0 68.7 L34.0 68.5 L36.0 68.2 L38.0 67.8 L40.0 67.5 L42.0 67.3 L44.0 67.2 L46.0 67.3 L48.0 67.6 L50.0 68.0 L52.0 68.4 L54.0 68.7 L56.0 68.8 L58.0 68.7 L60.0 68.5 L62.0 68.2 L64.0 67.8 L66.0 67.5 L68.0 67.3 L70.0 67.2 L72.0 67.3 L74.0 67.6 L76.0 68.0\"/>",
+ "<path d=\"M26 18.0 h10\"/><path d=\"M26 24.4 h18\"/><path d=\"M26 30.8 h26\"/><path d=\"M26 37.2 h34\"/><path d=\"M26 43.6 h13\"/><path d=\"M26 50.0 h21\"/><path d=\"M26 56.4 h29\"/><path d=\"M26 62.8 h37\"/><path d=\"M26 69.2 h16\"/><path d=\"M26 78 h46\"/><path d=\"M26 84 h46\"/>",
+ "<path d=\"M10.0 74.0 L14.2 71.0 L18.4 68.9 L22.6 68.6 L26.8 69.7 L31.0 71.4 L35.2 72.3 L39.4 71.5 L43.6 68.8 L47.8 64.8 L52.0 60.8 L56.2 58.0 L60.4 56.9 L64.6 57.4 L68.8 58.5 L73.0 58.8 L77.2 57.5 L81.4 54.2 L85.6 49.8 L89.8 45.3\" stroke-dasharray=\"4 4\" opacity=\".7\"/><circle cx=\"89.8\" cy=\"45.3\" r=\"4.5\"/>",
+ "<path d=\"M14 40 h72 M14 78 h72\" stroke-dasharray=\"5 4\" opacity=\".55\"/><circle cx=\"16\" cy=\"44\" r=\"1.5\"/><circle cx=\"29\" cy=\"73\" r=\"1.5\"/><circle cx=\"42\" cy=\"72\" r=\"1.5\"/><circle cx=\"55\" cy=\"71\" r=\"1.5\"/><circle cx=\"68\" cy=\"70\" r=\"1.5\"/><circle cx=\"81\" cy=\"69\" r=\"1.5\"/><circle cx=\"26\" cy=\"68\" r=\"1.5\"/><circle cx=\"39\" cy=\"67\" r=\"1.5\"/><circle cx=\"52\" cy=\"66\" r=\"1.5\"/><circle cx=\"65\" cy=\"65\" r=\"1.5\"/><circle cx=\"78\" cy=\"64\" r=\"1.5\"/><circle cx=\"23\" cy=\"63\" r=\"1.5\"/><circle cx=\"36\" cy=\"62\" r=\"1.5\"/><circle cx=\"49\" cy=\"61\" r=\"1.5\"/><circle cx=\"62\" cy=\"60\" r=\"1.5\"/><circle cx=\"75\" cy=\"59\" r=\"1.5\"/><circle cx=\"20\" cy=\"58\" r=\"1.5\"/><circle cx=\"33\" cy=\"57\" r=\"1.5\"/><circle cx=\"46\" cy=\"56\" r=\"1.5\"/><circle cx=\"59\" cy=\"55\" r=\"1.5\"/><circle cx=\"72\" cy=\"54\" r=\"1.5\"/><circle cx=\"17\" cy=\"53\" r=\"1.5\"/>",
+ "<path d=\"M6 30 h88\" opacity=\".4\"/><path d=\"M8 20 L40 20M34.5 22.3 L40 20 L34.5 17.7\" opacity=\".7\"/><path d=\"M2 58.0 L4.0 58.8 L6.0 59.5 L8.0 60.2 L10.0 61.0 L12.0 61.7 L14.0 62.3 L16.0 63.0 L18.0 63.6 L20.0 64.2 L22.0 64.7 L24.0 65.2 L26.0 65.6 L28.0 66.0 L30.0 66.3 L32.0 66.6 L34.0 66.8 L36.0 66.9 L38.0 67.0 L40.0 67.0 L42.0 67.0 L44.0 66.8 L46.0 66.7 L48.0 66.4 L50.0 66.1 L52.0 65.8 L54.0 65.4 L56.0 64.9 L58.0 64.4 L60.0 63.9 L62.0 63.3 L64.0 62.7 L66.0 62.0 L68.0 61.3 L70.0 60.6 L72.0 59.9 L74.0 59.1 L76.0 58.4 L78.0 57.6 L80.0 56.9 L82.0 56.1 L84.0 55.4 L86.0 54.7 L88.0 54.0 L90.0 53.3 L92.0 52.7 L94.0 52.1 L96.0 51.6 L98.0 51.1\"/><path d=\"M2 81.1 L4.0 81.8 L6.0 82.5 L8.0 83.1 L10.0 83.7 L12.0 84.3 L14.0 84.8 L16.0 85.2 L18.0 85.7 L20.0 86.0 L22.0 86.3 L24.0 86.6 L26.0 86.8 L28.0 86.9 L30.0 87.0 L32.0 87.0 L34.0 86.9 L36.0 86.8 L38.0 86.6 L40.0 86.4 L42.0 86.1 L44.0 85.7 L46.0 85.3 L48.0 84.8 L50.0 84.3 L52.0 83.8 L54.0 83.2 L56.0 82.5 L58.0 81.9 L60.0 81.2 L62.0 80.5 L64.0 79.7 L66.0 79.0 L68.0 78.2 L70.0 77.5 L72.0 76.7 L74.0 76.0 L76.0 75.3 L78.0 74.6 L80.0 73.9 L82.0 73.2 L84.0 72.6 L86.0 72.0 L88.0 71.5 L90.0 71.0 L92.0 70.5 L94.0 70.1 L96.0 69.8 L98.0 69.5\" opacity=\".65\"/>",
+ "<circle cx=\"50\" cy=\"30\" r=\"11\"/><path d=\"M50 41 L50 66\"/><path d=\"M36 70 h28\" stroke-width=\"3.2\"/><path d=\"M36 70 a5 5 0 0 0 -6 6 M64 70 a5 5 0 0 1 6 6\"/><path d=\"M50 66 a7 7 0 0 0 -12 4 M50 66 a7 7 0 0 1 12 4\"/><path d=\"M50 19 v-6\"/>",
+ "<path d=\"M18 38 a13 13 0 0 1 12 -18 a17 17 0 0 1 32 4 a12 12 0 0 1 20 14 Z\"/><path d=\"M20 46 L13 66\" opacity=\".6\"/><path d=\"M27 46 L20 66\" opacity=\".6\"/><path d=\"M34 46 L27 66\" opacity=\".6\"/><path d=\"M41 46 L34 66\" opacity=\".6\"/><path d=\"M48 46 L41 66\" opacity=\".6\"/><path d=\"M55 46 L48 66\" opacity=\".6\"/><path d=\"M62 46 L55 66\" opacity=\".6\"/><path d=\"M69 46 L62 66\" opacity=\".6\"/><path d=\"M76 46 L69 66\" opacity=\".6\"/><path d=\"M28 82 L60 70\" stroke-width=\"3.2\"/>",
+ "<path d=\"M8 62 h84\"/><path d=\"M38 62 a12 12 0 0 1 24 0\" opacity=\"0.85\"/><path d=\"M27 62 a23 23 0 0 1 46 0\" opacity=\"0.67\"/><path d=\"M16 62 a34 34 0 0 1 68 0\" opacity=\"0.49\"/><path d=\"M5 62 a45 45 0 0 1 90 0\" opacity=\"0.31\"/><circle cx=\"50\" cy=\"62\" r=\"2.6\"/>",
+ "<path d=\"M24 62 L36 44 L48 54 L62 36 L76 58\" opacity=\".3\"/><path d=\"M6 30 h88\" stroke-width=\"3.4\" opacity=\"0.53\"/><path d=\"M6 39 h88\" stroke-width=\"3.4\" opacity=\"0.61\"/><path d=\"M6 48 h88\" stroke-width=\"3.4\" opacity=\"0.7\"/><path d=\"M6 57 h88\" stroke-width=\"3.4\" opacity=\"0.7\"/><path d=\"M6 66 h88\" stroke-width=\"3.4\" opacity=\"0.61\"/><path d=\"M6 75 h88\" stroke-width=\"3.4\" opacity=\"0.53\"/>",
+ "<path d=\"M6 44 h88\"/><path d=\"M10 66.0 L12.0 66.4 L14.0 66.8 L16.0 67.1 L18.0 67.3 L20.0 67.4 L22.0 67.3 L24.0 67.1 L26.0 66.8 L28.0 66.4 L30.0 66.0 L32.0 65.6 L34.0 65.2 L36.0 64.9 L38.0 64.7 L40.0 64.6 L42.0 64.7 L44.0 64.9 L46.0 65.2 L48.0 65.6 L50.0 66.0 L52.0 66.4 L54.0 66.8 L56.0 67.1 L58.0 67.3 L60.0 67.4 L62.0 67.3 L64.0 67.1 L66.0 66.8 L68.0 66.4 L70.0 66.0 L72.0 65.6 L74.0 65.2 L76.0 64.9 L78.0 64.7 L80.0 64.6 L82.0 64.7 L84.0 64.9 L86.0 65.2 L88.0 65.6 L90.0 66.0\" opacity=\".5\"/><path d=\"M48 44 L52 44 L51 38 L49 38 Z\"/><path d=\"M50 38 v-8\"/>",
+ "<path d=\"M30 20 h34\" opacity=\".45\"/><circle cx=\"22\" cy=\"20\" r=\"3.6\"/><path d=\"M30 31 h34\" opacity=\".45\"/><circle cx=\"22\" cy=\"31\" r=\"3.6\"/><path d=\"M30 42 h34\" opacity=\".45\"/><circle cx=\"22\" cy=\"42\" r=\"3.6\"/><path d=\"M30 53 h34\" opacity=\".45\"/><circle cx=\"22\" cy=\"53\" r=\"3.6\" stroke-dasharray=\"2.4 2.4\"/><path d=\"M30 64 h34\" opacity=\".45\"/><circle cx=\"22\" cy=\"64\" r=\"3.6\" stroke-dasharray=\"2.4 2.4\"/><path d=\"M30 75 h34\" opacity=\".45\"/><circle cx=\"22\" cy=\"75\" r=\"3.6\" stroke-dasharray=\"2.4 2.4\"/>",
+ "<path d=\"M8 64.0 L10.0 66.0 L12.0 67.4 L14.0 67.5 L16.0 66.4 L18.0 64.5 L20.0 62.4 L22.0 60.9 L24.0 60.4 L26.0 61.2 L28.0 62.9 L30.0 65.1 L32.0 66.8 L34.0 67.6 L36.0 67.1 L38.0 65.6 L40.0 63.5 L42.0 61.6 L44.0 60.5 L46.0 60.6 L48.0 62.0 L50.0 64.0 L52.0 66.0 L54.0 67.4 L56.0 67.5 L58.0 66.4 L60.0 64.5 L62.0 62.4 L64.0 60.9 L66.0 60.4 L68.0 61.2 L70.0 62.9 L72.0 65.1 L74.0 66.8 L76.0 67.6 L78.0 67.1 L80.0 65.6 L82.0 63.5 L84.0 61.6 L86.0 60.5 L88.0 60.6 L90.0 62.0 L92.0 64.0\"/><path d=\"M8 79.6 L10.0 78.9 L12.0 77.2 L14.0 75.1 L16.0 73.3 L18.0 72.4 L20.0 72.8 L22.0 74.3 L24.0 76.4 L26.0 78.3 L28.0 79.5 L30.0 79.4 L32.0 78.2 L34.0 76.2 L36.0 74.1 L38.0 72.7 L40.0 72.5 L42.0 73.4 L44.0 75.3 L46.0 77.4 L48.0 79.0 L50.0 79.6 L52.0 78.9 L54.0 77.2 L56.0 75.1 L58.0 73.3 L60.0 72.4 L62.0 72.8 L64.0 74.3 L66.0 76.4 L68.0 78.3 L70.0 79.5 L72.0 79.4 L74.0 78.2 L76.0 76.2 L78.0 74.1 L80.0 72.7 L82.0 72.5 L84.0 73.4 L86.0 75.3 L88.0 77.4 L90.0 79.0 L92.0 79.6\"/><path d=\"M10 40 L28 26 L44 36 L60 20 L78 34 L90 26\"/><circle cx=\"50\" cy=\"52\" r=\"3\"/>"
+];
+function suitGlyph(suit){
+  if (suit==="perception") return "<path d=\"M1.5 12 Q12 3.5 22.5 12 Q12 20.5 1.5 12 Z\"/><circle cx=\"12\" cy=\"12\" r=\"3.2\"/>";
+  if (suit==="navigation") return "<path d=\"M12 1.5 v21 M1.5 12 h21\"/><path d=\"M12 12 L19.5 5.5\"/><circle cx=\"12\" cy=\"12\" r=\"7.4\"/>";
+  if (suit==="paths") return "<path d=\"M12 22 V13 M12 13 L5 4 M12 13 L19 4\"/>";
+  return "<path d=\"M5.5 21 V6 a6.5 6.5 0 0 1 13 0 v15\"/><path d=\"M3 21 h18\"/><circle cx=\"15.4\" cy=\"13\" r=\"1.4\"/>";
+}
+
 const PIPS = {
  1:[[50,50]], 2:[[50,28],[50,72]], 3:[[50,22],[50,50],[50,78]],
  4:[[32,26],[68,26],[32,74],[68,74]],
@@ -658,8 +663,8 @@ const PIPS = {
  9:[[32,17],[68,17],[32,38],[68,38],[50,50],[32,62],[68,62],[32,83],[68,83]],
 10:[[32,15],[68,15],[50,28],[32,38],[68,38],[32,62],[68,62],[50,72],[32,85],[68,85]]
 };
-function doorArt(card){
-  const g = '<g class="pip">'+kindGlyph(card.door)+'</g>';
+function suitArt(card){
+  const g = '<g class="pip">'+suitGlyph(card.suit)+'</g>';
   if (card.rank <= 9){
     const n = card.rank+1, pts = PIPS[n];
     const size = n >= 8 ? 13 : (n >= 5 ? 16 : 21);
@@ -679,10 +684,10 @@ function doorArt(card){
 function faceHTML(card, flipped){
   const art = card.type === "condition"
     ? '<svg viewBox="0 0 100 100"><g class="emb">'+EMBLEM[card.idx]+'</g></svg>'
-    : doorArt(card);
-  const top = card.type === "condition" ? card.roman : KINDMETA[card.door].label.toUpperCase();
-  const kindVar = card.type === "condition" ? '' : ' style="--kind:'+KINDMETA[card.door].v+'"';
-  return '<div class="face'+(flipped?' rev':'')+'"'+kindVar+'>'
+    : suitArt(card);
+  const top = card.type === "condition" ? card.roman : SUITMETA[card.suit].label.toUpperCase();
+  const suitVar = card.type === "condition" ? '' : ' style="--suit:'+SUITMETA[card.suit].v+'"';
+  return '<div class="face'+(flipped?' rev':'')+'"'+suitVar+'>'
     + (flipped ? '<span class="revtag">IN</span>' : '')
     + '<div class="roman">'+top+'</div><div class="art">'+art+'</div>'
     + '<div class="cname">'+card.title+'</div></div>';
@@ -695,9 +700,10 @@ let table = [null];
 let history = [];
 
 const SPREADS = {
-  1:[["The door"]],
-  2:[["The door","The cheapest test"]],
-  3:[["The door","What holds it","The move this week"],["The door","The price","The room on the other side"]]
+  1:[["Where you are"]],
+  2:[["Where you are","The cheapest test"]],
+  3:[["Where you are","What is setting you","The next leg"],
+     ["The crossing","The price","The water beyond"]]
 };
 const labels = () => SPREADS[size][size===3 ? spreadKind : 0];
 
@@ -804,13 +810,13 @@ function setSize(n){
 }
 
 /* ============ render ============ */
-const OUT_LABEL = "The door is the door";
-const IN_LABEL  = "The door is you";
+const OUT_LABEL = "What is there";
+const IN_LABEL  = "How you are seeing it";
 
 function keysHTML(c){
   if (c.type === "condition")
     return '<p class="keys"><b>Condition</b>'+c.roman+' \u00b7 a fact about the building, not about one door</p>';
-  const k = KINDMETA[c.door];
+  const k = SUITMETA[c.suit];
   return '<p class="keys"><b>'+k.label+'</b>'+k.short+'<br><b>'+RANKS[c.rank]+'</b>'+STAGES[c.rank][0]+'</p>';
 }
 
@@ -861,7 +867,7 @@ function render(){
   table.forEach((entry, i)=>{
     if (!entry) return;
     const c = entry.card;
-    const v = c.type === "condition" ? "var(--accent)" : KINDMETA[c.door].v;
+    const v = c.type === "condition" ? "var(--accent)" : SUITMETA[c.suit].v;
     const lead  = entry.flipped ? c.inn : c.out;
     const other = entry.flipped ? c.out : c.inn;
     const leadL = entry.flipped ? IN_LABEL : OUT_LABEL;
@@ -885,7 +891,7 @@ function render(){
     e.className = 'empty';
     e.textContent = shuffled
       ? "Draw one at a time. Read what it says, decide whether you believe it, then turn it over."
-      : "Name the door above, shuffle, then draw. Each card gives you one reading. The second one is behind a button, on purpose.";
+      : "Name the door above, shuffle, then draw. Each card gives you one of its two readings. The other is behind a button, on purpose.";
     readEl.appendChild(e);
   }
   paintCaption();
@@ -904,62 +910,62 @@ function buildGrammar(){
   h += '<p class="lede">A door is not a point on a map. It has a <b>route in</b>, a <b>cost to open</b>, a separate '
      + '<b>cost to live on the other side</b>, a number of <b>people it takes</b>, and a story about <b>how you came to see it '
      + 'at all</b>. Six things, and the deck deals you two of them.</p>';
-  h += '<p>The cards give you what holds it shut and how far along you are. The other four you answer yourself, '
-     + 'and the sections below are how. Most bad decisions are not bad choices between doors. They are one of these '
-     + 'six read wrong, usually the second cost.</p>';
-  h += '<h4>Kind x stage</h4>'
-     + '<p class="lede">A door card is roughly <b>kind x stage</b>. The kind says what is holding it shut. '
-     + 'The stage says how far along you are. Learn those two lists and most of the 56 door cards decode themselves.</p>';
+  h += '<p>The cards give you which faculty is in play and how far along the passage you are. The other four you answer '
+     + 'yourself, and the sections below are how. Most bad decisions are not bad choices between doors. They are one of '
+     + 'these six read wrong, usually the second cost.</p>';
 
-  h += '<h4>The four kinds of shut</h4>'
-     + '<p class="lede">Every real opening is stuck in one of four ways, and the diagnosis decides the verb. '
-     + 'Most wasted years are a misdiagnosis: doing reps at a locked door, or asking permission at a heavy one.</p><ul class="defs">';
-  KIND_ORDER.forEach(k=>{
-    const m = KINDMETA[k];
+  h += '<h4>The four suits</h4>'
+     + '<p class="lede">The suits split two and two. <b>Perception</b> and <b>Navigation</b> are yours: how you see, and how '
+     + 'you steer. <b>Paths</b> and <b>Doors</b> are the world\u2019s: the routes that exist, and the crossings at the end of '
+     + 'them. That split is the same one the two readings make on every card, which is not a coincidence. It is the deck '
+     + 'saying one thing at two scales.</p><ul class="defs">';
+  SUIT_ORDER.forEach(k=>{
+    const m = SUITMETA[k];
     h += '<li><span class="k"><span class="sw" style="background:'+m.v+'"></span>'+m.label+'</span>'
-       + '<span class="v">'+m.holds+' \u00b7 '+m.domain+'<br><span style="opacity:.6">also called '+m.alt+' \u00b7 '+m.plain+'</span></span></li>';
+       + '<span class="v">'+m.side+' \u00b7 '+m.domain+'<br><span style="opacity:.6">also called '+m.alt+' \u00b7 '+m.plain+'</span></span></li>';
   });
   h += '</ul>';
-  h += '<p style="margin-top:11px">Shorthand: Hidden is you cannot see it, Locked is somebody else decides, '
-     + 'Heavy is you cannot do it yet, Costly is you do not want to pay. Costly gets called the easy suit and it is the '
-     + 'hardest one, because there is nothing left to blame.</p>';
+  h += '<p style="margin-top:11px">A card is roughly <b>suit x stage</b>. The suit says which faculty is in play. The stage '
+     + 'says how far along you are. Learn those two lists and most of the 56 suit cards decode themselves.</p>';
 
-  h += '<h4>The ten stages</h4><p class="lede">The same arc runs through all four kinds.</p><ul class="defs">';
+  h += '<h4>The passage arc</h4>'
+     + '<p class="lede">The same ten stages run through all four suits. It is a passage rather than a siege: you leave, you '
+     + 'drift, you fix your position, you cross, you arrive, and arriving hands you the next chart.</p><ul class="defs">';
   for (let i=0;i<10;i++) h += '<li><span class="k">'+RANKS[i]+'</span><span class="v">'+STAGES[i][1]+'</span></li>';
   h += '</ul>';
-  h += '<p style="margin-top:11px">Track one kind across the stages and the shape shows up. Five of Locked is the no. '
-     + 'Six of Locked is the second ask that gets a yes. Five of Heavy is the rep that failed, Six of Heavy is the '
-     + 'smaller rep aimed at the part that failed.</p>';
+  h += '<p style="margin-top:11px">Five is the trouble in every suit, and it is always the same shape: you are off course '
+     + 'and nothing went wrong. The current did it while you steered a perfect heading. That is the card the deck exists to '
+     + 'hand you, because it is the one nobody goes looking for.</p>';
 
-  h += '<h4>The four people at every door</h4>'
-     + '<p class="lede">Not a personality type. Somebody in the actual situation, or a role nobody is filling.</p><ul class="defs">';
+  h += '<h4>The four aboard</h4>'
+     + '<p class="lede">Not personality types. People in the actual situation, or a role nobody is filling.</p><ul class="defs">';
   for (let i=10;i<14;i++) h += '<li><span class="k">'+RANKS[i]+'</span><span class="v">'+STAGES[i][1]+'</span></li>';
   h += '</ul>';
 
   h += '<h4>The Conditions</h4>'
-     + '<p>Twenty-two cards with no kind, numbered 0 to XXI. These describe the building rather than a door: '
-     + 'the rent, the clock, the corridor, the room you are in. Count them in a spread. Zero Conditions is a decision. '
-     + 'Two or three is a life, and the door in front of you is probably not the real subject.</p>';
+     + '<p>Twenty-two cards with no suit, numbered 0 to XXI. A suit card describes one leg. A Condition describes the state '
+     + 'of the whole passage, the part you do not control: the tide, the lee shore, the chart that is wrong, the water you '
+     + 'are already in. Count them in a spread. Zero Conditions is a decision. Two or three is a life, and the door in front '
+     + 'of you is probably not the real subject.</p>';
 
   h += '<h4>The two readings</h4>'
-     + '<p class="lede">This is the whole instrument. Every card carries the same fact read two ways, and the deck '
-     + 'flips a coin for which one you see first.</p><ol class="schools">'
-     + '<li><b>The door is the door.</b> The obstacle is out there. A gatekeeper, a price, a genuine gap in skill. '
-     + 'Real constraints exist and most of them are boring.</li>'
-     + '<li><b>The door is you.</b> The obstacle is a preference you have not admitted to. You would rather not know, '
-     + 'not ask, not pay, not be a beginner. Also real, and much quieter.</li>'
+     + '<p class="lede">This is the whole instrument. Every card carries one situation read two ways, and the deck flips a '
+     + 'coin for which one you see first.</p><ol class="schools">'
+     + '<li><b>What is there.</b> The situation as an actual fact. A tide that runs on its own schedule, a route that costs '
+     + 'four days, a gate that is shut. Real constraints exist and most of them are boring.</li>'
+     + '<li><b>How you are seeing it.</b> The same fact, framed by something you have not admitted preferring. You would '
+     + 'rather not look, not ask, not pay, not be a beginner. Also real, and much quieter.</li>'
      + '</ol>'
-     + '<p>Both readings are always true to some degree, and the useful question is the ratio. Decide which one you '
-     + 'think it is <b>before</b> you press Turn it over. Being wrong is the point of the exercise. If you agree with '
-     + 'every card the deck deals you, you are reading horoscopes.</p>'
-     + '<p>The inward reading is not an accusation. Half the time the honest answer is that the door is genuinely '
-     + 'locked and you have been blaming yourself for a key you were never issued.</p>';
+     + '<p>Both are true to some degree, and the useful question is the ratio. Decide which one you think it is <b>before</b> '
+     + 'you press Turn it over. Being wrong is the point of the exercise. If you agree with every card the deck deals you, '
+     + 'you are reading horoscopes.</p>'
+     + '<p>The inward reading is not an accusation. Half the time the honest answer is that the tide really does run at that '
+     + 'hour, and you have been blaming yourself for weather.</p>';
 
   h += '<h4>The move</h4>'
-     + '<p>Every card ends in one action, sized to be cheap and doable this week. That line is the difference between '
-     + 'a thinking tool and a fortune. If a reading leaves you with a feeling and no move, the card has failed, '
-     + 'and you should read the move anyway.</p>';
-
+     + '<p>Every card ends in one action, sized to be cheap and doable this week. That line is the difference between a '
+     + 'thinking tool and a fortune. If a reading leaves you with a feeling and no move, the card has failed, and you '
+     + 'should read the move anyway.</p>';
 
   h += '<h4>The two costs</h4>'
      + '<p class="lede">Opening a door and living on the other side are priced separately, and the doorway is the only '
@@ -1010,9 +1016,9 @@ function buildGrammar(){
 
   h += '<h4>Reading a spread, not three cards</h4><ul class="defs">'
      + '<li><span class="k">Conditions</span><span class="v">Count them. Zero is a decision. Three says the building is the subject.</span></li>'
-     + '<li><span class="k">Kinds</span><span class="v">Three Costly in a row is a spread about money and nerve, whatever the positions say.</span></li>'
-     + '<li><span class="k">Stages</span><span class="v">One, Four, Eight is a spread about starting. Seven, Seven, Nine is a spread about waiting too long.</span></li>'
-     + '<li><span class="k">Position</span><span class="v">Five of Locked in The door is a refusal you already had. In The move it is one you have not asked for yet.</span></li>'
+     + '<li><span class="k">Suits</span><span class="v">Three Paths cards in a row is a spread about routes, whatever the positions say. Three Perception cards means you do not yet have the information to decide.</span></li>'
+     + '<li><span class="k">Stages</span><span class="v">One, Four, Eight is a spread about starting. Seven, Seven, Nine is a spread that has been on passage too long.</span></li>'
+     + '<li><span class="k">Position</span><span class="v">Five in Where you are is a drift that already happened. In The next leg it is one you are about to make.</span></li>'
      + '<li><span class="k">Which led</span><span class="v">Three cards leading inward is a nudge, not a verdict. It is a coin, and coins run hot.</span></li>'
      + '</ul>'
      + '<p style="margin-top:14px;opacity:.65">Nothing here is predictive and nothing here is mystical. It is a randomiser '
@@ -1030,10 +1036,10 @@ function buildIndex(){
        + '<p><b>Out</b>'+m[2]+'</p><p><b>In</b>'+m[3]+'</p>'
        + '<p class="move"><b>The move</b>'+m[4]+'</p></article>';
   });
-  KIND_ORDER.forEach(k=>{
-    const m = KINDMETA[k];
+  SUIT_ORDER.forEach(k=>{
+    const m = SUITMETA[k];
     h += '<h4 class="idxhead">'+m.label+' \u00b7 '+m.holds+' \u00b7 '+m.plain+'</h4>';
-    KINDS[k].forEach((c,i)=>{
+    SUITS[k].forEach((c,i)=>{
       const name = (i < 10 ? RANKS[i] : "The " + RANKS[i]) + " of " + m.label;
       h += '<article class="idx" data-k="'+(name+' '+m.label+' '+m.alt+' '+m.holds+' '+c[0]+' '+c[1]+' '+c[2]).toLowerCase()+'">'
          + '<h5><span class="sw" style="background:'+m.v+'"></span>'+name+'</h5>'
