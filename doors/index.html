@@ -292,6 +292,44 @@ details[open] summary::before{content:"▾ "}
 .move b{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--hot);font-weight:400;margin:0 0 3px}
 .idx .move{font-size:14px;margin-top:7px}
+
+/* ---- the two costs, weighed against your own door ---- */
+.weigh{margin:14px 0 0;border:1px solid var(--hair);background:var(--panel);border-radius:2px;padding:12px 13px}
+.wlab{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 10px}
+.wrow{display:flex;align-items:center;gap:9px;margin:0 0 8px;flex-wrap:wrap}
+.wrow .q{flex:1;min-width:150px;font-size:14.5px;opacity:.82}
+.wrow button{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--text-dim);background:transparent;border:1px solid var(--hair);border-radius:2px;
+  padding:7px 10px;cursor:pointer;line-height:1}
+.wrow button:hover{border-color:var(--accent)}
+.wrow button[aria-pressed="true"]{color:var(--action-text);background:var(--action);border-color:var(--action)}
+.verdict{margin:11px 0 0;padding:11px 12px;border-left:2px solid var(--hot);background:var(--ground-2)}
+.verdict[hidden]{display:none}
+.verdict h4{font-family:var(--display);font-size:17px;letter-spacing:.06em;font-weight:400;margin:0 0 5px;color:var(--text)}
+.verdict p{margin:0 0 6px;font-size:15px;line-height:1.5}
+.verdict .do{margin:0;font-family:var(--mono);font-size:11.5px;line-height:1.55;color:var(--hot)}
+
+/* ---- the approach: a route slip, deliberately not a card ---- */
+.approach{margin:22px 0 0}
+.appbtn{width:100%;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--accent);background:transparent;border:1px dashed var(--hair);border-radius:2px;
+  padding:13px;cursor:pointer;line-height:1}
+.appbtn:hover:not(:disabled){border-color:var(--accent);border-style:solid}
+.appbtn:disabled{opacity:.4;cursor:default}
+.slip{border:1px solid var(--accent);border-radius:2px;background:var(--panel);padding:0;overflow:hidden}
+.slip-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:7px 11px;border-bottom:1px solid var(--hair-soft);background:var(--ground-2);
+  font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.slip-head b{font-weight:400;color:var(--text-faint);letter-spacing:.1em}
+.slip-body{padding:12px 13px}
+.slip-body h4{font-family:var(--display);font-size:19px;letter-spacing:.05em;font-weight:400;margin:0 0 7px;color:var(--text)}
+.slip-body p{margin:0 0 8px;font-size:15px;line-height:1.5}
+.slip-body .cost{margin:0;font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--text-dim)}
+.slip-body .cost b{font-weight:400;color:var(--hot);letter-spacing:.14em;text-transform:uppercase;font-size:9px;margin-right:7px}
+.slip .again{margin:11px 0 0;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);background:transparent;border:1px solid var(--hair);border-radius:2px;padding:8px 11px;cursor:pointer;line-height:1}
+.slip .again:hover{border-color:var(--accent)}
 </style></head>
 <body>
 <div class="wrap">
@@ -311,6 +349,17 @@ which one to lead with. You decide whether it is right before you are shown the 
   <label for="doorText">The door you are thinking about</label>
   <input id="doorText" type="text" autocomplete="off" spellcheck="true"
     placeholder="the thing you keep almost deciding">
+</section>
+
+<section class="weigh" aria-label="Weigh the door">
+  <p class="wlab">Weigh it · the two costs are independent</p>
+  <div class="wrow"><span class="q">How hard to <b style="font-weight:400;color:var(--accent)">open</b> it?</span>
+    <button data-a="open" data-v="0" aria-pressed="false">Cheap</button>
+    <button data-a="open" data-v="1" aria-pressed="false">Costly</button></div>
+  <div class="wrow"><span class="q">How hard to <b style="font-weight:400;color:var(--accent)">live on the other side</b>?</span>
+    <button data-a="pass" data-v="0" aria-pressed="false">Cheap</button>
+    <button data-a="pass" data-v="1" aria-pressed="false">Costly</button></div>
+  <div class="verdict" id="verdict" hidden></div>
 </section>
 
 <section class="tape" id="tape" aria-label="Entropy readout">
@@ -347,6 +396,9 @@ reading leads.<br>The randomness is the point: it hands you the framing you woul
 <label class="toggle"><input type="checkbox" id="flipToggle" checked> Let the deck choose which reading leads</label>
 
 <section class="spread" id="spread"></section>
+<section class="approach" id="approachBox">
+  <button class="appbtn" id="btnApproach" disabled>Draw an approach · which route to try</button>
+</section>
 <section class="readings" id="readings"></section>
 
 <details><summary>Draw log</summary>
@@ -357,7 +409,7 @@ reading leads.<br>The randomness is the point: it hands you the framing you woul
   <div class="guide" id="grammar"></div>
 </details>
 
-<details id="indexBox"><summary>Card index · all 78</summary>
+<details id="indexBox"><summary>Card index · 78 cards and 16 routes</summary>
   <input class="find" id="find" type="search" placeholder="filter by name, kind or keyword" autocomplete="off" spellcheck="false">
   <div id="index"></div>
 </details>
@@ -530,6 +582,27 @@ const KINDMETA = {
 };
 const KIND_ORDER = ["hidden", "locked", "heavy", "costly"];
 
+/* a second, smaller deck: not what the door is, but which route you take at it */
+const APPROACHES = [
+["The Front Door", "the published route, walked exactly as written. Slow, crowded, and it works more often than cynics admit.", "time, and being one of many"],
+["The Side Road", "somebody already inside brings you in. A referral, an introduction, a name on an email.", "a favour, and owing it"],
+["The Long Way Round", "become the person for whom this is already open. Not a route to the door, a route to a different self.", "the version of you that wanted it quickly"],
+["The Trade Route", "arrive doing something adjacent and unglamorous, then move sideways once you are inside.", "a title, and patience with being underestimated"],
+["Build the Road", "no route exists, so you cut one. The category you want is not there yet.", "everything, and no precedent to reassure you"],
+["Send Something Ahead", "your work arrives before you do. A demo, a draft, a proposal nobody asked for.", "the work, given away"],
+["Borrow a Chart", "someone lends you their knowledge, or their standing, for one passage.", "their reputation, if you waste it"],
+["Sail in Company", "the passage that is unwise alone is ordinary with a second boat alongside.", "sole authorship, and matching somebody else's pace"],
+["Wait for the Tide", "it opens when conditions change rather than when you push. Position yourself and stop shoving.", "the illusion of control, and possibly the window"],
+["The Weather Route", "the longer line that stays out of the worst of it. Not the direct course, and it arrives.", "distance, and looking indirect to people watching"],
+["Make It in Legs", "do not cross in one go. Take a smaller yes and keep it open.", "the clean commitment. Staged routes need maintenance"],
+["Signal Clearly", "say what you want. Public, specific, once, and then stop explaining.", "the option of pretending you never asked"],
+["The Narrow Channel", "the route that feels illegitimate and breaks no actual rule. Read the rules before deciding you are cheating.", "the approval of people on the main road"],
+["The Other Entrance", "the way in you identified is not the only one. Most places have three, and one receptionist.", "an afternoon learning how it really works"],
+["Change Your Position", "move so the thing sits inside your own territory. Start the company, own the boat, hold the licence.", "capital, and everything ownership brings"],
+["Leave Visibly", "go, for real reasons, without threatening anyone. Routes sometimes open behind you.", "you have to actually be willing to go. It fails as a bluff"]
+];
+
+
 const EMBLEM = [
  "<path d=\"M20 20h60v22M80 62v18H20V20\"/><path d=\"M80 42a20 20 0 0 0-20 20\"/>",
  "<path d=\"M28 84V28h30v56\"/><circle cx=\"76\" cy=\"34\" r=\"7\"/><circle cx=\"76\" cy=\"55\" r=\"7\"/><circle cx=\"76\" cy=\"76\" r=\"7\"/>",
@@ -679,6 +752,7 @@ function shuffle(){
   }
   shuffled = true;
   paintTape();
+  renderApproach();
   stateEl.textContent = "Shuffled \u00b7 full deck, new order";
   tapeEl.classList.add('live');
   setTimeout(()=>tapeEl.classList.remove('live'), 900);
@@ -717,6 +791,7 @@ function drawInto(i){
 }
 function clearTable(){
   table = new Array(size).fill(null); justDrawn = -1;
+  approach = null; renderApproach();
   stateEl.textContent = "Table cleared \u00b7 " + deck.length + " left in the stack";
   render(); refresh();
 }
@@ -826,7 +901,14 @@ function logDraw(card, flipped, pos){
 /* ============ the grammar ============ */
 function buildGrammar(){
   let h = '';
-  h += '<p class="lede">A door card is roughly <b>kind x stage</b>. The kind says what is actually holding the door shut. '
+  h += '<p class="lede">A door is not a point on a map. It has a <b>route in</b>, a <b>cost to open</b>, a separate '
+     + '<b>cost to live on the other side</b>, a number of <b>people it takes</b>, and a story about <b>how you came to see it '
+     + 'at all</b>. Six things, and the deck deals you two of them.</p>';
+  h += '<p>The cards give you what holds it shut and how far along you are. The other four you answer yourself, '
+     + 'and the sections below are how. Most bad decisions are not bad choices between doors. They are one of these '
+     + 'six read wrong, usually the second cost.</p>';
+  h += '<h4>Kind x stage</h4>'
+     + '<p class="lede">A door card is roughly <b>kind x stage</b>. The kind says what is holding it shut. '
      + 'The stage says how far along you are. Learn those two lists and most of the 56 door cards decode themselves.</p>';
 
   h += '<h4>The four kinds of shut</h4>'
@@ -878,6 +960,54 @@ function buildGrammar(){
      + 'a thinking tool and a fortune. If a reading leaves you with a feeling and no move, the card has failed, '
      + 'and you should read the move anyway.</p>';
 
+
+  h += '<h4>The two costs</h4>'
+     + '<p class="lede">Opening a door and living on the other side are priced separately, and the doorway is the only '
+     + 'part you can see from out here. This is the single most common way to walk through the wrong one.</p>'
+     + '<ul class="defs">'
+     + '<li><span class="k">Cheap / cheap</span><span class="v"><b>The Unlocked Door.</b> You are deliberating about '
+     + 'something you could simply do. The deliberating has become the expensive part.</span></li>'
+     + '<li><span class="k">Costly / cheap</span><span class="v"><b>The Gate.</b> All the difficulty is at the entrance, '
+     + 'and the room is easier than the doorway. Most competitive things are shaped like this. Spend everything on getting in.</span></li>'
+     + '<li><span class="k">Cheap / costly</span><span class="v"><b>The Trap.</b> Easy to enter, hard to live in. The yes '
+     + 'is not the decision, the next three years are. Almost nobody prices this one correctly.</span></li>'
+     + '<li><span class="k">Costly / costly</span><span class="v"><b>The Commitment.</b> Both halves cost, as most worthwhile '
+     + 'things do. Only worth paying if you have actually seen the room, and from here you have not.</span></li>'
+     + '</ul>'
+     + '<p style="margin-top:11px">Weigh your own door against these two questions at the top of the page. The interesting '
+     + 'result is when the answer is Trap, because a Trap and an Unlocked Door feel identical from the near side.</p>';
+
+  h += '<h4>The approach</h4>'
+     + '<p class="lede">A door has more than one way up to it, and people tend to know about one. The approach deck deals '
+     + 'you a route rather than a diagnosis: not what is wrong, but which line to try.</p><ul class="defs">';
+  APPROACHES.forEach(a=>{
+    h += '<li><span class="k" style="width:auto;min-width:104px">'+a[0]+'</span><span class="v">'+a[1]
+       + '<br><span style="opacity:.6">costs you '+a[2]+'</span></span></li>';
+  });
+  h += '</ul>'
+     + '<p style="margin-top:11px">The route is drawn blind on purpose. The one you would have picked is the one you already '
+     + 'know about, and it is usually the Front Door.</p>';
+
+  h += '<h4>How you came to see it</h4>'
+     + '<p class="lede">Doors become visible in four ways, and only one of them is under your control.</p><ul class="defs">'
+     + '<li><span class="k">Searched</span><span class="v">You went looking. The only one you own outright, and the least productive per hour spent.</span></li>'
+     + '<li><span class="k">Told</span><span class="v">Somebody named it for you. Most doors arrive this way, which is an argument for more conversations rather than more thinking.</span></li>'
+     + '<li><span class="k">Stumbled</span><span class="v">You fell through it. Afterwards it looks like destiny. At the time it was traffic.</span></li>'
+     + '<li><span class="k">Forced</span><span class="v">The wall came down. Layoff, diagnosis, ending. Not chosen, and a door regardless.</span></li>'
+     + '</ul>'
+     + '<p style="margin-top:11px">Three of the four need other people or luck. The practical consequence is that the way to '
+     + 'find more doors is more surface area, not harder concentration. You cannot think your way into being told something.</p>';
+
+  h += '<h4>How many it takes</h4>'
+     + '<p class="lede">People default to assuming a door is a solo problem, and are usually wrong by exactly one person.</p><ul class="defs">'
+     + '<li><span class="k">Alone</span><span class="v">Genuinely possible, rarer than assumed, and the default guess.</span></li>'
+     + '<li><span class="k">One other</span><span class="v">A guide, a vouch, a co-signer, someone who has been through. Most doors that stayed shut for years needed one person.</span></li>'
+     + '<li><span class="k">A crew</span><span class="v">Three to six who actually show up. Everything physical, and most things that take a season.</span></li>'
+     + '<li><span class="k">An institution</span><span class="v">A company, a school, a class of licence. Slow, and it confers something you cannot confer on yourself.</span></li>'
+     + '</ul>'
+     + '<p style="margin-top:11px">If a door has been shut for more than a year, the honest question is not what you are doing '
+     + 'wrong. It is which of these four you assumed, and whether you assumed one too few.</p>';
+
   h += '<h4>Reading a spread, not three cards</h4><ul class="defs">'
      + '<li><span class="k">Conditions</span><span class="v">Count them. Zero is a decision. Three says the building is the subject.</span></li>'
      + '<li><span class="k">Kinds</span><span class="v">Three Costly in a row is a spread about money and nerve, whatever the positions say.</span></li>'
@@ -912,6 +1042,12 @@ function buildIndex(){
          + '<p class="keys"><b>'+RANKS[i]+'</b>'+STAGES[i][0]+'</p></article>';
     });
   });
+  h += '<h4 class="idxhead">The approaches \u00b7 routes up to a door</h4>';
+  APPROACHES.forEach(a=>{
+    h += '<article class="idx" data-k="'+(a[0]+' approach route '+a[1]+' '+a[2]).toLowerCase()+'">'
+       + '<h5><span class="sw" style="background:var(--hot)"></span>'+a[0]+'</h5>'
+       + '<p><b>Route</b>'+a[1]+'</p><p><b>Costs</b>'+a[2]+'</p></article>';
+  });
   h += '<p class="nohits" id="noHits" hidden>Nothing matches that.</p>';
   document.getElementById('index').innerHTML = h;
 }
@@ -928,6 +1064,66 @@ function filterIndex(q){
   heads.forEach(hd=>{ hd.hidden = !!q; });
   document.getElementById('noHits').hidden = hits > 0;
 }
+
+
+/* ============ the approach ============ */
+let approach = null;
+const approachBox = document.getElementById('approachBox');
+const btnApproach = document.getElementById('btnApproach');
+
+function drawApproach(){
+  const i = randInt(APPROACHES.length);
+  approach = {a: APPROACHES[i], i: i};
+  paintTape();
+  renderApproach();
+}
+function renderApproach(){
+  if (!approach){
+    approachBox.innerHTML = '<button class="appbtn" id="btnApproach"'
+      + (shuffled ? '' : ' disabled') + '>Draw an approach \u00b7 which route to try</button>';
+    approachBox.querySelector('#btnApproach').addEventListener('click', drawApproach);
+    return;
+  }
+  const a = approach.a;
+  approachBox.innerHTML = '<div class="slip">'
+    + '<div class="slip-head"><span>The approach</span><b>' + (approach.i+1) + ' of ' + APPROACHES.length + '</b></div>'
+    + '<div class="slip-body"><h4>' + a[0] + '</h4><p>' + a[1] + '</p>'
+    + '<p class="cost"><b>Costs you</b>' + a[2] + '</p>'
+    + '<button class="again">Draw another route</button></div></div>';
+  approachBox.querySelector('.again').addEventListener('click', drawApproach);
+}
+
+/* ============ the two costs ============ */
+/* opening a door and living on the other side are priced separately,
+   and mixing them up is how people walk through the wrong one */
+const WEIGH = {
+  "0,0": ["The Unlocked Door",
+    "You are deliberating about something you could simply do. Nothing is holding this shut and nothing on the other side is expensive. The deliberating has quietly become the most costly part.",
+    "Go this week. Then notice how long you spent not going."],
+  "1,0": ["The Gate",
+    "All of the difficulty sits at the entrance. Getting in is the whole problem, and the room beyond it is easier than the doorway. Most competitive things are shaped like this.",
+    "Spend everything on getting in. Stop rehearsing what happens after."],
+  "0,1": ["The Trap",
+    "Easy to enter, hard to live in. The yes is not the decision, the next three years are. Almost nobody prices this one correctly, because the doorway is the only part you can see from here.",
+    "Price the room, not the doorway. Find somebody three years in and ask them."],
+  "1,1": ["The Commitment",
+    "Both halves cost, which is true of most things worth doing. It is only worth paying if you have actually seen the room, and from out here you have not.",
+    "Go and see the room before you pay for the door."]
+};
+let weighState = {open:null, pass:null};
+const verdictEl = document.getElementById('verdict');
+document.querySelectorAll('.weigh .wrow button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const axis = b.dataset.a;
+    weighState[axis] = +b.dataset.v;
+    document.querySelectorAll('.weigh .wrow button[data-a="'+axis+'"]').forEach(x=>
+      x.setAttribute('aria-pressed', x === b));
+    if (weighState.open === null || weighState.pass === null){ verdictEl.hidden = true; return; }
+    const v = WEIGH[weighState.open + ',' + weighState.pass];
+    verdictEl.hidden = false;
+    verdictEl.innerHTML = '<h4>' + v[0] + '</h4><p>' + v[1] + '</p><p class="do">' + v[2] + '</p>';
+  });
+});
 
 /* ============ wiring ============ */
 document.getElementById('btnShuffle').addEventListener('click', ()=>{ shuffle(); render(); });
@@ -1005,6 +1201,7 @@ matchMedia('(prefers-color-scheme: light)').addEventListener('change', e=>{
 
 buildGrammar();
 buildIndex();
+renderApproach();
 render();
 refresh();
 </script>
