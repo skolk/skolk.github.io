@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1B242B" id="themeColor">
 <title>Tarot · shuffle, cut, draw</title>
+<script>
+/* Runs before the body parses, so the page never paints in the wrong theme.
+   A saved choice wins; otherwise follow the system. */
+(function(){
+  var BAR = {day:"#E3D7BF", dusk:"#1B242B", night:"#0D0605"}, t = null;
+  try { t = localStorage.getItem("tarot.theme"); } catch(e){}
+  if (!BAR[t]) t = matchMedia("(prefers-color-scheme: light)").matches ? "day" : "dusk";
+  if (t !== "dusk") document.documentElement.className = t;
+  var m = document.getElementById("themeColor");
+  if (m) m.setAttribute("content", BAR[t]);
+})();
+</script>
 <style>
 :root{
   --ground:#1B242B; --ground-2:#131A1F;
@@ -18,6 +30,7 @@
   --action:#C8422C; --action-hi:#D64E36; --action-text:#EFE4CE;
   --back:#2E5A8E; --back-line:rgba(239,228,206,.16); --back-frame:#EFE4CE;
   --shadow:rgba(0,0,0,.40);
+  --panel:rgba(0,0,0,.28);
   --suit-wands:#3E7A63; --suit-cups:#C8422C; --suit-swords:#2E5A8E; --suit-coins:#D0961F;
   --wash:linear-gradient(180deg,#22303A 0%, #1B242B 45%, #131A1F 100%);
   --display:Copperplate,"Copperplate Gothic Light",Optima,"Palatino Linotype",Palatino,Georgia,serif;
@@ -25,7 +38,24 @@
   --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Courier New",monospace;
   --card-w:104px;
 }
-body.night{
+html.day{
+  color-scheme:light;
+  --ground:#E3D7BF; --ground-2:#D6C8AC;
+  --text:#1F1A12;
+  --text-dim:rgba(31,26,18,.62);
+  --text-faint:rgba(31,26,18,.42);
+  --hair:rgba(31,26,18,.26);
+  --hair-soft:rgba(31,26,18,.11);
+  --card-bg:#FBF7ED; --card-ink:#1A1712; --card-hair:rgba(26,23,18,.22);
+  --accent:#7A5A28; --hot:#8A5A0C;
+  --action:#AE3722; --action-hi:#C2432C; --action-text:#FBF7ED;
+  --back:#2E5A8E; --back-line:rgba(255,255,255,.18); --back-frame:#EFE4CE;
+  --shadow:rgba(58,44,20,.24);
+  --panel:rgba(255,255,255,.44);
+  --suit-wands:#2F6350; --suit-cups:#AE3722; --suit-swords:#26496F; --suit-coins:#8A6212;
+  --wash:linear-gradient(180deg,#EDE3CE 0%, #E3D7BF 45%, #D6C8AC 100%);
+}
+html.night{
   --ground:#0D0605; --ground-2:#050202;
   --text:#C05C3D;
   --text-dim:rgba(192,92,61,.60);
@@ -37,6 +67,7 @@ body.night{
   --action:#7A2A17; --action-hi:#93341C; --action-text:#E59065;
   --back:#2A0D07; --back-line:rgba(196,96,62,.22); --back-frame:#8E3F26;
   --shadow:rgba(0,0,0,.7);
+  --panel:rgba(0,0,0,.45);
   --suit-wands:#A8622C; --suit-cups:#D0563A; --suit-swords:#9A5348; --suit-coins:#CE913F;
   --wash:linear-gradient(180deg,#150807 0%, #0D0605 45%, #050202 100%);
 }
@@ -67,7 +98,7 @@ h1{font-family:var(--display);font-size:clamp(40px,15vw,64px);font-weight:400;le
   border-radius:2px;padding:7px 9px;cursor:pointer;line-height:1}
 .themebtn:hover{border-color:var(--accent)}
 
-.tape{margin:26px 0 0;border:1px solid var(--hair);background:rgba(0,0,0,.28);border-radius:2px;overflow:hidden}
+.tape{margin:26px 0 0;border:1px solid var(--hair);background:var(--panel);border-radius:2px;overflow:hidden}
 .tape-head{display:flex;justify-content:space-between;align-items:baseline;padding:7px 10px;border-bottom:1px solid var(--hair-soft);
   font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
 .tape-head b{font-weight:400;color:var(--text-dim)}
@@ -114,6 +145,9 @@ button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
 .draw{margin:9px 0 0;width:100%;background:var(--action);border-color:var(--action);
   color:var(--action-text);font-size:15px;padding:17px 10px;letter-spacing:.18em}
 .draw:hover:not(:disabled){background:var(--action-hi);border-color:var(--action-hi)}
+/* the filled draw button dims to cream-on-pale-pink in day mode, which is unreadable;
+   outline it instead so the disabled state stays legible on paper */
+html.day .draw:disabled{background:transparent;border-color:var(--hair);color:var(--text-dim);opacity:1}
 
 .pills,.spreadrow{margin:18px 0 0;display:flex;border:1px solid var(--hair);border-radius:2px;overflow:hidden}
 .pills button,.spreadrow button{flex:1;border:0;border-right:1px solid var(--hair);border-radius:0}
@@ -153,7 +187,7 @@ button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
   border-top:1px solid var(--card-hair);line-height:1.25;text-transform:uppercase}
 .revtag{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:8px;letter-spacing:.1em;
   color:var(--action);border:1px solid var(--action);padding:1px 3px;border-radius:1px;background:var(--card-bg);z-index:2}
-body.night .revtag{color:var(--hot);border-color:var(--hot)}
+html.night .revtag{color:var(--hot);border-color:var(--hot)}
 .slotback{padding:0;border:0;background:transparent;width:100%;aspect-ratio:100/172;
   cursor:pointer;opacity:.42;transition:opacity .18s;position:relative}
 .slotback .cardback{position:absolute;inset:0}
@@ -170,7 +204,7 @@ body.night .revtag{color:var(--hot);border-color:var(--hot)}
 .reading .pos2{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
 .reading h3{font-family:var(--display);font-size:19px;letter-spacing:.06em;font-weight:400;margin:0 0 6px;color:var(--text)}
 .reading h3 em{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--action);text-transform:uppercase;margin-left:8px}
-body.night .reading h3 em{color:var(--hot)}
+html.night .reading h3 em{color:var(--hot)}
 .reading p{margin:0;color:var(--text);opacity:.85;font-size:15.5px}
 .keys{margin:11px 0 0 !important;font-family:var(--mono);font-size:10.5px;line-height:1.9;
   letter-spacing:.03em;color:var(--text-faint);opacity:1 !important;text-transform:none}
@@ -205,7 +239,7 @@ details[open] summary::before{content:"▾ "}
 .schools li{margin:0 0 9px;opacity:.82}
 .schools b{font-weight:400;color:var(--accent)}
 
-.find{width:100%;margin:14px 0 6px;padding:11px 12px;background:rgba(0,0,0,.25);
+.find{width:100%;margin:14px 0 6px;padding:11px 12px;background:var(--panel);
   border:1px solid var(--hair);border-radius:2px;color:var(--text);
   font-family:var(--mono);font-size:12px;letter-spacing:.06em}
 .find::placeholder{color:var(--text-faint)}
@@ -234,7 +268,7 @@ details[open] summary::before{content:"▾ "}
 <div class="wrap">
 
 <header>
-  <button class="themebtn" id="themeBtn" aria-pressed="false">Night</button>
+  <button class="themebtn" id="themeBtn">Night</button>
   <p class="eyebrow">Seventy-eight cards</p>
   <h1>Tarot</h1>
   <div class="rule"><span>shuffle · cut · draw</span></div>
@@ -815,11 +849,41 @@ document.getElementById('find').addEventListener('input', e=> filterIndex(e.targ
 
 const themeBtn = document.getElementById('themeBtn');
 const themeMeta = document.getElementById('themeColor');
-themeBtn.addEventListener('click', ()=>{
-  const night = document.body.classList.toggle('night');
-  themeBtn.textContent = night ? "Lamp" : "Night";
-  themeBtn.setAttribute('aria-pressed', night);
-  themeMeta.setAttribute('content', night ? "#0D0605" : "#1B242B");
+
+/* day: readable in sunlight. dusk: the default, cream on slate.
+   night: red-light, for below deck with adjusted eyes. */
+const THEMES = [
+  {id:"day",   cls:"day",   label:"Day",   bar:"#E3D7BF"},
+  {id:"dusk",  cls:"",      label:"Dusk",  bar:"#1B242B"},
+  {id:"night", cls:"night", label:"Night", bar:"#0D0605"}
+];
+const THEME_KEY = "tarot.theme";
+
+const root = document.documentElement;
+
+function applyTheme(i, save){
+  const t = THEMES[i];
+  THEMES.forEach(x => { if (x.cls) root.classList.toggle(x.cls, x === t); });
+  const next = THEMES[(i + 1) % THEMES.length];
+  themeBtn.textContent = next.label;
+  themeBtn.setAttribute('aria-label', 'Switch to ' + next.label.toLowerCase() + ' theme, currently ' + t.label.toLowerCase());
+  themeMeta.setAttribute('content', t.bar);
+  themeIdx = i;
+  if (save){ try { localStorage.setItem(THEME_KEY, t.id); } catch(e){} }
+}
+
+/* the head script already resolved and applied the theme before first paint;
+   read it back off the root so the button label agrees with what is on screen */
+let themeIdx = 1;
+applyTheme(Math.max(0, THEMES.findIndex(t => t.cls ? root.classList.contains(t.cls) : !root.className)), false);
+
+themeBtn.addEventListener('click', ()=> applyTheme((themeIdx + 1) % THEMES.length, true));
+
+/* follow the system until the reader picks for themselves */
+matchMedia('(prefers-color-scheme: light)').addEventListener('change', e=>{
+  let s = null;
+  try { s = localStorage.getItem(THEME_KEY); } catch(err){}
+  if (!s) applyTheme(e.matches ? 0 : 1, false);
 });
 
 buildGrammar();

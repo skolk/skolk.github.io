@@ -76,5 +76,8 @@ That is close enough to what I do in facilitation that I wanted a version I trus
 worked with no signal, and that I could hand to somebody without a preamble about what I do or
 do not believe.
 
-There is a night mode, which goes red-light rather than merely dim, on the theory that the
-place I am most likely to want this is below deck at anchor with my eyes already adjusted.
+Three themes, because the first thing I did after putting it up was open it outdoors and see
+nothing at all. Day is paper and ink, for sunlight. Dusk is the cream-on-slate default. Night
+goes red-light rather than merely dim, on the theory that the other place I am most likely to
+want this is below deck at anchor with my eyes already adjusted. It follows the system setting
+until you pick one, and then it remembers.
