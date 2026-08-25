@@ -64,6 +64,7 @@ Status legend: ☐ needs photo · ⊘ also a stub (needs written content + de-st
 | ☐ | `2025-06-15-yutori.md` | `dirt_roads.jpg` *(already named)* | The yutori subject / dirt roads |
 | ☐ | `2026-02-23-Coastal-Systems.md` | `coastal-systems.jpg` | Coastal monitoring subject or location |
 | ☐ | `_pages/projects/micmeter.md` | `micmeter-menu.png` | The menu open with the two-row meter in the bar (commented slot in the page); grab with the menu showing the button row and a lit meter |
+| ☐ | `2026-08-24-Seventy-Eight-Cards.md` | `tarot-spread.png` | A three-card spread on the table with the entropy tape visible above it; screenshot from `/tarot/`, night mode reads well |
 
 ## Stub language to clear (3, same as the ⊘ rows above)
 

@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B242B" id="themeColor">
+<title>Tarot · shuffle, cut, draw</title>
+<style>
+:root{
+  --ground:#1B242B; --ground-2:#131A1F;
+  --text:#EFE4CE;
+  --text-dim:rgba(239,228,206,.55);
+  --text-faint:rgba(239,228,206,.32);
+  --hair:rgba(239,228,206,.20);
+  --hair-soft:rgba(239,228,206,.10);
+  --card-bg:#EFE4CE; --card-ink:#1A1712; --card-hair:rgba(26,23,18,.22);
+  --accent:#B08D57; --hot:#D0961F;
+  --action:#C8422C; --action-hi:#D64E36; --action-text:#EFE4CE;
+  --back:#2E5A8E; --back-line:rgba(239,228,206,.16); --back-frame:#EFE4CE;
+  --shadow:rgba(0,0,0,.40);
+  --suit-wands:#3E7A63; --suit-cups:#C8422C; --suit-swords:#2E5A8E; --suit-coins:#D0961F;
+  --wash:linear-gradient(180deg,#22303A 0%, #1B242B 45%, #131A1F 100%);
+  --display:Copperplate,"Copperplate Gothic Light",Optima,"Palatino Linotype",Palatino,Georgia,serif;
+  --body:"Iowan Old Style",Charter,"Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Courier New",monospace;
+  --card-w:104px;
+}
+body.night{
+  --ground:#0D0605; --ground-2:#050202;
+  --text:#C05C3D;
+  --text-dim:rgba(192,92,61,.60);
+  --text-faint:rgba(192,92,61,.34);
+  --hair:rgba(192,92,61,.24);
+  --hair-soft:rgba(192,92,61,.12);
+  --card-bg:#1A0806; --card-ink:#C4603E; --card-hair:rgba(196,96,62,.30);
+  --accent:#9E4A2C; --hot:#E07A3C;
+  --action:#7A2A17; --action-hi:#93341C; --action-text:#E59065;
+  --back:#2A0D07; --back-line:rgba(196,96,62,.22); --back-frame:#8E3F26;
+  --shadow:rgba(0,0,0,.7);
+  --suit-wands:#A8622C; --suit-cups:#D0563A; --suit-swords:#9A5348; --suit-coins:#CE913F;
+  --wash:linear-gradient(180deg,#150807 0%, #0D0605 45%, #050202 100%);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,.05) 0 1px, transparent 1px 4px),
+    var(--wash);
+  color:var(--text);font-family:var(--body);font-size:16px;line-height:1.5;
+  -webkit-text-size-adjust:100%;
+  padding:0 18px calc(48px + env(safe-area-inset-bottom));
+  transition:background-color .35s ease, color .35s ease;
+}
+.wrap{max-width:620px;margin:0 auto}
+
+header{padding:34px 0 0;text-align:center;position:relative}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+h1{font-family:var(--display);font-size:clamp(40px,15vw,64px);font-weight:400;letter-spacing:.2em;margin:0;text-indent:.2em;color:var(--text)}
+.rule{display:flex;align-items:center;gap:12px;margin:16px 0 0}
+.rule::before,.rule::after{content:"";flex:1;height:1px;background:var(--hair)}
+.rule span{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-dim)}
+.themebtn{position:absolute;top:26px;right:0;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent);background:transparent;border:1px solid var(--hair);
+  border-radius:2px;padding:7px 9px;cursor:pointer;line-height:1}
+.themebtn:hover{border-color:var(--accent)}
+
+.tape{margin:26px 0 0;border:1px solid var(--hair);background:rgba(0,0,0,.28);border-radius:2px;overflow:hidden}
+.tape-head{display:flex;justify-content:space-between;align-items:baseline;padding:7px 10px;border-bottom:1px solid var(--hair-soft);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.tape-head b{font-weight:400;color:var(--text-dim)}
+.tape-strip{font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:9px 10px;white-space:nowrap;
+  overflow:hidden;direction:rtl;color:var(--text-faint);height:34px;display:flex;align-items:center}
+.tape-strip .hot{color:var(--hot)}
+.tape.live{border-color:var(--hot)}
+.footnote{font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--text-faint);margin:8px 2px 0}
+
+.deck-zone{margin:30px 0 0;display:flex;align-items:center;gap:22px}
+.stack{position:relative;width:var(--card-w);height:calc(var(--card-w)*1.72);flex:none}
+.cardback{border-radius:4px;
+  background:
+    repeating-linear-gradient(45deg, var(--back-line) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-45deg, var(--back-line) 0 1px, transparent 1px 7px),
+    var(--back);
+  border:1px solid rgba(0,0,0,.6);
+  box-shadow:inset 0 0 0 3px var(--back-frame), inset 0 0 0 4px var(--back);position:relative}
+.cardback::after{content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;
+  border:1px solid var(--back-frame);border-radius:50%;
+  box-shadow:inset 0 0 0 3px var(--back), inset 0 0 0 4px var(--back-frame)}
+.back{position:absolute;inset:0;transform-origin:50% 120%}
+.stack.riffle .back{animation:riffle .62s cubic-bezier(.36,.06,.2,1) var(--d) both}
+@keyframes riffle{
+  0%{transform:translate(0,0) rotate(0)}
+  30%{transform:translate(var(--x),-9%) rotate(var(--r))}
+  62%{transform:translate(calc(var(--x)*.35),-3%) rotate(calc(var(--r)*.4))}
+  100%{transform:translate(0,0) rotate(0)}
+}
+.deck-meta{flex:1;min-width:0}
+.count{font-family:var(--display);font-size:34px;letter-spacing:.06em;line-height:1;margin:0}
+.count small{font-size:12px;letter-spacing:.18em;color:var(--text-dim);display:block;margin-top:8px;font-family:var(--mono)}
+.state{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:14px 0 0}
+
+.controls{margin:24px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+button{font-family:var(--display);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text);background:transparent;border:1px solid var(--hair);border-radius:2px;
+  padding:14px 6px;cursor:pointer;transition:background .15s,border-color .15s,color .15s;
+  -webkit-tap-highlight-color:transparent}
+button:hover:not(:disabled){background:var(--hair-soft);border-color:var(--text-dim)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{opacity:.3;cursor:default}
+button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+.draw{margin:9px 0 0;width:100%;background:var(--action);border-color:var(--action);
+  color:var(--action-text);font-size:15px;padding:17px 10px;letter-spacing:.18em}
+.draw:hover:not(:disabled){background:var(--action-hi);border-color:var(--action-hi)}
+
+.pills,.spreadrow{margin:18px 0 0;display:flex;border:1px solid var(--hair);border-radius:2px;overflow:hidden}
+.pills button,.spreadrow button{flex:1;border:0;border-right:1px solid var(--hair);border-radius:0}
+.pills button:last-child,.spreadrow button:last-child{border-right:0}
+.pills button{padding:11px 4px;font-size:11px;letter-spacing:.14em}
+.pills button[aria-pressed="true"],.spreadrow button[aria-pressed="true"]{background:var(--hair-soft);color:var(--hot)}
+.spreadrow{margin-top:8px;border-color:var(--hair-soft)}
+.spreadrow button{padding:9px 4px;font-size:9.5px;letter-spacing:.1em;font-family:var(--mono);color:var(--text-dim);border-right-color:var(--hair-soft)}
+.spreadrow[hidden]{display:none}
+.toggle{margin:16px 2px 0;display:flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
+.toggle input{accent-color:var(--action);width:16px;height:16px}
+
+.spread{margin:34px 0 0;display:flex;gap:12px;justify-content:center}
+.slot{flex:1;max-width:180px;display:flex;flex-direction:column;align-items:center;gap:9px}
+.slot .pos{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);text-align:center}
+.slot.open .pos{color:var(--text-faint)}
+.flip{width:100%;aspect-ratio:100/172;perspective:900px}
+.flip-in{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+  transform:rotateY(180deg);transition:transform .7s cubic-bezier(.3,.9,.3,1)}
+.flip.up .flip-in{transform:rotateY(0deg)}
+.flip.instant .flip-in{transition:none}
+.face,.rear{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.rear{transform:rotateY(180deg)}
+.face{background:var(--card-bg);color:var(--card-ink);border-radius:4px;
+  border:1px solid rgba(0,0,0,.55);box-shadow:0 2px 10px var(--shadow);
+  overflow:hidden;display:flex;flex-direction:column}
+.face.rev .art{transform:rotate(180deg)}
+.art{flex:1;position:relative;padding:5%;display:flex;align-items:center;justify-content:center}
+.art svg{width:100%;height:100%;overflow:visible}
+.emb{fill:none;stroke:var(--card-ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.pip{fill:none;stroke:var(--suit);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.plaque{fill:none;stroke:var(--card-ink);stroke-width:1.6}
+.ctext{fill:var(--card-ink)}
+.roman{font-family:var(--display);font-size:11px;letter-spacing:.14em;text-align:center;padding:6px 4px 2px;border-bottom:1px solid var(--card-hair)}
+.cname{font-family:var(--display);font-size:9px;letter-spacing:.09em;text-align:center;padding:5px 3px 7px;
+  border-top:1px solid var(--card-hair);line-height:1.25;text-transform:uppercase}
+.revtag{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:8px;letter-spacing:.1em;
+  color:var(--action);border:1px solid var(--action);padding:1px 3px;border-radius:1px;background:var(--card-bg);z-index:2}
+body.night .revtag{color:var(--hot);border-color:var(--hot)}
+.slotback{padding:0;border:0;background:transparent;width:100%;aspect-ratio:100/172;
+  cursor:pointer;opacity:.42;transition:opacity .18s;position:relative}
+.slotback .cardback{position:absolute;inset:0}
+.slotback:hover:not(:disabled){opacity:.85}
+.slotback:disabled{opacity:.16;cursor:default}
+.slotback:focus-visible{outline:2px solid var(--hot);outline-offset:3px}
+
+.readings{margin:32px 0 0}
+.reading{border-top:1px solid var(--hair);padding:18px 0 4px}
+.reading.new{opacity:0;transform:translateY(8px);animation:rise .5s ease forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.reading .kicker{display:flex;align-items:center;gap:8px;margin:0 0 7px}
+.swatch{width:18px;height:3px;flex:none;border-radius:1px}
+.reading .pos2{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.reading h3{font-family:var(--display);font-size:19px;letter-spacing:.06em;font-weight:400;margin:0 0 6px;color:var(--text)}
+.reading h3 em{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--action);text-transform:uppercase;margin-left:8px}
+body.night .reading h3 em{color:var(--hot)}
+.reading p{margin:0;color:var(--text);opacity:.85;font-size:15.5px}
+.keys{margin:11px 0 0 !important;font-family:var(--mono);font-size:10.5px;line-height:1.9;
+  letter-spacing:.03em;color:var(--text-faint);opacity:1 !important;text-transform:none}
+.keys b{font-weight:400;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-right:7px}
+.empty{border:1px dashed var(--hair);border-radius:2px;padding:26px 20px;text-align:center;color:var(--text-dim);font-size:15px}
+
+details{margin:20px 0 0;border-top:1px solid var(--hair);padding-top:14px}
+details:first-of-type{margin-top:34px}
+summary{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸ "}
+details[open] summary::before{content:"▾ "}
+.log{margin:12px 0 0;padding:0;list-style:none;font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim)}
+.log li{border-bottom:1px solid var(--hair-soft);padding:3px 0}
+.log .t{color:var(--accent)}
+
+/* ---------- guide ---------- */
+.guide{margin:14px 0 0;font-size:15.5px}
+.guide h4{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--accent);margin:22px 0 9px;font-weight:400}
+.guide h4:first-child{margin-top:6px}
+.guide p{margin:0 0 11px;color:var(--text);opacity:.82}
+.guide .lede{opacity:.7}
+.defs{margin:0;padding:0;list-style:none}
+.defs li{padding:6px 0;border-bottom:1px solid var(--hair-soft);display:flex;gap:11px;align-items:baseline}
+.defs li:last-child{border-bottom:0}
+.defs .k{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--accent);flex:none;width:78px}
+.defs .v{flex:1;opacity:.82;font-size:15px}
+.defs .k .sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:baseline}
+.schools{margin:0;padding:0 0 0 20px}
+.schools li{margin:0 0 9px;opacity:.82}
+.schools b{font-weight:400;color:var(--accent)}
+
+.find{width:100%;margin:14px 0 6px;padding:11px 12px;background:rgba(0,0,0,.25);
+  border:1px solid var(--hair);border-radius:2px;color:var(--text);
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em}
+.find::placeholder{color:var(--text-faint)}
+.find:focus{outline:none;border-color:var(--accent)}
+.idxhead{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--accent);margin:24px 0 4px;font-weight:400;border-bottom:1px solid var(--hair);padding-bottom:7px}
+.idx{padding:12px 0;border-bottom:1px solid var(--hair-soft)}
+.idx h5{font-family:var(--display);font-size:15px;letter-spacing:.05em;font-weight:400;margin:0 0 5px;color:var(--text)}
+.idx h5 .sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+.idx p{margin:0 0 3px;font-size:14.5px;opacity:.8;line-height:1.45}
+.idx p b{font-weight:400;font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--accent);margin-right:7px}
+.idx[hidden],.idxhead[hidden]{display:none}
+.nohits{font-family:var(--mono);font-size:11px;color:var(--text-faint);padding:14px 0}
+
+@media (min-width:520px){:root{--card-w:118px}}
+@media (max-width:380px){.spread{gap:7px}.controls{gap:7px}.defs .k{width:66px}}
+@media (prefers-reduced-motion:reduce){
+  .stack.riffle .back{animation:none}
+  .flip-in{transition:none}
+  .reading.new{animation:none;opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <button class="themebtn" id="themeBtn" aria-pressed="false">Night</button>
+  <p class="eyebrow">Seventy-eight cards</p>
+  <h1>Tarot</h1>
+  <div class="rule"><span>shuffle · cut · draw</span></div>
+</header>
+
+<section class="tape" id="tape" aria-label="Entropy readout">
+  <div class="tape-head"><span>Entropy · crypto.getRandomValues</span><b id="byteCount">0 bytes</b></div>
+  <div class="tape-strip" id="strip">waiting for the first shuffle</div>
+</section>
+<p class="footnote">Fisher-Yates over the full deck, one unbiased random draw per position.<br>78! ≈ 1.13 × 10^115 possible orders. No order has come up twice.</p>
+
+<section class="deck-zone">
+  <div class="stack" id="stack" aria-hidden="true"></div>
+  <div class="deck-meta">
+    <p class="count"><span id="remain">78</span><small>cards left in the stack</small></p>
+    <p class="state" id="state">Unshuffled · factory order</p>
+  </div>
+</section>
+
+<div class="controls">
+  <button id="btnShuffle">Shuffle</button>
+  <button id="btnCut">Cut</button>
+  <button id="btnClear">Clear table</button>
+</div>
+<button class="draw" id="btnDraw">Shuffle first</button>
+
+<div class="pills" role="group" aria-label="How many places in the spread">
+  <button data-n="1" aria-pressed="true">One place</button>
+  <button data-n="2" aria-pressed="false">Two</button>
+  <button data-n="3" aria-pressed="false">Three</button>
+</div>
+<div class="spreadrow" id="spreadRow" hidden role="group" aria-label="Three card spread">
+  <button data-s="0" aria-pressed="true">Past · Present · Future</button>
+  <button data-s="1" aria-pressed="false">Situation · Action · Outcome</button>
+</div>
+<label class="toggle"><input type="checkbox" id="revToggle" checked> Allow reversed cards</label>
+
+<section class="spread" id="spread"></section>
+<section class="readings" id="readings"></section>
+
+<details><summary>Draw log</summary>
+  <ul class="log" id="log"><li>Nothing drawn yet.</li></ul>
+</details>
+
+<details><summary>The grammar</summary>
+  <div class="guide" id="grammar"></div>
+</details>
+
+<details id="indexBox"><summary>Card index · all 78</summary>
+  <input class="find" id="find" type="search" placeholder="filter by name, suit or keyword" autocomplete="off" spellcheck="false">
+  <div id="index"></div>
+</details>
+
+</div>
+
+<script>
+"use strict";
+
+/* ============ randomness ============ */
+const entropy = []; let bytesUsed = 0;
+const stripEl = document.getElementById('strip');
+const byteEl  = document.getElementById('byteCount');
+const tapeEl  = document.getElementById('tape');
+
+function rand32(){
+  const a = new Uint32Array(1);
+  crypto.getRandomValues(a);
+  bytesUsed += 4;
+  entropy.push(a[0] & 0xFF);
+  if (entropy.length > 64) entropy.splice(0, entropy.length - 64);
+  return a[0];
+}
+function randInt(n){
+  if (n <= 1) return 0;
+  const limit = Math.floor(0x100000000 / n) * n;
+  let v; do { v = rand32(); } while (v >= limit);
+  return v % n;
+}
+let tapeQueued = false;
+function paintTape(){
+  if (tapeQueued) return;
+  tapeQueued = true;
+  requestAnimationFrame(()=>{
+    tapeQueued = false;
+    const hex = entropy.map(b => b.toString(16).toUpperCase().padStart(2,'0'));
+    stripEl.innerHTML = '<span class="hot">'+ hex.slice(-6).join(' ') +'</span> ' + hex.slice(0,-6).join(' ');
+    byteEl.textContent = bytesUsed.toLocaleString() + ' bytes';
+  });
+}
+
+/* ============ deck data ============ */
+const MAJORS = [
+["0","The Fool","a leap taken before the ground is proven. Innocence, open road, faith in the next step.","the leap made carelessly, or refused entirely. Scattered energy, a foot that will not lift."],
+["I","The Magician","tools in hand and the will to use them. Focus, craft, resourcefulness.","skill turned to manipulation, or talent left idle. A rehearsal that never opens."],
+["II","The High Priestess","what you already know and have not said. Intuition, patience, the sealed book.","signals ignored, secrets gone sour. Noise drowning the quiet voice."],
+["III","The Empress","abundance and the work of growing things. Care, comfort, generosity.","smothering, or neglect. Creative block. Care given everywhere except to yourself."],
+["IV","The Emperor","structure and the frame that holds. Authority, discipline, clear boundaries.","rigidity, or a vacuum where leadership should be. Control mistaken for order."],
+["V","The Hierophant","tradition and the established way. Mentorship, doctrine, belonging.","a doctrine outgrown. Rules broken on purpose, or a teacher who should be left."],
+["VI","The Lovers","a choice between two goods. Union, alignment, values made explicit.","misalignment. A decision dodged. Attraction pulling against principle."],
+["VII","The Chariot","momentum held under control. Drive, victory by steering rather than force.","wheels spinning, direction lost. Aggression without a destination."],
+["VIII","Strength","the soft hand on the lion. Courage, patience, influence without force.","self-doubt, or force used where patience was needed. A temper running the show."],
+["IX","The Hermit","withdrawal on purpose. The lamp carried inward, counsel, solitude that clarifies.","isolation that has stopped being useful. Refusing the help offered."],
+["X","Wheel of Fortune","the turn you did not schedule. Luck, cycles, a change of fortune.","resisting the turn. Bad timing. A cycle repeating because it was never learned."],
+["XI","Justice","cause and effect made plain. Fairness, accountability, an honest ledger.","bias, an unbalanced account. Consequences dodged or unfairly borne."],
+["XII","The Hanged Man","suspension that changes the view. Pause, surrender, a cost paid deliberately.","stalling dressed up as reflection. A sacrifice nobody asked for."],
+["XIII","Death","an ending that clears ground. Transformation, the door closing behind you. Rarely literal.","clinging to what is already over. A slow, drawn-out ending."],
+["XIV","Temperance","the right proportion. Blending, patience, a middle path found by testing.","excess, imbalance. Ingredients forced together too fast."],
+["XV","The Devil","the thing you say you could stop anytime. Attachment, appetite, chains held loosely.","the chain loosened. A habit named out loud. Freedom beginning."],
+["XVI","The Tower","the sudden correction. Collapse, revelation, a false structure coming down.","disaster deferred or survived. The crack you keep painting over."],
+["XVII","The Star","quiet hope after the wreck. Renewal, guidance, a light worth steering by.","faith gone thin, the horizon lost. A light you can see and refuse to follow."],
+["XVIII","The Moon","the unclear passage. Illusion, dream, fear that may or may not be real.","the fog lifting. Confusion clearing, or a deception finally seen."],
+["XIX","The Sun","plain daylight. Vitality, clarity, success you can enjoy without qualification.","brightness dimmed, optimism forced. A good thing you cannot yet feel."],
+["XX","Judgement","the call and the answer. Reckoning, awakening, a decision that resolves the past.","the call ignored. Harsh self-judgement, or a verdict endlessly postponed."],
+["XXI","The World","the circuit completed. Wholeness, arrival, a chapter properly closed.","the last step unfinished. Closure withheld, a loop left open."]
+];
+
+const RANKS = ["Ace","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Page","Knight","Queen","King"];
+
+/* rank → [short key for the reading, longer line for the guide] */
+const STAGES = [
+["the seed, pure potential","the seed. The suit in undiluted form: an offer, an opening, potential not yet spent."],
+["pairing, choice, balance","pairing. Two things in relation: a choice, a balance, a partnership, a tension."],
+["the first result, growth","the first result. Growth, output, other people getting involved."],
+["structure, consolidation","structure. Consolidation, a plateau. Solid ground, or a rut."],
+["disruption, the test","disruption. Every Five is loss, conflict or lack. The test in the middle of the arc."],
+["recovery, harmony returning","recovery. Harmony coming back after the Five. Exchange, movement, relief."],
+["assessment, usually alone","assessment, usually alone. Strategy, waiting, illusion, or holding a position."],
+["movement, mastery, speed","movement and mastery. Repetition, speed, power, the reps that make the thing."],
+["the extreme of the suit","the extreme. The suit taken as far as one person can take it, for better or worse."],
+["completion and overflow","completion and overflow. The cycle ends. Sometimes fulfilment, sometimes too much."],
+["the student and messenger","the student and the messenger. Beginning, curiosity, news arriving about this suit."],
+["the suit in motion","the suit in motion, usually at an extreme. Action, travel, commitment, overdoing it."],
+["inward mastery","inward mastery. Holds the suit, understands it, does not need to prove it."],
+["outward mastery","outward mastery. Wields the suit in the world, with the risk of misusing it."]
+];
+
+const MINOR = {
+wands:[
+["a spark worth acting on. Raw drive, a venture that wants to start.","the spark fizzles. False start, energy with nowhere to go."],
+["planning from high ground. Two roads mapped, the wider world considered.","fear of leaving the harbour. A plan that stays a plan."],
+["the ships sent out. Expansion, foresight, waiting on returns.","delays. A venture that reached further than it could hold."],
+["the frame raised, a homecoming. Celebration on stable ground.","a homecoming that rings hollow. Foundations not actually set."],
+["scrappy competition. Friction that sharpens, a crowded field.","conflict avoided, or gone petty. Infighting that costs everyone."],
+["the win acknowledged out loud. Recognition, confidence earned.","praise withheld, or a victory you cannot quite trust."],
+["holding the high ground. Defending a position worth defending.","overwhelmed by challengers. Giving up ground you should keep."],
+["everything moving at once. Speed, news arriving, momentum.","delays, crossed messages, momentum stalled."],
+["bruised and still standing. Resilience, guarded persistence.","exhaustion. Defending a wall that no longer matters."],
+["carrying more than your share. Burden, obligation, the last mile.","the load set down, or one that finally breaks you."],
+["the apprentice with an idea. Curiosity, a message about work.","enthusiasm with no follow-through. A lead that goes nowhere."],
+["charging, charming, hard to steer. Bold action, travel.","recklessness. A burst that burns out before arrival."],
+["warm authority, magnetic and sure. Confidence, nerve, presence.","burnout behind the smile. Jealousy, demands, heat without light."],
+["vision plus the nerve to execute. Leadership, enterprise.","promises outrunning delivery. Expectations used as a whip."]
+],
+cups:[
+["the cup filled and offered. New feeling, an open heart.","feeling blocked, or spilled. An offer withdrawn."],
+["a true meeting between two. Partnership, mutual regard.","imbalance. A connection strained, or cleanly severed."],
+["friends, and a reason to gather. Community, celebration.","gossip, a third wheel, a crowd that drains rather than fills."],
+["the cup you did not notice. Apathy, restlessness, an offer ignored.","the eyes lifting again. Interest returning."],
+["grief over what spilled. Loss, regret, two cups still standing behind you.","turning around. Picking up what remains."],
+["the past extending a hand. Nostalgia, kindness, familiar ground.","living inside memory. An old story read one time too many."],
+["too many bright options. Fantasy, choice made hazy by wanting.","the fog clears and one real option remains."],
+["walking away from something good enough. Departure, a search for meaning.","stuck at the threshold, or returning to what you already left."],
+["the wish granted. Contentment, pleasure, satisfaction.","satisfaction that does not land. Indulgence, or a wish mis-made."],
+["the whole picture at rest. Harmony, belonging, people who are home.","the picture and the feeling not matching. Discord at home."],
+["a tender, imaginative message. A feeling worth voicing.","moodiness. A heart that will not say the thing."],
+["the romantic on the move. An offer, a proposal, following feeling.","charm without substance. A promise that dissolves on contact."],
+["deep feeling held steadily. Empathy, care, trusted intuition.","feeling flooded. Care that has become self-erasure."],
+["emotion mastered, not muted. Diplomacy, steadiness under strain.","manipulation, or coldness. Feelings kept in a locked box."]
+],
+swords:[
+["the clean cut of clarity. Truth, a decision, one sharp idea.","clarity misused. Confusion, or a truth that only wounds."],
+["blindfolded at the crossroads. Stalemate, a decision refused.","the blindfold off. Information arrives, deadlock breaks."],
+["the plain fact of hurt. Heartbreak, grief, words that landed.","the wound closing. Forgiveness, or pain nursed far too long."],
+["the necessary rest. Retreat, recovery, thinking stopped on purpose.","restlessness, burnout. Rest resisted until it is forced."],
+["winning at a cost. Conflict, pride, a hollow argument won.","the fight put down. Reconciliation, or defeat accepted."],
+["the crossing to calmer water. Transition, moving on with what you carry.","unable to leave. The same water, again."],
+["the quiet workaround. Strategy, stealth, acting alone.","the scheme exposed. Conscience, or a confession."],
+["bound by your own assumptions. Feeling trapped, self-limiting belief.","the ropes loosen. A way out becomes visible."],
+["three in the morning. Anxiety, dread, the mind against itself.","the night ends. Fear named, and shrinking."],
+["the definitive ending. Rock bottom, betrayal, nothing left to cut.","the worst is past. Slow recovery, refusing to stay down."],
+["sharp curiosity, watching everything. News, questions, vigilance.","cynicism, gossip. Cleverness with no aim."],
+["straight at it, fast. Direct action, argument, urgency.","haste and bluntness. A charge with no plan behind it."],
+["clear sight without sentiment. Honesty, independence, hard-earned perspective.","coldness. A tongue used as a blade."],
+["reason in command. Judgement, ethics, intellectual authority.","logic used to dominate. Rules without mercy."]
+],
+coins:[
+["a real opportunity with weight. A seed, an offer, a tangible start.","an opportunity missed or unfunded. A plan with no ground under it."],
+["juggling, and doing it well. Balance, adaptability, priorities in motion.","dropped balls. Overcommitted, out of rhythm."],
+["the trade practiced together. Collaboration, skill recognized.","mismatched effort. Working at cross purposes."],
+["holding tight. Saving, security, control over resources.","the grip loosening, or greed. Scarcity thinking."],
+["outside in the cold. Hardship, exclusion, help unseen nearby.","recovery. The door found, hardship easing."],
+["the ledger of giving. Generosity, help offered or received.","strings attached. Imbalance between giver and taken-from."],
+["waiting for the crop. Patience, assessment, long investment.","impatience, or effort poured into the wrong field."],
+["the reps that make the craft. Apprenticeship, focus, incremental mastery.","repetition without progress. Perfectionism, or sloppiness."],
+["self-sufficiency in the walled garden. Comfort genuinely earned.","comfort that isolates. Dependence on appearances."],
+["the long view of wealth. Legacy, family, systems that outlast you.","short-term thinking. A legacy that constrains the people in it."],
+["the student of a practical thing. Study, a new skill, a modest start.","distraction, procrastination. A plan never actually begun."],
+["slow, methodical, reliable. Steady work, routine that pays.","stagnation. Work without imagination."],
+["practical care, resourceful and grounded. Nurture, provision.","self-neglect, or care measured only in money."],
+["the estate well run. Wealth, discipline, stewardship.","materialism. Success that has become the only measure."]
+]
+};
+
+const SUITMETA = {
+  wands: {label:"Wands", alt:"Batons, Staves", elem:"Fire",  domain:"will, drive, work, enterprise, creative push",
+          short:"fire · will and work", plain:"what you want to do", v:"var(--suit-wands)"},
+  cups:  {label:"Cups",  alt:"Chalices",       elem:"Water", domain:"feeling, relationship, intuition, what you care about",
+          short:"water · feeling and bond", plain:"what you feel", v:"var(--suit-cups)"},
+  swords:{label:"Swords",alt:"Blades",         elem:"Air",   domain:"mind, truth, conflict, language, decisions",
+          short:"air · mind and truth", plain:"what you think", v:"var(--suit-swords)"},
+  coins: {label:"Coins", alt:"Pentacles, Disks",elem:"Earth", domain:"body, money, craft, material things, the actual world",
+          short:"earth · body and craft", plain:"what you have", v:"var(--suit-coins)"}
+};
+const SUIT_ORDER = ["wands","cups","swords","coins"];
+
+function buildDeck(){
+  const d = [];
+  MAJORS.forEach((m,i)=> d.push({kind:"major", idx:i, roman:m[0], title:m[1], up:m[2], rev:m[3]}));
+  SUIT_ORDER.forEach(s=>{
+    MINOR[s].forEach((m,i)=> d.push({kind:"minor", suit:s, rank:i, roman:RANKS[i],
+      title:RANKS[i]+" of "+SUITMETA[s].label, up:m[0], rev:m[1]}));
+  });
+  return d;
+}
+
+/* ============ card art ============ */
+const EMBLEM = [
+ '<circle cx="34" cy="30" r="9"/><path d="M40 36 L70 74"/><path d="M62 22h1M74 34h1M70 12h1" stroke-width="6"/>',
+ '<path d="M50 18v64"/><circle cx="34" cy="50" r="12"/><circle cx="66" cy="50" r="12"/>',
+ '<path d="M28 20v60M72 20v60"/><path d="M62 34a16 16 0 1 1-14 26"/>',
+ '<path d="M30 26h40v26a20 20 0 0 1-40 0z"/><path d="M50 78v-14M42 70l8-6 8 6"/>',
+ '<path d="M32 78V38h36v40z"/><path d="M32 38c-6-14 4-20 10-12M68 38c6-14-4-20-10-12"/>',
+ '<path d="M50 16v70M32 34h36M36 50h28M40 66h20"/>',
+ '<circle cx="36" cy="52" r="17"/><circle cx="64" cy="52" r="17"/><path d="M50 22v-8"/>',
+ '<path d="M26 34h48v24H26z"/><circle cx="36" cy="72" r="10"/><circle cx="66" cy="72" r="10"/>',
+ '<circle cx="50" cy="58" r="20"/><path d="M32 30a10 8 0 0 1 18 0 10 8 0 0 0 18 0"/>',
+ '<path d="M40 22 L40 82"/><path d="M62 40l14 14-14 14-14-14z"/><path d="M62 26v14"/>',
+ '<circle cx="50" cy="50" r="30"/><path d="M50 20v60M20 50h60M29 29l42 42M71 29L29 71"/>',
+ '<path d="M50 20v62M30 82h40M22 36h56"/><path d="M22 36l-8 16h16zM78 36l-8 16h16z"/>',
+ '<path d="M22 22h56M50 22v22"/><circle cx="50" cy="56" r="12"/><path d="M44 68l-6 14M56 68l10 8"/>',
+ '<path d="M24 78L72 24"/><path d="M40 26a30 30 0 0 1 34 22" stroke-width="3.4"/>',
+ '<path d="M26 30h24l-12 20zM50 50h24l-12 20z"/><path d="M38 50c14 0 10 20 24 20"/>',
+ '<path d="M30 32c-6-12 2-18 10-10M70 32c6-12-2-18-10-10"/><path d="M50 34l22 40H28z"/>',
+ '<path d="M32 84V40h36v44z"/><path d="M28 40l22-18 22 18"/><path d="M54 48l-8 14h10l-8 14"/>',
+ '<path d="M50 14l8 26 26 8-26 8-8 26-8-26-26-8 26-8z"/><circle cx="50" cy="48" r="4"/>',
+ '<path d="M64 20a26 26 0 1 0 0 52 30 30 0 0 1 0-52z"/><path d="M26 86h48"/>',
+ '<circle cx="50" cy="50" r="19"/><path d="M50 14v10M50 76v10M14 50h10M76 50h10M25 25l7 7M68 68l7 7M75 25l-7 7M32 68l-7 7"/>',
+ '<path d="M22 40l40-14v28z"/><path d="M62 40h18"/><path d="M28 66c8-8 16 8 24 0s16 8 24 0" stroke-width="3"/>',
+ '<ellipse cx="50" cy="50" rx="24" ry="34"/><path d="M18 22h4M78 22h4M18 78h4M78 78h4" stroke-width="7"/>'
+];
+function suitGlyph(suit){
+  if (suit==="coins")  return '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>';
+  if (suit==="cups")   return '<path d="M3 4h18v4a9 9 0 0 1-18 0z"/><path d="M12 17v4M6.5 21h11"/>';
+  if (suit==="swords") return '<path d="M12 1v17"/><path d="M12 1l3.5 5h-7z"/><path d="M6 15h12"/><circle cx="12" cy="21" r="2.5"/>';
+  return '<path d="M4.5 21L19.5 4"/><circle cx="3.5" cy="22" r="2.2"/><circle cx="20.5" cy="3" r="2.2"/>';
+}
+const PIPS = {
+ 1:[[50,50]], 2:[[50,28],[50,72]], 3:[[50,22],[50,50],[50,78]],
+ 4:[[32,26],[68,26],[32,74],[68,74]],
+ 5:[[32,25],[68,25],[50,50],[32,75],[68,75]],
+ 6:[[32,20],[68,20],[32,50],[68,50],[32,80],[68,80]],
+ 7:[[32,20],[68,20],[50,35],[32,50],[68,50],[32,80],[68,80]],
+ 8:[[32,18],[68,18],[32,40],[68,40],[32,62],[68,62],[32,84],[68,84]],
+ 9:[[32,17],[68,17],[32,38],[68,38],[50,50],[32,62],[68,62],[32,83],[68,83]],
+10:[[32,15],[68,15],[50,28],[32,38],[68,38],[32,62],[68,62],[50,72],[32,85],[68,85]]
+};
+function minorArt(card){
+  const g = '<g class="pip">'+suitGlyph(card.suit)+'</g>';
+  if (card.rank <= 9){
+    const n = card.rank+1, pts = PIPS[n];
+    const size = n >= 8 ? 13 : (n >= 5 ? 16 : 21);
+    let out = '';
+    pts.forEach(p=>{ out += '<g transform="translate('+(p[0]-size/2)+','+(p[1]-size/2)+') scale('+(size/24)+')">'+g+'</g>'; });
+    return '<svg viewBox="0 0 100 100">'+out+'</svg>';
+  }
+  return '<svg viewBox="0 0 100 100">'
+    + '<rect class="plaque" x="16" y="10" width="68" height="80" rx="3"/>'
+    + '<g transform="translate(29,22) scale(1.78)">'+g+'</g>'
+    + '<text class="ctext" x="50" y="80" text-anchor="middle" font-family="Copperplate, Optima, Georgia, serif" font-size="10.5" letter-spacing="1.6">'
+    + RANKS[card.rank].toUpperCase()+'</text></svg>';
+}
+function faceHTML(card, reversed){
+  const art = card.kind === "major"
+    ? '<svg viewBox="0 0 100 100"><g class="emb">'+EMBLEM[card.idx]+'</g></svg>'
+    : minorArt(card);
+  const top = card.kind === "major" ? card.roman : SUITMETA[card.suit].label.toUpperCase();
+  const suitVar = card.kind === "major" ? '' : ' style="--suit:'+SUITMETA[card.suit].v+'"';
+  return '<div class="face'+(reversed?' rev':'')+'"'+suitVar+'>'
+    + (reversed ? '<span class="revtag">REV</span>' : '')
+    + '<div class="roman">'+top+'</div><div class="art">'+art+'</div>'
+    + '<div class="cname">'+card.title+'</div></div>';
+}
+
+/* ============ state ============ */
+let deck = buildDeck();
+let shuffled = false, size = 1, spreadKind = 0, justDrawn = -1;
+let table = [null];
+let history = [];
+
+const SPREADS = {
+  1:[["The card"]],
+  2:[["Situation","Direction"]],
+  3:[["Past","Present","Future"],["Situation","Action","Outcome"]]
+};
+const labels = () => SPREADS[size][size===3 ? spreadKind : 0];
+
+const stackEl=document.getElementById('stack'), remainEl=document.getElementById('remain'),
+      stateEl=document.getElementById('state'), spreadEl=document.getElementById('spread'),
+      readEl=document.getElementById('readings'), logEl=document.getElementById('log'),
+      btnDraw=document.getElementById('btnDraw'), btnCut=document.getElementById('btnCut'),
+      btnClear=document.getElementById('btnClear'), spreadRow=document.getElementById('spreadRow'),
+      revToggle=document.getElementById('revToggle');
+
+for (let i=0;i<16;i++){
+  const b = document.createElement('div');
+  b.className = 'back cardback';
+  b.style.transform = 'translateY(' + (-i*0.9) + 'px)';
+  b.style.zIndex = i;
+  stackEl.appendChild(b);
+}
+const nextOpen = () => table.indexOf(null);
+const filled   = () => table.filter(Boolean).length;
+
+function refresh(){
+  remainEl.textContent = deck.length;
+  const backs = stackEl.children;
+  const show = Math.max(1, Math.round(deck.length / 78 * 16));
+  for (let i=0;i<backs.length;i++) backs[i].style.opacity = i < show ? 1 : 0;
+  btnCut.disabled = !shuffled;
+  btnClear.disabled = filled() === 0;
+  const open = nextOpen();
+  btnDraw.disabled = !(shuffled && open !== -1 && deck.length > 0);
+  btnDraw.textContent = !shuffled ? "Shuffle first"
+    : deck.length === 0 ? "Stack empty · shuffle again"
+    : open === -1 ? "Spread complete · clear to start again"
+    : size === 1 ? "Draw a card"
+    : "Draw into " + labels()[open];
+}
+
+function shuffle(){
+  deck = buildDeck();
+  for (let i = deck.length - 1; i > 0; i--){
+    const j = randInt(i+1);
+    const t = deck[i]; deck[i] = deck[j]; deck[j] = t;
+  }
+  shuffled = true;
+  paintTape();
+  stateEl.textContent = "Shuffled · full deck, new order";
+  tapeEl.classList.add('live');
+  setTimeout(()=>tapeEl.classList.remove('live'), 900);
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    stackEl.classList.remove('riffle'); void stackEl.offsetWidth;
+    Array.from(stackEl.children).forEach((b,i)=>{
+      b.style.setProperty('--d', (i*22)+'ms');
+      b.style.setProperty('--x', (i%2 ? '34%' : '-34%'));
+      b.style.setProperty('--r', (i%2 ? '7deg' : '-7deg'));
+    });
+    stackEl.classList.add('riffle');
+  }
+  refresh();
+}
+
+function cut(){
+  const lo = Math.floor(deck.length*0.25), hi = Math.floor(deck.length*0.75);
+  const at = lo + randInt(Math.max(1, hi-lo));
+  deck = deck.slice(at).concat(deck.slice(0, at));
+  paintTape();
+  stateEl.textContent = "Cut at " + at + " · " + deck.length + " in the stack";
+  refresh();
+}
+
+function drawInto(i){
+  if (!shuffled || table[i] || deck.length === 0) return;
+  const card = deck.shift();
+  const reversed = revToggle.checked && randInt(2) === 1;
+  table[i] = {card:card, reversed:reversed};
+  justDrawn = i;
+  paintTape();
+  stateEl.textContent = "Drawn from the top · " + deck.length + " left";
+  logDraw(card, reversed, labels()[i]);
+  render(); refresh();
+}
+function clearTable(){
+  table = new Array(size).fill(null); justDrawn = -1;
+  stateEl.textContent = "Table cleared · " + deck.length + " left in the stack";
+  render(); refresh();
+}
+function setSize(n){
+  const old = table.slice();
+  table = new Array(n).fill(null);
+  for (let i=0;i<Math.min(n, old.length);i++) table[i] = old[i];
+  size = n; justDrawn = -1;
+  render(); refresh();
+}
+
+/* ============ render ============ */
+function keysHTML(c){
+  if (c.kind === "major")
+    return '<p class="keys"><b>Major</b>'+c.roman+' · a structural force, not a week of weather</p>';
+  const s = SUITMETA[c.suit];
+  return '<p class="keys"><b>'+s.label+'</b>'+s.short+'<br><b>'+RANKS[c.rank]+'</b>'+STAGES[c.rank][0]+'</p>';
+}
+
+function render(){
+  const L = labels();
+  spreadEl.innerHTML = ''; readEl.innerHTML = '';
+
+  table.forEach((entry, i)=>{
+    const slot = document.createElement('div');
+    slot.className = 'slot' + (entry ? '' : ' open');
+    const pos = '<span class="pos">'+L[i]+'</span>';
+    if (!entry){
+      const dis = (!shuffled || deck.length === 0) ? ' disabled' : '';
+      slot.innerHTML = pos + '<button class="slotback" data-i="'+i+'"'+dis
+        + ' aria-label="Draw into '+L[i]+'"><span class="cardback"></span></button>';
+      spreadEl.appendChild(slot); return;
+    }
+    const fresh = (i === justDrawn);
+    slot.innerHTML = pos + '<div class="flip'+(fresh?'':' up instant')+'"><div class="flip-in">'
+      + faceHTML(entry.card, entry.reversed) + '<div class="rear cardback"></div></div></div>';
+    spreadEl.appendChild(slot);
+    if (fresh){
+      const flip = slot.querySelector('.flip');
+      requestAnimationFrame(()=> requestAnimationFrame(()=> flip.classList.add('up')));
+    }
+  });
+
+  table.forEach((entry, i)=>{
+    if (!entry) return;
+    const c = entry.card;
+    const v = c.kind === "major" ? "var(--accent)" : SUITMETA[c.suit].v;
+    const r = document.createElement('div');
+    r.className = 'reading' + (i === justDrawn ? ' new' : '');
+    if (i === justDrawn) r.style.animationDelay = '340ms';
+    r.innerHTML = '<div class="kicker"><span class="swatch" style="background:'+v+'"></span>'
+      + '<span class="pos2">'+L[i]+'</span></div>'
+      + '<h3>'+c.title+(entry.reversed?'<em>reversed</em>':'')+'</h3>'
+      + '<p>'+(entry.reversed ? c.rev : c.up)+'</p>'
+      + keysHTML(c);
+    readEl.appendChild(r);
+  });
+
+  if (filled() === 0){
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = shuffled
+      ? "Draw one at a time. Each card stays on the table until you clear it."
+      : "Shuffle the deck, then draw. Cards come off the top of the stack you just made and stay out until you shuffle again.";
+    readEl.appendChild(e);
+  }
+}
+
+function logDraw(card, reversed, pos){
+  const t = new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  history.unshift('<span class="t">'+t+'</span> · '+pos+' · '+card.title+(reversed?' (rev)':''));
+  if (history.length > 40) history.pop();
+  logEl.innerHTML = history.map(h => '<li>'+h+'</li>').join('');
+}
+
+/* ============ the grammar ============ */
+function buildGrammar(){
+  let h = '';
+  h += '<p class="lede">A minor card is roughly <b>suit x number</b>. The suit says which part of life. '
+     + 'The number says what stage that part is in. Learn those two lists and most of the 56 minor cards decode themselves.</p>';
+
+  h += '<h4>The four suits</h4><ul class="defs">';
+  SUIT_ORDER.forEach(s=>{
+    const m = SUITMETA[s];
+    h += '<li><span class="k"><span class="sw" style="background:'+m.v+'"></span>'+m.label+'</span>'
+       + '<span class="v">'+m.elem+' · '+m.domain+'<br><span style="opacity:.6">also called '+m.alt+' · '+m.plain+'</span></span></li>';
+  });
+  h += '</ul>';
+  h += '<p style="margin-top:11px">Shorthand: Wands is what you want to do, Cups is what you feel, '
+     + 'Swords is what you think, Coins is what you have. Swords get a bad reputation. The suit is not evil, '
+     + 'it is just where the truth cuts, and most people\u2019s hardest cards live there.</p>';
+
+  h += '<h4>The numbers</h4><p class="lede">The same arc runs through all four suits.</p><ul class="defs">';
+  for (let i=0;i<10;i++) h += '<li><span class="k">'+RANKS[i]+'</span><span class="v">'+STAGES[i][1]+'</span></li>';
+  h += '</ul>';
+  h += '<p style="margin-top:11px">Track one suit across the numbers and the shape shows up. '
+     + 'Five of Cups is grief, Six of Cups is comfort returning. Five of Coins is destitution, Six of Coins is charity.</p>';
+
+  h += '<h4>The court cards</h4><p class="lede">A person in your life, a part of you, or an approach to take.</p><ul class="defs">';
+  for (let i=10;i<14;i++) h += '<li><span class="k">'+RANKS[i]+'</span><span class="v">'+STAGES[i][1]+'</span></li>';
+  h += '</ul>';
+
+  h += '<h4>The Major Arcana</h4>'
+     + '<p>Twenty-two cards, 0 to XXI, with no suit. These are the large forces: things that happen to a life '
+     + 'rather than in a week. Count them in a spread. Zero majors is a week. Two or three is a season.</p>';
+
+  h += '<h4>What reversed actually means</h4>'
+     + '<p class="lede">There is no single rule and readers disagree. Pick one and stay consistent within a session, '
+     + 'or the card stops meaning anything.</p><ol class="schools">'
+     + '<li><b>Blocked or internal.</b> The energy is present but not moving, or it is happening privately rather than publicly. The most forgiving reading, and the most common.</li>'
+     + '<li><b>Opposite.</b> Straight inversion. Simple, but blunt, and it makes half the deck negative.</li>'
+     + '<li><b>Excess or deficiency.</b> Too much of the card, or not enough. Strength reversed is either force where patience was needed, or no nerve at all.</li>'
+     + '<li><b>Timing.</b> Not yet, or already passing. The Tower reversed as a collapse either coming or survived.</li>'
+     + '</ol>'
+     + '<p>Two things worth knowing. A reversed card is not a bad card, it is a card with a complication. '
+     + 'And a reversed difficult card is often good news: the Devil reversed is the chain loosening, '
+     + 'Ten of Swords reversed is the worst being over.</p>'
+     + '<p>This deck decides reversal per card at draw time rather than during the shuffle, so it is a true 50/50 on '
+     + 'each card rather than a property of the deck order. Turn it off above to read upright only.</p>';
+
+  h += '<h4>Reading a spread, not three cards</h4><ul class="defs">'
+     + '<li><span class="k">Majors</span><span class="v">Count them. Zero is a week, two or three is a season.</span></li>'
+     + '<li><span class="k">Suits</span><span class="v">Three Swords in a row is a spread about a decision, whatever the positions say.</span></li>'
+     + '<li><span class="k">Numbers</span><span class="v">An arc of Three, Five, Eight has a shape. So does one that sits on three Fours.</span></li>'
+     + '<li><span class="k">Position</span><span class="v">The Tower in Past already happened. In Outcome it is a warning about something you are still building.</span></li>'
+     + '<li><span class="k">Reversals</span><span class="v">Texture, not verdicts. One in three is a complication. Three in three says nothing is moving.</span></li>'
+     + '</ul>'
+     + '<p style="margin-top:14px;opacity:.65">A starting vocabulary, not scripture. Traditions differ, and the card that '
+     + 'means something specific to you beats the card that means the standard thing.</p>';
+
+  document.getElementById('grammar').innerHTML = h;
+}
+
+/* ============ card index ============ */
+function buildIndex(){
+  let h = '<h4 class="idxhead">Major Arcana · the large forces</h4>';
+  MAJORS.forEach(m=>{
+    h += '<article class="idx" data-k="'+(m[0]+' '+m[1]+' major arcana '+m[2]+' '+m[3]).toLowerCase()+'">'
+       + '<h5><span class="sw" style="background:var(--accent)"></span>'+m[0]+' · '+m[1]+'</h5>'
+       + '<p><b>Upright</b>'+m[2]+'</p><p><b>Reversed</b>'+m[3]+'</p></article>';
+  });
+  SUIT_ORDER.forEach(s=>{
+    const m = SUITMETA[s];
+    h += '<h4 class="idxhead">'+m.label+' · '+m.elem+' · '+m.domain.split(',')[0]+'</h4>';
+    MINOR[s].forEach((c,i)=>{
+      const name = RANKS[i]+" of "+m.label;
+      h += '<article class="idx" data-k="'+(name+' '+m.label+' '+m.alt+' '+m.elem+' '+c[0]+' '+c[1]).toLowerCase()+'">'
+         + '<h5><span class="sw" style="background:'+m.v+'"></span>'+name+'</h5>'
+         + '<p><b>Upright</b>'+c[0]+'</p><p><b>Reversed</b>'+c[1]+'</p>'
+         + '<p class="keys"><b>'+RANKS[i]+'</b>'+STAGES[i][0]+'</p></article>';
+    });
+  });
+  h += '<p class="nohits" id="noHits" hidden>Nothing matches that.</p>';
+  document.getElementById('index').innerHTML = h;
+}
+
+function filterIndex(q){
+  q = q.trim().toLowerCase();
+  const cards = document.querySelectorAll('.idx');
+  const heads = document.querySelectorAll('.idxhead');
+  let hits = 0;
+  cards.forEach(c=>{
+    const on = !q || c.dataset.k.indexOf(q) !== -1;
+    c.hidden = !on; if (on) hits++;
+  });
+  heads.forEach(hd=>{ hd.hidden = !!q; });
+  document.getElementById('noHits').hidden = hits > 0;
+}
+
+/* ============ wiring ============ */
+document.getElementById('btnShuffle').addEventListener('click', ()=>{ shuffle(); render(); });
+btnCut.addEventListener('click', cut);
+btnClear.addEventListener('click', clearTable);
+btnDraw.addEventListener('click', ()=>{ const i = nextOpen(); if (i !== -1) drawInto(i); });
+spreadEl.addEventListener('click', e=>{
+  const b = e.target.closest('.slotback');
+  if (b && !b.disabled) drawInto(+b.dataset.i);
+});
+document.querySelectorAll('.pills button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.pills button').forEach(x=>x.setAttribute('aria-pressed', x===b));
+    spreadRow.hidden = +b.dataset.n !== 3;
+    setSize(+b.dataset.n);
+  });
+});
+document.querySelectorAll('.spreadrow button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.spreadrow button').forEach(x=>x.setAttribute('aria-pressed', x===b));
+    spreadKind = +b.dataset.s; justDrawn = -1;
+    render(); refresh();
+  });
+});
+document.getElementById('find').addEventListener('input', e=> filterIndex(e.target.value));
+
+const themeBtn = document.getElementById('themeBtn');
+const themeMeta = document.getElementById('themeColor');
+themeBtn.addEventListener('click', ()=>{
+  const night = document.body.classList.toggle('night');
+  themeBtn.textContent = night ? "Lamp" : "Night";
+  themeBtn.setAttribute('aria-pressed', night);
+  themeMeta.setAttribute('content', night ? "#0D0605" : "#1B242B");
+});
+
+buildGrammar();
+buildIndex();
+render();
+refresh();
+</script>
+</body>
+</html>
