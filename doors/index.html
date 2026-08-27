@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1B242B" id="themeColor">
 <title>Doors · two readings of one passage</title>
-<meta name="description" content="A deck for thinking about the openings in front of you. Four suits, Perception, Navigation, Paths and Doors. Every card carries two readings of one situation and one cheap move.">
+<meta name="description" content="A deck for thinking about the openings in front of you. Four suits: Perception, Navigation, Paths and Doors. Every card carries two readings of one situation and one cheap move.">
 <script>
 /* Runs before the body parses, so the page never paints in the wrong theme.
    A saved choice wins; otherwise follow the system. */
@@ -99,14 +99,6 @@ h1{font-family:var(--display);font-size:clamp(40px,15vw,64px);font-weight:400;le
   border-radius:999px;padding:7px 9px;cursor:pointer;line-height:1}
 .themebtn:hover{border-color:var(--accent)}
 
-.tape{margin:26px 0 0;background:var(--panel);border-radius:12px;overflow:hidden}
-.tape-head{display:flex;justify-content:space-between;align-items:baseline;padding:7px 10px;border-bottom:1px solid var(--hair-soft);
-  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
-.tape-head b{font-weight:400;color:var(--text-dim)}
-.tape-strip{font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:9px 10px;white-space:nowrap;
-  overflow:hidden;direction:rtl;color:var(--text-faint);height:34px;display:flex;align-items:center}
-.tape-strip .hot{color:var(--hot)}
-.tape.live{box-shadow:inset 0 0 0 1px var(--hot)}
 .footnote{font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--text-faint);margin:8px 2px 0}
 
 .deck-zone{margin:30px 0 0;display:flex;align-items:center;gap:22px}
@@ -150,23 +142,15 @@ button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
    outline it instead so the disabled state stays legible on paper */
 html.day .draw:disabled{background:transparent;border-color:var(--hair);color:var(--text-dim);opacity:1}
 
-.pills,.spreadrow{margin:18px 0 0;display:flex;gap:5px;background:var(--panel);
-  border-radius:999px;padding:5px}
-.pills button,.spreadrow button{flex:1;border:0;border-radius:999px;background:transparent}
 
-.pills button{padding:11px 4px;font-size:11px;letter-spacing:.14em}
-.pills button[aria-pressed="true"],.spreadrow button[aria-pressed="true"]{background:var(--ground);color:var(--hot);
-  box-shadow:0 1px 4px var(--shadow)}
-.spreadrow{margin-top:8px;border-color:var(--hair-soft)}
-.spreadrow button{padding:9px 4px;font-size:9.5px;letter-spacing:.1em;font-family:var(--mono);color:var(--text-dim);border-right-color:var(--hair-soft)}
-.spreadrow[hidden]{display:none}
-.toggle{margin:16px 2px 0;display:flex;align-items:center;gap:9px;
-  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
-.toggle input{accent-color:var(--action);width:16px;height:16px}
-
-.spread{margin:34px 0 0;display:flex;gap:12px;justify-content:center}
-.slot{flex:1;max-width:180px;display:flex;flex-direction:column;align-items:center;gap:9px}
-.slot .pos{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);text-align:center}
+/* the table grows a card at a time, so it wraps into rows. Cards hold the same size
+   they have in the stack: a card on the table is the same object, not a bigger one */
+.spread{margin:34px 0 0;display:flex;flex-wrap:wrap;gap:20px 12px;justify-content:center}
+.slot{flex:0 0 var(--card-w);width:var(--card-w);display:flex;flex-direction:column;align-items:center;gap:9px}
+/* two lines reserved, bottom-aligned, so cards in a row start at the same height
+   whether their position is called "The next leg" or "What is setting you" */
+.slot .pos{font-family:var(--mono);font-size:9px;line-height:1.45;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);text-align:center;min-height:2.9em;display:flex;align-items:flex-end;justify-content:center}
 .slot.open .pos{color:var(--text-faint)}
 .flip{width:100%;aspect-ratio:100/172;perspective:900px}
 .flip-in{position:relative;width:100%;height:100%;transform-style:preserve-3d;
@@ -178,19 +162,16 @@ html.day .draw:disabled{background:transparent;border-color:var(--hair);color:va
 .face{background:var(--card-bg);color:var(--card-ink);border-radius:14px;
   border:1px solid rgba(0,0,0,.28);box-shadow:0 4px 18px var(--shadow);
   overflow:hidden;display:flex;flex-direction:column}
-.face.rev .art{transform:rotate(180deg)}
 .art{flex:1;position:relative;padding:5%;display:flex;align-items:center;justify-content:center}
 .art svg{width:100%;height:100%;overflow:visible}
 .emb{fill:none;stroke:var(--card-ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .pip{fill:none;stroke:var(--suit);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .plaque{fill:none;stroke:var(--card-ink);stroke-width:1.6}
 .ctext{fill:var(--card-ink)}
-.roman{font-family:var(--display);font-size:11px;letter-spacing:.14em;text-align:center;padding:6px 4px 2px;border-bottom:1px solid var(--card-hair)}
+.roman{font-family:var(--display);font-size:11px;letter-spacing:.14em;text-align:center;padding:6px 4px 2px;border-bottom:1px solid var(--card-hair);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cname{font-family:var(--display);font-size:9px;letter-spacing:.09em;text-align:center;padding:5px 3px 7px;
   border-top:1px solid var(--card-hair);line-height:1.25;text-transform:uppercase}
-.revtag{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:8px;letter-spacing:.1em;
-  color:var(--action);border:1px solid var(--action);padding:2px 6px;border-radius:999px;background:var(--card-bg);z-index:2}
-html.night .revtag{color:var(--hot);border-color:var(--hot)}
 .slotback{padding:0;border:0;background:transparent;width:100%;aspect-ratio:100/172;
   cursor:pointer;opacity:.42;transition:opacity .18s;position:relative}
 .slotback .cardback{position:absolute;inset:0}
@@ -205,14 +186,25 @@ html.night .revtag{color:var(--hot);border-color:var(--hot)}
 .reading .kicker{display:flex;align-items:center;gap:8px;margin:0 0 7px}
 .swatch{width:18px;height:3px;flex:none;border-radius:1px}
 .reading .pos2{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
-.reading h3{font-family:var(--display);font-size:19px;letter-spacing:.06em;font-weight:400;margin:0 0 6px;color:var(--text)}
+/* the card's name is the headline of its block, so it has to clear the 15.5px body
+   by a step the eye reads as two levels rather than as body text set slightly larger */
+.reading h3{font-family:var(--display);font-size:22px;letter-spacing:.06em;font-weight:400;margin:0 0 7px;color:var(--text)}
 .reading h3 em{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--action);text-transform:uppercase;margin-left:8px}
 html.night .reading h3 em{color:var(--hot)}
 .reading p{margin:0;color:var(--text);opacity:.85;font-size:15.5px}
 .keys{margin:11px 0 0 !important;font-family:var(--mono);font-size:10.5px;line-height:1.9;
   letter-spacing:.03em;color:var(--text-faint);opacity:1 !important;text-transform:none}
 .keys b{font-weight:400;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-right:7px}
+.posnote{margin:22px 0 0;border-top:1px solid var(--hair);padding:16px 0 0;
+  font-family:var(--mono);font-size:10.5px;line-height:1.9;letter-spacing:.03em;color:var(--text-faint)}
 .empty{background:var(--panel);border-radius:14px;padding:28px 22px;text-align:center;color:var(--text-dim);font-size:15px}
+
+/* the end of the spread: one reading of the table, generated from the cards on it */
+.sitwith{margin:28px 0 0;border-top:1px solid var(--hair);padding:20px 0 0}
+.nlab{margin:0 0 11px;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--accent)}
+.narr{margin:0 0 11px;font-size:16px;line-height:1.55;color:var(--text)}
+.narr:last-child{margin-bottom:0;color:var(--text);opacity:.92}
 
 details{margin:20px 0 0;border-top:1px solid var(--hair);padding-top:14px}
 details:first-of-type{margin-top:34px}
@@ -258,6 +250,61 @@ details[open] summary::before{content:"▾ "}
 .idx[hidden],.idxhead[hidden]{display:none}
 .nohits{font-family:var(--mono);font-size:11px;color:var(--text-faint);padding:14px 0}
 
+/* the two costs, as the 2x2 they actually are */
+.costgrid{width:100%;border-collapse:collapse;margin:14px 0 0;table-layout:fixed}
+.costgrid caption{caption-side:top;text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--text-dim);padding:0 0 8px}
+.costgrid th,.costgrid td{border:1px solid var(--hair-soft);padding:11px 10px;text-align:left;vertical-align:middle}
+.costgrid tr:first-child td:first-child{border:0}
+.costgrid th{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  font-weight:400;color:var(--accent);line-height:1.5}
+.costgrid td{font-family:var(--display);font-size:14px;letter-spacing:.04em;color:var(--text)}
+.costgrid td.hot{color:var(--hot);background:var(--panel)}
+@media (max-width:420px){.costgrid th,.costgrid td{padding:9px 7px}.costgrid td{font-size:12.5px}}
+
+/* ---- the board ----
+   One column by default, which is also the phone layout: .board and its two halves
+   are plain blocks, so the source order (deck, controls, draw, table, approach,
+   readings) is what a narrow screen gets, unchanged.
+
+   From 1040px up there is room for the table and the readings side by side. The
+   board breaks out of the 620px column by hanging off the centre line, and the
+   table half sticks, so the cards you have drawn stay on screen while you read
+   them. Without this the cards scroll away above the first reading, which is
+   the one moment you most want to look back at them.
+
+   It only splits once there is a card on the table (.live, set in render). With an
+   empty table the right half holds nothing but the prompt, and splitting for that
+   strands the deck out at the far left against a column of empty ground. */
+.board-table{margin:0}
+@media (min-width:1040px){
+  .board.live{
+    width:min(1180px, calc(100vw - 40px));
+    margin-left:50%;
+    transform:translateX(-50%);
+    display:grid;
+    grid-template-columns:minmax(420px, 520px) minmax(380px, 1fr);
+    gap:0 44px;
+    align-items:start;
+  }
+  /* the table holds its place; capped so a deep spread scrolls inside its own
+     column rather than growing taller than the window and killing the sticky */
+  .board.live .board-table{
+    position:sticky;
+    top:18px;
+    max-height:calc(100vh - 36px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding-right:6px;
+  }
+  .board.live .board-table::-webkit-scrollbar{width:7px}
+  .board.live .board-table::-webkit-scrollbar-thumb{background:var(--hair);border-radius:99px}
+  .board.live .board-read{min-width:0}
+  /* the readings lead the right column now, so they lose the gap that separated
+     them from the draw button when everything was stacked */
+  .board.live .board-read .readings{margin-top:0}
+  .board.live .spread{margin-top:26px}
+}
 @media (min-width:520px){:root{--card-w:118px}}
 @media (max-width:380px){.spread{gap:7px}.controls{gap:7px}.defs .k{width:66px}}
 @media (prefers-reduced-motion:reduce){
@@ -278,17 +325,6 @@ details[open] summary::before{content:"▾ "}
   color:var(--text-faint);margin:0 0 12px;padding:0 0 9px;border-bottom:1px solid var(--hair-soft)}
 .caption b{font-weight:400;color:var(--accent);font-style:normal}
 
-.view{margin:0 0 4px}
-.view .vlabel{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--accent);margin:0 0 4px}
-.view p{margin:0}
-.view.other{margin-top:12px;padding-top:11px;border-top:1px dashed var(--hair)}
-.view.other .vlabel{color:var(--hot)}
-.turn{margin:11px 0 0;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--accent);background:transparent;border:1px solid var(--hair);border-radius:999px;
-  padding:8px 11px;cursor:pointer;line-height:1}
-.turn:hover{border-color:var(--accent)}
-.turn[hidden]{display:none}
 .move{margin:13px 0 0;padding:12px 14px;background:var(--panel);border-radius:12px;
   font-size:15px;line-height:1.45}
 .move b{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
@@ -313,7 +349,11 @@ details[open] summary::before{content:"▾ "}
 .verdict .do{margin:0;font-family:var(--mono);font-size:11.5px;line-height:1.55;color:var(--hot)}
 
 /* ---- the approach: a route slip, deliberately not a card ---- */
-.approach{margin:22px 0 0}
+.approach{margin:30px 0 0;border-top:1px solid var(--hair);padding-top:20px}
+/* the second deck arrives with no warning otherwise, and a reader who meets the
+   slip first has no way to tell where it came from */
+.appnote{margin:0 0 9px;font-family:var(--mono);font-size:10px;line-height:1.75;
+  letter-spacing:.03em;color:var(--text-dim)}
 .appbtn{width:100%;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--accent);background:transparent;border:1px dashed var(--hair);border-radius:999px;
   padding:13px;cursor:pointer;line-height:1}
@@ -326,7 +366,7 @@ details[open] summary::before{content:"▾ "}
   font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
 .slip-head b{font-weight:400;color:var(--text-faint);letter-spacing:.1em}
 .slip-body{padding:12px 13px}
-.slip-body h4{font-family:var(--display);font-size:19px;letter-spacing:.05em;font-weight:400;margin:0 0 7px;color:var(--text)}
+.slip-body h4{font-family:var(--display);font-size:22px;letter-spacing:.05em;font-weight:400;margin:0 0 8px;color:var(--text)}
 .slip-body p{margin:0 0 8px;font-size:15px;line-height:1.5}
 .slip-body .cost{margin:0;font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--text-dim)}
 .slip-body .cost b{font-weight:400;color:var(--hot);letter-spacing:.14em;text-transform:uppercase;font-size:9px;margin-right:7px}
@@ -339,15 +379,10 @@ details[open] summary::before{content:"▾ "}
 
 <header>
   <button class="themebtn" id="themeBtn">Night</button>
-  <p class="eyebrow">Seventy-eight doors</p>
+  <p class="eyebrow">Four suits, seventy-eight cards</p>
   <h1>Doors</h1>
   <div class="rule"><span>perception · navigation · paths · doors</span></div>
 </header>
-
-<p class="footnote" style="margin-top:20px">Not a deck that predicts anything. Four suits: two are yours, how you see and how you
-steer, and two are the world's, the routes that exist and the crossings at the end of them. Every card carries one situation read
-two ways, what is there and how you are seeing it. The deck picks which one to lead with, and you decide whether it is right
-before you are shown the other.</p>
 
 <section class="doorline">
   <label for="doorText">The door you are thinking about</label>
@@ -356,7 +391,7 @@ before you are shown the other.</p>
 </section>
 
 <section class="weigh" aria-label="Weigh the door">
-  <p class="wlab">Weigh it · the two costs are independent</p>
+  <p class="wlab">Weigh it · the two costs are priced separately</p>
   <div class="wrow"><span class="q">How hard to <b style="font-weight:400;color:var(--accent)">open</b> it?</span>
     <button data-a="open" data-v="0" aria-pressed="false">Cheap</button>
     <button data-a="open" data-v="1" aria-pressed="false">Costly</button></div>
@@ -366,12 +401,11 @@ before you are shown the other.</p>
   <div class="verdict" id="verdict" hidden></div>
 </section>
 
-<section class="tape" id="tape" aria-label="Entropy readout">
-  <div class="tape-head"><span>Entropy · crypto.getRandomValues</span><b id="byteCount">0 bytes</b></div>
-  <div class="tape-strip" id="strip">waiting for the first shuffle</div>
-</section>
-<p class="footnote">Fisher-Yates over the full deck, one unbiased draw per position, and a coin flip for which
-reading leads.<br>The randomness is the point: it hands you the framing you would not have volunteered.</p>
+<!-- The board breaks out of the 620px column on a wide screen: the table of cards holds
+     the left side and stays put, the readings scroll past it on the right. On anything
+     narrower it collapses back to the single column, in this same source order. -->
+<div class="board">
+<div class="board-table">
 
 <section class="deck-zone">
   <div class="stack" id="stack" aria-hidden="true"></div>
@@ -388,22 +422,20 @@ reading leads.<br>The randomness is the point: it hands you the framing you woul
 </div>
 <button class="draw" id="btnDraw">Shuffle first</button>
 
-<div class="pills" role="group" aria-label="How many places in the spread">
-  <button data-n="1" aria-pressed="true">One place</button>
-  <button data-n="2" aria-pressed="false">Two</button>
-  <button data-n="3" aria-pressed="false">Three</button>
-</div>
-<div class="spreadrow" id="spreadRow" hidden role="group" aria-label="Three card spread">
-  <button data-s="0" aria-pressed="true">Where · What sets you · Next leg</button>
-  <button data-s="1" aria-pressed="false">Crossing · Price · Water beyond</button>
-</div>
-<label class="toggle"><input type="checkbox" id="flipToggle" checked> Let the deck choose which reading leads</label>
-
 <section class="spread" id="spread"></section>
-<section class="approach" id="approachBox">
-  <button class="appbtn" id="btnApproach" disabled>Draw an approach · which route to try</button>
-</section>
+
+</div>
+<div class="board-read">
 <section class="readings" id="readings"></section>
+<section class="approach">
+  <p class="appnote">A second deck, sixteen routes, shuffled separately from the seventy-eight.
+    Those say what the situation is. These say which way you walk up to it.</p>
+  <div id="approachBox">
+    <button class="appbtn" id="btnApproach" disabled>Draw an approach · which route to try</button>
+  </div>
+</section>
+</div>
+</div>
 
 <details><summary>Draw log</summary>
   <ul class="log" id="log"><li>Nothing drawn yet.</li></ul>
@@ -418,7 +450,7 @@ reading leads.<br>The randomness is the point: it hands you the framing you woul
   <div id="index"></div>
 </details>
 
-<p class="footnote" style="margin-top:34px">A vocabulary for reading your own situation twice, not scripture.
+<p class="footnote" style="margin-top:34px">A vocabulary for reading your own situation twice.
 The reading that means something specific to you beats the one that means the standard thing.<br>
 Card art generated from geometry by <span style="color:var(--accent)">art-gen.py</span>, in the idiom of Island Lab's figure-gen.
 Its older cousin, a straight tarot deck, is at <a href="/tarot/" style="color:var(--accent)">/tarot</a>.</p>
@@ -429,17 +461,11 @@ Its older cousin, a straight tarot deck, is at <a href="/tarot/" style="color:va
 "use strict";
 
 /* ============ randomness ============ */
-const entropy = []; let bytesUsed = 0;
-const stripEl = document.getElementById('strip');
-const byteEl  = document.getElementById('byteCount');
-const tapeEl  = document.getElementById('tape');
-
+/* Unbiased: reject the tail of the 32-bit range that would otherwise make the
+   low buckets more likely than the high ones. */
 function rand32(){
   const a = new Uint32Array(1);
   crypto.getRandomValues(a);
-  bytesUsed += 4;
-  entropy.push(a[0] & 0xFF);
-  if (entropy.length > 64) entropy.splice(0, entropy.length - 64);
   return a[0];
 }
 function randInt(n){
@@ -447,17 +473,6 @@ function randInt(n){
   const limit = Math.floor(0x100000000 / n) * n;
   let v; do { v = rand32(); } while (v >= limit);
   return v % n;
-}
-let tapeQueued = false;
-function paintTape(){
-  if (tapeQueued) return;
-  tapeQueued = true;
-  requestAnimationFrame(()=>{
-    tapeQueued = false;
-    const hex = entropy.map(b => b.toString(16).toUpperCase().padStart(2,'0'));
-    stripEl.innerHTML = '<span class="hot">'+ hex.slice(-6).join(' ') +'</span> ' + hex.slice(0,-6).join(' ');
-    byteEl.textContent = bytesUsed.toLocaleString() + ' bytes';
-  });
 }
 
 /* ============ deck data ============ */
@@ -656,66 +671,102 @@ function suitGlyph(suit){
   return "<path d=\"M5.5 21 V6 a6.5 6.5 0 0 1 13 0 v15\"/><path d=\"M3 21 h18\"/><circle cx=\"15.4\" cy=\"13\" r=\"1.4\"/>";
 }
 
-const PIPS = {
- 1:[[50,50]], 2:[[50,28],[50,72]], 3:[[50,22],[50,50],[50,78]],
- 4:[[32,26],[68,26],[32,74],[68,74]],
- 5:[[32,25],[68,25],[50,50],[32,75],[68,75]],
- 6:[[32,20],[68,20],[32,50],[68,50],[32,80],[68,80]],
- 7:[[32,20],[68,20],[50,35],[32,50],[68,50],[32,80],[68,80]],
- 8:[[32,18],[68,18],[32,40],[68,40],[32,62],[68,62],[32,84],[68,84]],
- 9:[[32,17],[68,17],[32,38],[68,38],[50,50],[32,62],[68,62],[32,83],[68,83]],
-10:[[32,15],[68,15],[50,28],[32,38],[68,38],[32,62],[68,62],[50,72],[32,85],[68,85]]
-};
+/* Pips ride an orbit, and the orbit itself is never drawn: the arrangement carries it.
+   Up to seven share one even ring. Past that they open into a spiral of a turn and a
+   half, so a Ten reads as motion outward rather than as marks stacked in shells.
+   Computed, in the same idiom as the Condition emblems art-gen.py draws. */
+function pipPoints(n){
+  if (n === 1) return [[50, 50]];
+  const pts = [];
+  if (n <= 7){
+    for (let i = 0; i < n; i++){
+      const a = (-90 + 360 / n * i) * Math.PI / 180;
+      pts.push([50 + 27 * Math.cos(a), 50 + 27 * Math.sin(a)]);
+    }
+    return pts;
+  }
+  /* An Archimedean spiral walked in equal ARC steps rather than equal angle steps.
+     Stepping by angle bunches the marks at the centre and strings them out at the
+     rim, which reads as scatter; stepping by arc puts them at one spacing the whole
+     way, so the eye follows them as a line. Radii are normalised at the end, so the
+     outermost mark lands in the same place whether there are eight or ten. */
+  const arc = 3.2;           // spacing, in the spiral's own units
+  /* The spiral starts well out from the middle. Started at the centre it coils into
+     a knot at this size and reads as a scribble; started here it sweeps most of a
+     turn while the radius doubles, which is the shape the eye recognises. */
+  let th = 3.0;
+  const raw = [[th, th]];
+  for (let i = 1; i < n; i++){
+    th += arc / Math.sqrt(th * th + 1);
+    raw.push([th, th]);
+  }
+  const k = 34 / raw[raw.length - 1][1];
+  raw.forEach(pair=>{
+    const a = pair[0] - Math.PI / 2, r = pair[1] * k;
+    pts.push([50 + r * Math.cos(a), 50 + r * Math.sin(a)]);
+  });
+  return pts;
+}
+function pipSize(n){
+  if (n === 1) return 22;
+  if (n <= 4) return 19;
+  if (n <= 7) return 15.5;
+  return 11.5;
+}
 function suitArt(card){
   const g = '<g class="pip">'+suitGlyph(card.suit)+'</g>';
+  const place = (x, y, size) => '<g transform="translate('+(x-size/2).toFixed(2)+','
+    + (y-size/2).toFixed(2)+') scale('+(size/24).toFixed(3)+')">'+g+'</g>';
+
   if (card.rank <= 9){
-    const n = card.rank+1, pts = PIPS[n];
-    const size = n >= 8 ? 13 : (n >= 5 ? 16 : 21);
-    let out = '';
-    pts.forEach(p=>{ out += '<g transform="translate('+(p[0]-size/2)+','+(p[1]-size/2)+') scale('+(size/24)+')">'+g+'</g>'; });
-    return '<svg viewBox="0 0 100 100">'+out+'</svg>';
+    const n = card.rank + 1, size = pipSize(n);
+    let marks = '';
+    pipPoints(n).forEach(pt=>{ marks += place(pt[0], pt[1], size); });
+    return '<svg viewBox="0 0 100 100">'+marks+'</svg>';
   }
-  /* the four people at every door get a plaque, sized down for the longer names */
+
+  /* the four people at every door get a ring rather than a frame */
   const name = RANKS[card.rank].toUpperCase();
   const fs = Math.min(10.5, 74 / name.length), ls = fs > 9.5 ? 1.6 : 0.9;
   return '<svg viewBox="0 0 100 100">'
-    + '<rect class="plaque" x="16" y="10" width="68" height="80" rx="10"/>'
-    + '<g transform="translate(29,22) scale(1.78)">'+g+'</g>'
-    + '<text class="ctext" x="50" y="80" text-anchor="middle" font-family="Copperplate, Optima, Georgia, serif" font-size="'
+    + '<circle class="plaque" cx="50" cy="43" r="33"/>'
+    + '<g transform="translate(31,25) scale(1.58)">'+g+'</g>'
+    + '<text class="ctext" x="50" y="90" text-anchor="middle" font-family="Copperplate, Optima, Georgia, serif" font-size="'
     + fs.toFixed(1) + '" letter-spacing="' + ls + '">' + name + '</text></svg>';
 }
-function faceHTML(card, flipped){
+function faceHTML(card){
   const art = card.type === "condition"
     ? '<svg viewBox="0 0 100 100"><g class="emb">'+EMBLEM[card.idx]+'</g></svg>'
     : suitArt(card);
   const top = card.type === "condition" ? card.roman : SUITMETA[card.suit].label.toUpperCase();
   const suitVar = card.type === "condition" ? '' : ' style="--suit:'+SUITMETA[card.suit].v+'"';
-  return '<div class="face'+(flipped?' rev':'')+'"'+suitVar+'>'
-    + (flipped ? '<span class="revtag">IN</span>' : '')
+  return '<div class="face"'+suitVar+'>'
     + '<div class="roman">'+top+'</div><div class="art">'+art+'</div>'
     + '<div class="cname">'+card.title+'</div></div>';
 }
 
 /* ============ state ============ */
 let deck = buildDeck();
-let shuffled = false, size = 1, spreadKind = 0, justDrawn = -1;
-let table = [null];
+let shuffled = false, justDrawn = -1;
+let table = [];
 let history = [];
 
-const SPREADS = {
-  1:[["Where you are"]],
-  2:[["Where you are","The cheapest test"]],
-  3:[["Where you are","What is setting you","The next leg"],
-     ["The crossing","The price","The water beyond"]]
-};
-const labels = () => SPREADS[size][size===3 ? spreadKind : 0];
+/* No size to pick up front. The spread reveals itself as you draw: the first three
+   places carry the passage's own grammar, and after that a card is just another card. */
+const POS = ["Where you are", "What is setting you", "The next leg"];
+const ORD = ["four","five","six","seven","eight","nine"];
+const posLabel = i => POS[i] || ("Card " + (ORD[i-3] || (i+1)));
+
+/* Nine is the ceiling. Past that a spread stops being a reading and becomes a pile:
+   you are drawing until something agrees with you, which is the one use this deck
+   is meant to make hard. */
+const MAX_CARDS = 9;
 
 const stackEl=document.getElementById('stack'), remainEl=document.getElementById('remain'),
       stateEl=document.getElementById('state'), spreadEl=document.getElementById('spread'),
       readEl=document.getElementById('readings'), logEl=document.getElementById('log'),
       btnDraw=document.getElementById('btnDraw'), btnCut=document.getElementById('btnCut'),
-      btnClear=document.getElementById('btnClear'), spreadRow=document.getElementById('spreadRow'),
-      flipToggle=document.getElementById('flipToggle'), doorText=document.getElementById('doorText');
+      btnClear=document.getElementById('btnClear'), doorText=document.getElementById('doorText');
 
 /* the door under consideration survives a reload, because people close the tab and come back */
 try {
@@ -734,8 +785,7 @@ for (let i=0;i<16;i++){
   b.style.zIndex = i;
   stackEl.appendChild(b);
 }
-const nextOpen = () => table.indexOf(null);
-const filled   = () => table.filter(Boolean).length;
+
 
 function refresh(){
   remainEl.textContent = deck.length;
@@ -743,28 +793,32 @@ function refresh(){
   const show = Math.max(1, Math.round(deck.length / 78 * 16));
   for (let i=0;i<backs.length;i++) backs[i].style.opacity = i < show ? 1 : 0;
   btnCut.disabled = !shuffled;
-  btnClear.disabled = filled() === 0;
-  const open = nextOpen();
-  btnDraw.disabled = !(shuffled && open !== -1 && deck.length > 0);
+  btnClear.disabled = table.length === 0;
+  const full = table.length >= MAX_CARDS;
+  btnDraw.disabled = !(shuffled && deck.length > 0 && !full);
   btnDraw.textContent = !shuffled ? "Shuffle first"
+    : full ? "Nine on the table \u00b7 clear to start again"
     : deck.length === 0 ? "Stack empty \u00b7 shuffle again"
-    : open === -1 ? "Spread complete \u00b7 clear to start again"
-    : size === 1 ? "Draw a card"
-    : "Draw into " + labels()[open];
+    : table.length === 0 ? "Draw a card"
+    : "Draw another card";
 }
 
 function shuffle(){
-  deck = buildDeck();
+  /* With cards already on the table, this reorders what is left in the stack rather
+     than rebuilding all 78. Putting the drawn cards back would let the same card land
+     twice in one spread, and every counting rule in the grammar (count the Conditions,
+     three Paths in a row) assumes you are drawing without replacement. */
+  const standing = table.length > 0;
+  if (!standing) deck = buildDeck();
   for (let i = deck.length - 1; i > 0; i--){
     const j = randInt(i+1);
     const t = deck[i]; deck[i] = deck[j]; deck[j] = t;
   }
   shuffled = true;
-  paintTape();
   renderApproach();
-  stateEl.textContent = "Shuffled \u00b7 full deck, new order";
-  tapeEl.classList.add('live');
-  setTimeout(()=>tapeEl.classList.remove('live'), 900);
+  stateEl.textContent = standing
+    ? "Reshuffled \u00b7 " + deck.length + " left, table standing"
+    : "Shuffled \u00b7 full deck, new order";
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
     stackEl.classList.remove('riffle'); void stackEl.offsetWidth;
     Array.from(stackEl.children).forEach((b,i)=>{
@@ -781,46 +835,119 @@ function cut(){
   const lo = Math.floor(deck.length*0.25), hi = Math.floor(deck.length*0.75);
   const at = lo + randInt(Math.max(1, hi-lo));
   deck = deck.slice(at).concat(deck.slice(0, at));
-  paintTape();
   stateEl.textContent = "Cut at " + at + " \u00b7 " + deck.length + " in the stack";
   refresh();
 }
 
-function drawInto(i){
-  if (!shuffled || table[i] || deck.length === 0) return;
+function drawCard(){
+  if (!shuffled || deck.length === 0 || table.length >= MAX_CARDS) return;
   const card = deck.shift();
-  /* the coin decides which of the two readings you have to react to first */
-  const flipped = flipToggle.checked && randInt(2) === 1;
-  table[i] = {card:card, flipped:flipped, turned:false};
-  justDrawn = i;
-  paintTape();
+  table.push({card:card});
+  justDrawn = table.length - 1;
   stateEl.textContent = "Drawn from the top \u00b7 " + deck.length + " left";
-  logDraw(card, flipped, labels()[i]);
+  logDraw(card, posLabel(justDrawn));
   render(); refresh();
 }
 function clearTable(){
-  table = new Array(size).fill(null); justDrawn = -1;
+  table = []; justDrawn = -1;
   approach = null; renderApproach();
   stateEl.textContent = "Table cleared \u00b7 " + deck.length + " left in the stack";
   render(); refresh();
 }
-function setSize(n){
-  const old = table.slice();
-  table = new Array(n).fill(null);
-  for (let i=0;i<Math.min(n, old.length);i++) table[i] = old[i];
-  size = n; justDrawn = -1;
-  render(); refresh();
-}
 
 /* ============ render ============ */
-const OUT_LABEL = "What is there";
-const IN_LABEL  = "How you are seeing it";
 
 function keysHTML(c){
   if (c.type === "condition")
-    return '<p class="keys"><b>Condition</b>'+c.roman+' \u00b7 a fact about the building, not about one door</p>';
+    return '<p class="keys"><b>Condition</b>stands outside the four suits \u00b7 it describes the state of '
+         + 'the whole passage, and it is true of every door in it</p>';
   const k = SUITMETA[c.suit];
   return '<p class="keys"><b>'+k.label+'</b>'+k.short+'<br><b>'+RANKS[c.rank]+'</b>'+STAGES[c.rank][0]+'</p>';
+}
+
+/* ============ the narrative ============ */
+/* One reading of the whole spread, assembled from what is on the table: how many
+   Conditions, whether a suit is running, where the stages sit, and the three named
+   positions. Deterministic, so re-rendering after a draw does not silently reword
+   the sentences the reader was halfway through. */
+const NARRATIVE_CAP = 250;
+const words = t => t.trim().split(/\s+/).filter(Boolean).length;
+/* the page spells its counts out everywhere else, so the reading does too */
+const NUMWORD = ["no","one","two","three","four","five","six","seven","eight","nine"];
+const spell = n => NUMWORD[n] || String(n);
+const Spell = n => { const w = spell(n); return w.charAt(0).toUpperCase() + w.slice(1); };
+
+function listOf(a){
+  if (a.length === 1) return a[0];
+  if (a.length === 2) return a[0] + ' and ' + a[1];
+  return a.slice(0,-1).join(', ') + ' and ' + a[a.length-1];
+}
+
+function narrate(){
+  const cards  = table.map(e => e.card);
+  const n      = cards.length;
+  const door   = doorText.value.trim();
+  const conds  = cards.filter(c => c.type === 'condition');
+  const suited = cards.filter(c => c.type === 'door');
+  const court  = suited.filter(c => c.rank >= 10);
+  const numb   = suited.filter(c => c.rank < 10);
+
+  const bySuit = {};
+  suited.forEach(c => { bySuit[c.suit] = (bySuit[c.suit] || 0) + 1; });
+  let lead = null, leadN = 0;
+  SUIT_ORDER.forEach(k => { if ((bySuit[k] || 0) > leadN){ leadN = bySuit[k]; lead = k; } });
+
+  /* keep:true survives the word cap, everything else is trimmed from the end */
+  const shape = [], spine = [], close = [];
+
+  shape.push({t: (door ? door + '. ' : '') + Spell(n) + (n === 1 ? ' card' : ' cards') + ' down.', keep: true});
+
+  if (conds.length === 0)
+    shape.push({t: 'No Conditions, so none of this is weather. What is on the table is yours to decide.'});
+  else if (conds.length === 1)
+    shape.push({t: 'One Condition, ' + conds[0].title + ', and it sets the water the rest of these sit in.'});
+  else
+    shape.push({t: Spell(conds.length) + ' Conditions: ' + listOf(conds.map(c => c.title))
+      + '. The passage is the subject here, and the door in front of you is a detail of it.'});
+
+  if (leadN >= 3)
+    shape.push({t: Spell(leadN) + ' of them are ' + SUITMETA[lead].label + ', ' + SUITMETA[lead].domain
+      + '. Whatever the positions say, that is what this spread is about.'});
+  else if (Object.keys(bySuit).length === 4)
+    shape.push({t: 'All four suits turned up, so no one faculty is running this.'});
+
+  if (numb.length >= 2){
+    const r = numb.map(c => c.rank).sort((a,b) => a-b);
+    const lo = r[0], hi = r[r.length-1];
+    if (hi <= 3) shape.push({t: 'The stages are early, ' + RANKS[lo] + ' to ' + RANKS[hi] + '. This is a spread about starting.'});
+    else if (lo >= 6) shape.push({t: 'The stages sit late, ' + RANKS[lo] + ' to ' + RANKS[hi] + '. This one has been on passage a while.'});
+  }
+  if (numb.some(c => c.rank === 4))
+    shape.push({t: 'There is a Five here, the card about being off course with nothing having gone wrong.'});
+  if (court.length >= 2)
+    shape.push({t: Spell(court.length) + ' of the four aboard turned up, which makes this a reading about people rather than routes.'});
+
+  for (let i = 0; i < Math.min(POS.length, n); i++){
+    const c = cards[i];
+    spine.push({t: POS[i] + ' is ' + c.title
+      + (c.type === 'door' ? ', ' + STAGES[c.rank][0] : '') + '.', keep: i === 0});
+  }
+  if (n > POS.length)
+    spine.push({t: 'Behind those: ' + listOf(cards.slice(POS.length).map(c => c.title)) + '.'});
+
+  const mover = cards[Math.min(POS.length - 1, n - 1)];
+  close.push({t: 'One thing to do this week, from ' + mover.title + '. ' + mover.move, keep: true});
+
+  /* trim optional sentences off the end until the whole thing fits the cap */
+  const all = shape.concat(spine, close);
+  let total = all.reduce((a,x) => a + words(x.t), 0);
+  for (let i = all.length - 1; i >= 0 && total > NARRATIVE_CAP; i--){
+    if (all[i].keep || all[i].dropped) continue;
+    all[i].dropped = true;
+    total -= words(all[i].t);
+  }
+  const join = arr => arr.filter(x => !x.dropped).map(x => x.t).join(' ');
+  return [join(shape), join(spine), join(close)].filter(Boolean);
 }
 
 function paintCaption(){
@@ -838,22 +965,18 @@ function paintCaption(){
 }
 
 function render(){
-  const L = labels();
   spreadEl.innerHTML = ''; readEl.innerHTML = '';
+  /* the wide two-column board only earns its keep once the right half has readings
+     to hold, so it stays a single column until the first card is down */
+  document.querySelector('.board').classList.toggle('live', table.length > 0);
 
   table.forEach((entry, i)=>{
     const slot = document.createElement('div');
-    slot.className = 'slot' + (entry ? '' : ' open');
-    const pos = '<span class="pos">'+L[i]+'</span>';
-    if (!entry){
-      const dis = (!shuffled || deck.length === 0) ? ' disabled' : '';
-      slot.innerHTML = pos + '<button class="slotback" data-i="'+i+'"'+dis
-        + ' aria-label="Draw into '+L[i]+'"><span class="cardback"></span></button>';
-      spreadEl.appendChild(slot); return;
-    }
+    slot.className = 'slot';
     const fresh = (i === justDrawn);
-    slot.innerHTML = pos + '<div class="flip'+(fresh?'':' up instant')+'"><div class="flip-in">'
-      + faceHTML(entry.card, entry.flipped) + '<div class="rear cardback"></div></div></div>';
+    slot.innerHTML = '<span class="pos">'+posLabel(i)+'</span>'
+      + '<div class="flip'+(fresh?'':' up instant')+'"><div class="flip-in">'
+      + faceHTML(entry.card) + '<div class="rear cardback"></div></div></div>';
     spreadEl.appendChild(slot);
     if (fresh){
       const flip = slot.querySelector('.flip');
@@ -861,48 +984,80 @@ function render(){
     }
   });
 
-  if (filled() > 0){
+  /* one face-down card waits at the end, so "another" is somewhere you can point */
+  if (shuffled && deck.length > 0 && table.length < MAX_CARDS){
+    const next = posLabel(table.length);
+    const slot = document.createElement('div');
+    slot.className = 'slot open';
+    slot.innerHTML = '<span class="pos">'+next+'</span>'
+      + '<button class="slotback" aria-label="Draw '+next+'"><span class="cardback"></span></button>';
+    spreadEl.appendChild(slot);
+  }
+
+  if (table.length > 0){
     const cap = document.createElement('p');
     cap.className = 'caption'; cap.hidden = true;
     readEl.appendChild(cap);
   }
 
   table.forEach((entry, i)=>{
-    if (!entry) return;
+    /* the fourth card is where the named positions run out, so say why once, in place */
+    if (i === POS.length){
+      const n = document.createElement('p');
+      n.className = 'posnote';
+      n.textContent = 'Past the third the deck stops naming places. Three positions are as much '
+        + 'structure as one passage holds. Everything from here is another card on the same '
+        + 'question, read on its own terms.';
+      readEl.appendChild(n);
+    }
     const c = entry.card;
     const v = c.type === "condition" ? "var(--accent)" : SUITMETA[c.suit].v;
-    const lead  = entry.flipped ? c.inn : c.out;
-    const other = entry.flipped ? c.out : c.inn;
-    const leadL = entry.flipped ? IN_LABEL : OUT_LABEL;
-    const otherL= entry.flipped ? OUT_LABEL : IN_LABEL;
     const r = document.createElement('div');
     r.className = 'reading' + (i === justDrawn ? ' new' : '');
     if (i === justDrawn) r.style.animationDelay = '340ms';
+    /* Name and vocabulary only. What the card means here is the reader's sentence to
+       write, and the deck's own version waits at the end so it cannot pre-empt them. */
     r.innerHTML = '<div class="kicker"><span class="swatch" style="background:'+v+'"></span>'
-      + '<span class="pos2">'+L[i]+'</span></div>'
+      + '<span class="pos2">'+posLabel(i)+'</span></div>'
       + '<h3>'+c.title+'</h3>'
-      + '<div class="view"><span class="vlabel">'+leadL+'</span><p>'+lead+'</p></div>'
-      + '<button class="turn" data-i="'+i+'"'+(entry.turned?' hidden':'')+'>Turn it over</button>'
-      + '<div class="view other"'+(entry.turned?'':' hidden')+'><span class="vlabel">'+otherL+'</span><p>'+other+'</p></div>'
-      + '<p class="move"><b>The move</b>'+c.move+'</p>'
       + keysHTML(c);
     readEl.appendChild(r);
   });
 
-  if (filled() === 0){
+  /* the end of the spread: one reading of the whole table, composed from what is
+     actually on it. Capped hard, because past a certain length it stops being a
+     reading and turns back into the card texts laid end to end. */
+  if (table.length > 0){
+    const end = document.createElement('section');
+    end.className = 'sitwith';
+    const lab = document.createElement('p');
+    lab.className = 'nlab';
+    lab.textContent = 'The reading';
+    end.appendChild(lab);
+    /* built with textContent, because the door line is whatever the reader typed */
+    narrate().forEach(para=>{
+      const q = document.createElement('p');
+      q.className = 'narr';
+      q.textContent = para;
+      end.appendChild(q);
+    });
+    readEl.appendChild(end);
+  }
+
+  if (table.length === 0){
     const e = document.createElement('div');
     e.className = 'empty';
     e.textContent = shuffled
-      ? "Draw one at a time. Read what it says, decide whether you believe it, then turn it over."
-      : "Name the door above, shuffle, then draw. Each card gives you one of its two readings. The other is behind a button, on purpose.";
+      ? "Draw one card. Say what it means for your door before you draw the next. Three is usually enough, nine is the most."
+      : "Name the door above, shuffle, then draw. One card at a time, up to nine.";
     readEl.appendChild(e);
   }
   paintCaption();
 }
 
-function logDraw(card, flipped, pos){
+function logDraw(card, pos){
   const t = new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-  history.unshift('<span class="t">'+t+'</span> \u00b7 '+pos+' \u00b7 '+card.title+(flipped?' (led inward)':''));
+  history.unshift('<span class="t">'+t+'</span> \u00b7 '+pos+' \u00b7 '+card.title);
   if (history.length > 40) history.pop();
   logEl.innerHTML = history.map(h => '<li>'+h+'</li>').join('');
 }
@@ -910,18 +1065,16 @@ function logDraw(card, flipped, pos){
 /* ============ the grammar ============ */
 function buildGrammar(){
   let h = '';
-  h += '<p class="lede">A door is not a point on a map. It has a <b>route in</b>, a <b>cost to open</b>, a separate '
-     + '<b>cost to live on the other side</b>, a number of <b>people it takes</b>, and a story about <b>how you came to see it '
-     + 'at all</b>. Six things, and the deck deals you two of them.</p>';
-  h += '<p>The cards give you which faculty is in play and how far along the passage you are. The other four you answer '
-     + 'yourself, and the sections below are how. Most bad decisions are not bad choices between doors. They are one of '
-     + 'these six read wrong, usually the second cost.</p>';
+  h += '<p class="lede">A door has seven parts. <b>Two the cards deal you</b>: which faculty is in play, and how far along '
+     + 'the passage you are. <b>Five you answer yourself</b>: the route in, the cost to open, the separate cost to live on '
+     + 'the other side, the number of people it takes, and how you came to see it at all.</p>';
+  h += '<p>The sections below are the five. Most bad decisions are one of the seven read wrong, and it is usually the '
+     + 'second cost.</p>';
 
   h += '<h4>The four suits</h4>'
      + '<p class="lede">The suits split two and two. <b>Perception</b> and <b>Navigation</b> are yours: how you see, and how '
      + 'you steer. <b>Paths</b> and <b>Doors</b> are the world\u2019s: the routes that exist, and the crossings at the end of '
-     + 'them. That split is the same one the two readings make on every card, which is not a coincidence. It is the deck '
-     + 'saying one thing at two scales.</p><ul class="defs">';
+     + 'them. The two readings on every card make that same cut: once across the deck, and once inside each card.</p><ul class="defs">';
   SUIT_ORDER.forEach(k=>{
     const m = SUITMETA[k];
     h += '<li><span class="k"><span class="sw" style="background:'+m.v+'"></span>'+m.label+'</span>'
@@ -932,8 +1085,8 @@ function buildGrammar(){
      + 'says how far along you are. Learn those two lists and most of the 56 suit cards decode themselves.</p>';
 
   h += '<h4>The passage arc</h4>'
-     + '<p class="lede">The same ten stages run through all four suits. It is a passage rather than a siege: you leave, you '
-     + 'drift, you fix your position, you cross, you arrive, and arriving hands you the next chart.</p><ul class="defs">';
+     + '<p class="lede">The same ten stages run through all four suits: you leave, you drift, you fix your position, you '
+     + 'cross, you arrive, and arriving hands you the next chart.</p><ul class="defs">';
   for (let i=0;i<10;i++) h += '<li><span class="k">'+RANKS[i]+'</span><span class="v">'+STAGES[i][1]+'</span></li>';
   h += '</ul>';
   h += '<p style="margin-top:11px">Five is the trouble in every suit, and it is always the same shape: you are off course '
@@ -941,59 +1094,58 @@ function buildGrammar(){
      + 'hand you, because it is the one nobody goes looking for.</p>';
 
   h += '<h4>The four aboard</h4>'
-     + '<p class="lede">Not personality types. People in the actual situation, or a role nobody is filling.</p><ul class="defs">';
+     + '<p class="lede">People in the actual situation, or a role nobody is filling.</p><ul class="defs">';
   for (let i=10;i<14;i++) h += '<li><span class="k">'+RANKS[i]+'</span><span class="v">'+STAGES[i][1]+'</span></li>';
   h += '</ul>';
 
   h += '<h4>The Conditions</h4>'
      + '<p>Twenty-two cards with no suit, numbered 0 to XXI. A suit card describes one leg. A Condition describes the state '
      + 'of the whole passage, the part you do not control: the tide, the lee shore, the chart that is wrong, the water you '
-     + 'are already in. Count them in a spread. Zero Conditions is a decision. Two or three is a life, and the door in front '
-     + 'of you is probably not the real subject.</p>';
+     + 'are already in. Counting them is a reading of its own, and it is under Reading the cards together below.</p>';
 
   h += '<h4>The two readings</h4>'
-     + '<p class="lede">This is the whole instrument. Every card carries one situation read two ways, and the deck flips a '
-     + 'coin for which one you see first.</p><ol class="schools">'
+     + '<p class="lede">Every card carries one situation read two ways. The table shows you neither of them: it gives you '
+     + 'the suit and the stage, and the two readings wait at the end of the spread.</p><ol class="schools">'
      + '<li><b>What is there.</b> The situation as an actual fact. A tide that runs on its own schedule, a route that costs '
      + 'four days, a gate that is shut. Real constraints exist and most of them are boring.</li>'
      + '<li><b>How you are seeing it.</b> The same fact, framed by something you have not admitted preferring. You would '
      + 'rather not look, not ask, not pay, not be a beginner. Also real, and much quieter.</li>'
      + '</ol>'
-     + '<p>Both are true to some degree, and the useful question is the ratio. Decide which one you think it is <b>before</b> '
-     + 'you press Turn it over. Being wrong is the point of the exercise. If you agree with every card the deck deals you, '
+     + '<p>Both are true to some degree, and the useful question is the ratio. Say your own version <b>before</b> you open '
+     + 'what the deck would say. Being wrong is the point of the exercise. If you agree with every card the deck deals you, '
      + 'you are reading horoscopes.</p>'
-     + '<p>The inward reading is not an accusation. Half the time the honest answer is that the tide really does run at that '
-     + 'hour, and you have been blaming yourself for weather.</p>';
+     + '<p>Half the time the honest answer is that the tide really does run at that hour, and you have been blaming '
+     + 'yourself for weather.</p>';
 
   h += '<h4>The move</h4>'
      + '<p>Every card ends in one action, sized to be cheap and doable this week. That line is the difference between a '
-     + 'thinking tool and a fortune. If a reading leaves you with a feeling and no move, the card has failed, and you '
-     + 'should read the move anyway.</p>';
+     + 'thinking tool and a fortune. If a reading leaves you with a feeling and nothing to do on Tuesday, you have not '
+     + 'finished reading it.</p>';
 
+  /* The four verdicts are a 2x2, and the widget at the top of the page already writes
+     the paragraph for whichever cell you land in. Printing all four here in full said
+     the same thing twice on one page, so the guide keeps the grid and the widget keeps
+     the prose. The grid also shows the adjacency the closing sentence is about. */
   h += '<h4>The two costs</h4>'
      + '<p class="lede">Opening a door and living on the other side are priced separately, and the doorway is the only '
      + 'part you can see from out here. This is the single most common way to walk through the wrong one.</p>'
-     + '<ul class="defs">'
-     + '<li><span class="k">Cheap / cheap</span><span class="v"><b>The Unlocked Door.</b> You are deliberating about '
-     + 'something you could simply do. The deliberating has become the expensive part.</span></li>'
-     + '<li><span class="k">Costly / cheap</span><span class="v"><b>The Gate.</b> All the difficulty is at the entrance, '
-     + 'and the room is easier than the doorway. Most competitive things are shaped like this. Spend everything on getting in.</span></li>'
-     + '<li><span class="k">Cheap / costly</span><span class="v"><b>The Trap.</b> Easy to enter, hard to live in. The yes '
-     + 'is not the decision, the next three years are. Almost nobody prices this one correctly.</span></li>'
-     + '<li><span class="k">Costly / costly</span><span class="v"><b>The Commitment.</b> Both halves cost, as most worthwhile '
-     + 'things do. Only worth paying if you have actually seen the room, and from here you have not.</span></li>'
-     + '</ul>'
-     + '<p style="margin-top:11px">Weigh your own door against these two questions at the top of the page. The interesting '
-     + 'result is when the answer is Trap, because a Trap and an Unlocked Door feel identical from the near side.</p>';
+     + '<table class="costgrid"><caption>Cost to open, against cost to live there</caption>'
+     + '<tr><td></td><th scope="col">Cheap to live in</th><th scope="col">Costly to live in</th></tr>'
+     + '<tr><th scope="row">Cheap to open</th><td>The Unlocked Door</td><td class="hot">The Trap</td></tr>'
+     + '<tr><th scope="row">Costly to open</th><td>The Gate</td><td>The Commitment</td></tr>'
+     + '</table>'
+     + '<p style="margin-top:12px">Weigh your own door against those two questions at the top of the page and it will '
+     + 'name the cell and tell you what to do about it. The interesting answer is Trap, and the grid shows why: the Trap '
+     + 'and the Unlocked Door share the top row, and the top row is the half you can see from the near side.</p>';
 
+  /* All sixteen are listed in the card index below with the same two fields, so this
+     section states the idea and sends you there rather than printing the deck twice. */
   h += '<h4>The approach</h4>'
      + '<p class="lede">A door has more than one way up to it, and people tend to know about one. The approach deck deals '
-     + 'you a route rather than a diagnosis: not what is wrong, but which line to try.</p><ul class="defs">';
-  APPROACHES.forEach(a=>{
-    h += '<li><span class="k" style="width:auto;min-width:104px">'+a[0]+'</span><span class="v">'+a[1]
-       + '<br><span style="opacity:.6">costs you '+a[2]+'</span></span></li>';
-  });
-  h += '</ul>'
+     + 'you a route: the line to try next, priced in what it costs you to walk it.</p>'
+     + '<p>It is a separate deck of sixteen, shuffled on its own and drawn from the button under the table: '
+     + APPROACHES.map(a=>a[0]).join(', ') + '. Each one carries what it costs you, and all sixteen are in the '
+     + 'card index at the bottom of this page.</p>'
      + '<p style="margin-top:11px">The route is drawn blind on purpose. The one you would have picked is the one you already '
      + 'know about, and it is usually the Front Door.</p>';
 
@@ -1008,31 +1160,30 @@ function buildGrammar(){
      + 'find more doors is more surface area, not harder concentration. You cannot think your way into being told something.</p>';
 
   h += '<h4>How many it takes</h4>'
-     + '<p class="lede">People default to assuming a door is a solo problem, and are usually wrong by exactly one person.</p><ul class="defs">'
-     + '<li><span class="k">Alone</span><span class="v">Genuinely possible, rarer than assumed, and the default guess.</span></li>'
+     + '<p class="lede">People default to assuming a door is a solo problem, and the answer is usually one person more than they guessed.</p><ul class="defs">'
+     + '<li><span class="k">Alone</span><span class="v">Genuinely possible, and rarer than assumed.</span></li>'
      + '<li><span class="k">One other</span><span class="v">A guide, a vouch, a co-signer, someone who has been through. Most doors that stayed shut for years needed one person.</span></li>'
      + '<li><span class="k">A crew</span><span class="v">Three to six who actually show up. Everything physical, and most things that take a season.</span></li>'
      + '<li><span class="k">An institution</span><span class="v">A company, a school, a class of licence. Slow, and it confers something you cannot confer on yourself.</span></li>'
      + '</ul>'
-     + '<p style="margin-top:11px">If a door has been shut for more than a year, the honest question is not what you are doing '
-     + 'wrong. It is which of these four you assumed, and whether you assumed one too few.</p>';
+     + '<p style="margin-top:11px">If a door has been shut for more than a year, the honest question is which of these four '
+     + 'you assumed, and whether you assumed one too few.</p>';
 
-  h += '<h4>Reading a spread, not three cards</h4><ul class="defs">'
-     + '<li><span class="k">Conditions</span><span class="v">Count them. Zero is a decision. Three says the building is the subject.</span></li>'
+  h += '<h4>Reading the cards together</h4><ul class="defs">'
+     + '<li><span class="k">Conditions</span><span class="v">Count them. Zero is a decision you are free to make. Two or three says the passage is the subject and the door is a detail of it.</span></li>'
      + '<li><span class="k">Suits</span><span class="v">Three Paths cards in a row is a spread about routes, whatever the positions say. Three Perception cards means you do not yet have the information to decide.</span></li>'
      + '<li><span class="k">Stages</span><span class="v">One, Four, Eight is a spread about starting. Seven, Seven, Nine is a spread that has been on passage too long.</span></li>'
      + '<li><span class="k">Position</span><span class="v">Five in Where you are is a drift that already happened. In The next leg it is one you are about to make.</span></li>'
-     + '<li><span class="k">Which led</span><span class="v">Three cards leading inward is a nudge, not a verdict. It is a coin, and coins run hot.</span></li>'
      + '</ul>'
-     + '<p style="margin-top:14px;opacity:.65">Nothing here is predictive and nothing here is mystical. It is a randomiser '
-     + 'pointed at your own framing, which is the one thing you cannot audit from the inside.</p>';
+     + '<p style="margin-top:14px;opacity:.65">It is a randomiser pointed at your own framing, which is the one thing '
+     + 'you cannot audit from the inside.</p>';
 
   document.getElementById('grammar').innerHTML = h;
 }
 
 /* ============ card index ============ */
 function buildIndex(){
-  let h = '<h4 class="idxhead">The Conditions \u00b7 facts about the building</h4>';
+  let h = '<h4 class="idxhead">The Conditions \u00b7 facts about the whole passage</h4>';
   CONDITIONS.forEach(m=>{
     h += '<article class="idx" data-k="'+(m[0]+' '+m[1]+' condition '+m[2]+' '+m[3]+' '+m[4]).toLowerCase()+'">'
        + '<h5><span class="sw" style="background:var(--accent)"></span>'+m[0]+' \u00b7 '+m[1]+'</h5>'
@@ -1041,10 +1192,10 @@ function buildIndex(){
   });
   SUIT_ORDER.forEach(k=>{
     const m = SUITMETA[k];
-    h += '<h4 class="idxhead">'+m.label+' \u00b7 '+m.holds+' \u00b7 '+m.plain+'</h4>';
+    h += '<h4 class="idxhead">'+m.label+' \u00b7 '+m.side+' \u00b7 '+m.plain+'</h4>';
     SUITS[k].forEach((c,i)=>{
       const name = (i < 10 ? RANKS[i] : "The " + RANKS[i]) + " of " + m.label;
-      h += '<article class="idx" data-k="'+(name+' '+m.label+' '+m.alt+' '+m.holds+' '+c[0]+' '+c[1]+' '+c[2]).toLowerCase()+'">'
+      h += '<article class="idx" data-k="'+(name+' '+m.label+' '+m.alt+' '+m.domain+' '+c[0]+' '+c[1]+' '+c[2]).toLowerCase()+'">'
          + '<h5><span class="sw" style="background:'+m.v+'"></span>'+name+'</h5>'
          + '<p><b>Out</b>'+c[0]+'</p><p><b>In</b>'+c[1]+'</p>'
          + '<p class="move"><b>The move</b>'+c[2]+'</p>'
@@ -1083,7 +1234,6 @@ const btnApproach = document.getElementById('btnApproach');
 function drawApproach(){
   const i = randInt(APPROACHES.length);
   approach = {a: APPROACHES[i], i: i};
-  paintTape();
   renderApproach();
 }
 function renderApproach(){
@@ -1138,34 +1288,9 @@ document.querySelectorAll('.weigh .wrow button').forEach(b=>{
 document.getElementById('btnShuffle').addEventListener('click', ()=>{ shuffle(); render(); });
 btnCut.addEventListener('click', cut);
 btnClear.addEventListener('click', clearTable);
-btnDraw.addEventListener('click', ()=>{ const i = nextOpen(); if (i !== -1) drawInto(i); });
+btnDraw.addEventListener('click', drawCard);
 spreadEl.addEventListener('click', e=>{
-  const b = e.target.closest('.slotback');
-  if (b && !b.disabled) drawInto(+b.dataset.i);
-});
-/* turning a card over is recorded on the entry so a re-render does not re-hide it */
-readEl.addEventListener('click', e=>{
-  const b = e.target.closest('.turn');
-  if (!b) return;
-  const entry = table[+b.dataset.i];
-  if (entry) entry.turned = true;
-  b.hidden = true;
-  const other = b.parentNode.querySelector('.view.other');
-  if (other) other.hidden = false;
-});
-document.querySelectorAll('.pills button').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    document.querySelectorAll('.pills button').forEach(x=>x.setAttribute('aria-pressed', x===b));
-    spreadRow.hidden = +b.dataset.n !== 3;
-    setSize(+b.dataset.n);
-  });
-});
-document.querySelectorAll('.spreadrow button').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    document.querySelectorAll('.spreadrow button').forEach(x=>x.setAttribute('aria-pressed', x===b));
-    spreadKind = +b.dataset.s; justDrawn = -1;
-    render(); refresh();
-  });
+  if (e.target.closest('.slotback')) drawCard();
 });
 document.getElementById('find').addEventListener('input', e=> filterIndex(e.target.value));
 
