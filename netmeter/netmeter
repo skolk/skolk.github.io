@@ -16,6 +16,17 @@ Usage:
                           e.g. `netmeter throttle claude --pct 25`. `throttle APP off`
                           lifts one, `throttle off` lifts all, bare `throttle` lists them
   netmeter status APP     throttled / paused / running / not running
+  netmeter pause-all      slow every app that is not protected to a trickle and hold
+                          it there, and keep catching anything that wakes up, until
+                          you switch apps back on one at a time (each `resume APP`
+                          adds it to the allow list). Nothing is frozen: the apps
+                          stay alive and usable, just slow
+  netmeter pause-all hard the second press. Freezes everything Pause All is holding
+                          (SIGSTOP), so their windows go unresponsive.
+                          `pause-all soft` goes back to the trickle
+  netmeter pause-all off  lift the mode. So does `resume-all`
+  netmeter paused         what is frozen or throttled, and why
+  netmeter log            netmeter's own error log (~/.netmeter/netmeter.log)
   netmeter lowdata on     freeze the apps in config's lowdata_apps and keep them frozen,
                           throttle the apps in lowdata_throttle to throttle_pct,
                           freeze any app that moves burst_cap_mb inside one minute;
@@ -29,14 +40,11 @@ Usage:
                           hand while connected stands until you leave and rejoin
   netmeter profile        list per-network profiles; `profile rm NAME` forgets one
   netmeter networks       list the networks the daemon remembers. Every network's
-                          mode settings (low data family plus solo) are written as
+                          mode settings (the low data family plus Pause All) are
                           they change, and rejoining a remembered network brings
                           back how it was last used; explicit profiles still win.
                           `networks rm NAME|MAC` forgets one, `networks on|off`
                           toggles the remembering itself
-  netmeter solo APP       solo mode: only APP may use the network. Every other app that
-                          tries to send or receive gets frozen, system daemons excepted
-  netmeter solo off       lift solo mode and unfreeze whatever solo froze
   netmeter recent [MIN]   who spent the data over the last MIN minutes (default 60)
   netmeter display        menu bar display options: --rate on|off (live speed),
                           --total on|off (session total), --combine on|off (merge
@@ -64,6 +72,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 
 # Decimal units, deliberately. A carrier that sells a 50 GB plan means
 # 50 x 10^9 bytes, so counting the cap in 2^30 gave 7.4% of phantom headroom:
@@ -81,6 +90,10 @@ TETHER_PATH = os.path.join(STATE_DIR, "tether.json")
 PROFILE_PATH = os.path.join(STATE_DIR, "profile.json")
 NETWORKS_PATH = os.path.join(STATE_DIR, "networks.json")
 CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
+RAMP_PATH = os.path.join(STATE_DIR, "ramping.json")
+UPDATE_PREFS_PATH = os.path.join(STATE_DIR, "update_prefs.json")
+LOG_PATH = os.path.join(STATE_DIR, "netmeter.log")
+LOG_MAX = 512 * 1000       # one rollover to netmeter.log.1, then overwrite
 
 # lowdata_apps is empty by default: low data mode only watches and notifies.
 # Add "chrome" (or any alias/pattern) to also freeze apps while the mode is on.
@@ -88,6 +101,9 @@ CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
 # live in ~/.netmeter/config.json, set via `netmeter tether-config` and
 # `netmeter tether-here`. The defaults here are deliberately empty.
 DEFAULT_CONFIG = {
+    # Bumped when a migration has to run once over the state files. 2: solo
+    # mode retired into Pause All (2026-08-28).
+    "config_version": 2,
     "lowdata": False, "lowdata_apps": [], "notify_every_mb": 25,
     # lowdata_throttle is the middle setting between "leave it alone" and the
     # all-or-nothing freeze of lowdata_apps: apps here stay usable, just slow.
@@ -101,14 +117,48 @@ DEFAULT_CONFIG = {
     # transfer. Freezing an app that has moved burst_cap_mb inside one minute is
     # what actually stops a bulk download. Only armed while low data mode is on.
     "burst_cap_mb": 0,
-    "solo": False, "solo_app": "",
+    # pause_all is the blunt one: freeze everything, then switch back on what
+    # you actually need. pause_all_allow is that growing list of exceptions,
+    # written by `resume APP` while the mode is on. Enforced every tick, so an
+    # app that launches later is frozen the moment it reaches for the network.
+    "pause_all": False, "pause_all_allow": [],
+    # Pause All lands on a hold, not a freeze: everything drops to
+    # PAUSE_ALL_FLOOR% of its duty cycle and stays there, slow enough to save
+    # the data and alive enough that the editor you are working in keeps
+    # working. Hard Stop is the deliberate second press that lands the freeze.
+    # The mode froze outright until 2026-08-28, and the first thing it froze was
+    # Cursor mid-session. Not remembered per network (see MEMORY_KEYS): a hold
+    # is a reasonable thing to walk back into, a frozen machine is not.
+    "pause_all_hard": False,
+    # A freeze is a blunt landing: SIGSTOP mid-transfer strands the request, and
+    # mid-save it strands worse. The ramp spends a few seconds slowing an app
+    # towards the stop instead, at 25% of its duty cycle and then 5%, and waits
+    # for it to go quiet before pulling the plug. `ramp_seconds` is when the
+    # first freeze is attempted, the 5% step lands at half of it, `ramp_max` is
+    # the deadline after which a still-busy app is frozen anyway, and
+    # `ramp_quiet_kb` is what counts as quiet in one tick.
+    "ramp": True, "ramp_seconds": 8.0, "ramp_max": 30.0, "ramp_quiet_kb": 50,
+    # Low Data is the tethering mode, and on a hotspot the traffic nobody asked
+    # for is the expensive kind: a macOS update, an App Store download, iCloud
+    # catching up, an editor fetching a release. Two levers, both only while
+    # Low Data is on. lowdata_background freezes the daemons that fetch (see
+    # BACKGROUND_DOWNLOADS); update_prefs flips the documented auto-update
+    # preferences so the polite ones do not even ask, and puts them back after.
+    "lowdata_background": True, "update_prefs": True,
+    # The slow bleed a per-minute cap cannot see: 30 MB a minute for ten minutes
+    # never trips a 50 MB/min cap and still costs 300 MB. Off by default; set it
+    # to arm it. Armed under the same condition as the burst cap.
+    "drain_cap_mb": 0, "drain_window_min": 5,
     # remember_networks: every network the daemon sees gets its mode settings
-    # (the lowdata family plus solo) written to networks.json as they change,
+    # (the lowdata family plus Pause All) written to networks.json as they change,
     # and rejoining a remembered network brings back how it was last used.
     # Explicit profiles in network_profiles still win where both exist.
     "remember_networks": True,
     "combine_updown": False, "show_rate": True, "show_total": True,
-    "recent_window": 60, "recent_open": True, "apps_open": False,
+    # apps_view: how much of the per-app list the bar shows, "min" (3), "some"
+    # (6) or "all" (20). apps_open is the older two-state key, still read once
+    # so an existing config lands somewhere sensible.
+    "recent_window": 60, "recent_open": True, "apps_view": "some",
     "tether_name": "", "tether_cap_gb": 0, "tether_reset_day": 1,
     "tether_gateway_macs": [], "wifi_if": "en0",
     # network_profiles pins lowdata settings to a network, keyed by gateway MAC,
@@ -118,28 +168,43 @@ DEFAULT_CONFIG = {
     "network_profiles": {},
 }
 
+# Where Pause All's soft stage parks an app: 5% of the duty cycle, which is the
+# bottom step the ramp already uses, so the hold is the ramp arriving rather
+# than a second number that can disagree with it.
+PAUSE_ALL_FLOOR = 5
+
 # Freezing these breaks the machine (DNS, the window server, the terminal you
-# would type `netmeter solo off` into) rather than saving data. The burst cap
+# would type `netmeter resume-all` into) rather than saving data. The burst cap
 # stops at this line and nothing else: an app moving 900 MB a minute is exactly
 # what the cap is for, however inconvenient freezing it happens to be.
 NEVER_FREEZE = {
     "kernel_task", "launchd", "WindowServer", "loginwindow", "Finder", "Dock",
     "SystemUIServer", "netmeter", "netmeter-bar", "Terminal", "iTerm2", "iTerm",
     "Ghostty", "Alacritty", "kitty", "Warp", "mDNSResponder", "configd",
-    "networkd", "nsurlsessiond", "syspolicyd", "apsd", "cloudd", "trustd",
-    "identityservice", "identityservicesd", "locationd", "bird", "timed",
-    "softwareupdated", "symptomsd", "rapportd", "sharingd", "searchpartyd",
-    "netbiosd", "com.apple.geod", "AssetCacheLocat", "parsec-fbf",
+    "networkd", "syspolicyd", "apsd", "trustd",
+    "identityservice", "identityservicesd", "locationd", "timed",
+    "symptomsd", "rapportd", "sharingd", "searchpartyd",
+    "netbiosd", "com.apple.geod",
     "networkserviceproxy (Apple relay)", "python3", "ssh", "sshd",
 }
 
-# Solo mode spares one more thing: the running work sessions. Soloing Chrome to
-# stop an updater helping itself to the hotspot should not also kill the terminal
-# session doing the work, and until app_pids() learned to resolve the label it
-# never could, because the CLI's process is named for its version and the SIGSTOP
-# fell on nothing. Now that it lands, the exemption has to be written down.
-# Throttling is the control for these, which is the whole reason it exists.
-SOLO_PROTECT = NEVER_FREEZE | {"Claude Code"}
+# The processes that fetch things nobody asked for right now: system updates,
+# App Store downloads, iCloud sync, Siri voices and ML assets, and the two
+# third-party updaters that ship with half of everything. Most of these sat in
+# NEVER_FREEZE until 2026-08-28, which meant netmeter would stop Chrome and
+# then watch `softwareupdated` pull six gigabytes of macOS over a hotspot.
+#
+# They are not in the floor any more, but they are still not ordinary apps: the
+# floor is what would break the machine (DNS, TLS validation, the window
+# server), and none of these do. Freezing them stalls a transfer that resumes
+# by itself later, which is the whole point.
+BACKGROUND_DOWNLOADS = {
+    "softwareupdated", "nsurlsessiond", "cloudd", "bird", "mobileassetd",
+    "appstoreagent", "storekitagent", "amsengagementd", "managedappdistr",
+    "mstreamd", "AssetCacheLocat", "swcd", "photoanalysisd", "photolibraryd",
+    "cloudphotod", "parsec-fbf", "GoogleSoftwareUp", "Keystone", "Autoupdate",
+    "Squirrel", "com.apple.MobileSoftwareUpdate",
+}
 
 # nettop truncates process names; map the cryptic ones to readable labels.
 FRIENDLY = [
@@ -172,6 +237,45 @@ def state_path(date):
     return os.path.join(STATE_DIR, f"{date}.json")
 
 
+def log(msg, exc=False):
+    """netmeter's own error log, ~/.netmeter/netmeter.log.
+
+    launchd captures stdout and stderr per process, so the daemon's crashes
+    landed in daemon.log and the bar's in bar.log, while a CLI run from a shell
+    wrote its traceback to a terminal nobody kept. The three tracebacks that
+    sat unread in bar.log for a week are the argument for one file both halves
+    write to and `netmeter log` reads back. Never raises: a logger that can
+    take the daemon down is worse than no logger."""
+    try:
+        os.makedirs(STATE_DIR, exist_ok=True)
+        stamp = datetime.datetime.now().isoformat(timespec="seconds")
+        line = f"{stamp} [{os.getpid()}] {msg}"
+        if exc:
+            line += "\n" + traceback.format_exc().rstrip()
+        with open(LOG_PATH, "a") as f:
+            f.write(line + "\n")
+        if os.path.getsize(LOG_PATH) > LOG_MAX:
+            os.replace(LOG_PATH, LOG_PATH + ".1")
+    except Exception:
+        pass
+
+
+def show_log(n):
+    """Tail of the internal log, plus a pointer at the launchd-captured ones."""
+    lines = []
+    for path in (LOG_PATH + ".1", LOG_PATH):
+        try:
+            with open(path) as f:
+                lines.extend(f.readlines())
+        except FileNotFoundError:
+            pass
+    if not lines:
+        print(f"{LOG_PATH} is empty. Nothing has gone wrong since it was last cleared.")
+    else:
+        sys.stdout.write("".join(lines[-n:]))
+    print(f"\n(daemon stdout: {STATE_DIR}/daemon.log \u00b7 bar stderr: {STATE_DIR}/bar.log)")
+
+
 def save_json(path, obj):
     """The temp name carries the pid. A shared `<path>.tmp` is what let two
     netmeter processes writing at the same moment interleave into an
@@ -199,11 +303,13 @@ def locked(path):
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
-def update_config(**changes):
+def update_config(_drop=(), **changes):
     """The only way config.json is written. Locked, and it refuses to answer a
     corrupt file with a fresh set of defaults: it recovers from config.json.bak
     and says so, because silently defaulting is what turned a transient race
-    into lost settings."""
+    into lost settings. `_drop` names keys to delete, which only a migration
+    has ever needed: a retired setting left lying in the file is a fact about
+    the tool that stopped being true."""
     with locked(CONFIG_PATH):
         raw, note = {}, ""
         if os.path.exists(CONFIG_PATH):
@@ -218,6 +324,8 @@ def update_config(**changes):
         cfg = dict(DEFAULT_CONFIG)
         cfg.update(raw)
         cfg.update(changes)
+        for key in _drop:
+            cfg.pop(key, None)
         save_json(CONFIG_PATH, cfg)
         with contextlib.suppress(OSError):
             save_json(CONFIG_PATH + ".bak", cfg)
@@ -289,6 +397,70 @@ def read_recent(window_minutes):
     except FileNotFoundError:
         return {}
     return totals
+
+
+def migrate_state():
+    """One-time conversion of anything still carrying solo mode, retired
+    2026-08-28 into Pause All. Solo was Pause All with the allow list capped at
+    one, so every solo fact has an exact translation: the mode becomes Pause
+    All, the soloed app becomes the one entry in the allow list, and a freeze
+    solo owned becomes a freeze Pause All owns. Four places carried it, and a
+    migration that skipped any one of them would leave a network rejoining into
+    a mode that no longer exists.
+
+    Gated on config_version so the common case is one small read."""
+    raw = read_json(CONFIG_PATH) or {}
+    if raw.get("config_version", 1) >= 2:
+        return
+    changes = {"config_version": 2}
+    solo_on, solo_app = bool(raw.get("solo")), raw.get("solo_app") or ""
+    if solo_on:
+        allow = list(raw.get("pause_all_allow") or [])
+        if solo_app and solo_app not in allow:
+            allow.append(solo_app)
+        changes.update(pause_all=True, pause_all_allow=allow)
+
+    # networks.json: every remembered network's mode settings.
+    nets = read_json(NETWORKS_PATH) or {}
+    touched = False
+    for entry in nets.values():
+        st = entry.get("settings")
+        if not isinstance(st, dict) or not ({"solo", "solo_app"} & set(st)):
+            continue
+        was_on, app = bool(st.pop("solo", False)), st.pop("solo_app", "")
+        allow = list(st.get("pause_all_allow") or [])
+        if was_on and app and app not in allow:
+            allow.append(app)
+        st["pause_all"] = was_on or bool(st.get("pause_all"))
+        st["pause_all_allow"] = allow
+        touched = True
+    if touched:
+        save_json(NETWORKS_PATH, nets)
+
+    # profile.json: the live stint's applied/saved overlay.
+    stint = read_json(PROFILE_PATH)
+    if stint and any(k in (stint.get(part) or {})
+                     for part in ("applied", "saved") for k in ("solo", "solo_app")):
+        for part in ("applied", "saved"):
+            stint[part] = {k: v for k, v in (stint.get(part) or {}).items()
+                           if k not in ("solo", "solo_app")}
+        save_json(PROFILE_PATH, stint)
+
+    # paused.json: freezes solo owned become Pause All's, or are lifted if the
+    # mode is not carrying over. A freeze whose owner no longer exists would sit
+    # there until someone noticed, which is the bug this whole wave was about.
+    for name, e in read_paused().items():
+        if e["reason"] != "solo":
+            continue
+        if solo_on:
+            set_paused(name, True, "all", e["pids"])
+        else:
+            signal_pids(e["pids"], signal.SIGCONT)
+            signal_app(name, signal.SIGCONT)
+            set_paused(name, False)
+
+    update_config(_drop=("solo", "solo_app"), **changes)
+    log(f"migrated config to v2 (solo -> pause all): {changes}")
 
 
 def load_config():
@@ -384,7 +556,37 @@ def load_tether(cfg):
     ps = tether_period_start(cfg["tether_reset_day"]).isoformat()
     if t.get("period_start") != ps:
         t = {"period_start": ps, "in": 0, "out": 0, "notified_pct": 0}
+        # Persist the rollover here, not only where the counting happens. The
+        # write used to live inside the tick's "on the tether" branch, so a
+        # period that turned over while off the tether was recomputed in memory
+        # every tick and never written: on 2026-08-28 tether.json still read
+        # period_start 2026-07-04 with 24.7 GB against it.
+        save_json(TETHER_PATH, t)
     return t
+
+
+def tether_link_warning(cfg, macs, tether, on_it):
+    """Why a tether counter reading zero might be lying.
+
+    The cap is linked to a gateway MAC, and a phone that re-creates its hotspot
+    hands out a new one. When that happened the counter simply stopped counting:
+    `tether` reported 0 KB of 50 GB and "not on the tether network", which is
+    also what it says when you are sitting at home, so nothing looked wrong for
+    three weeks. Says so out loud now. Kept short because the bar shows it too,
+    and one long line in a menu sets the width of the whole menu."""
+    if on_it or not macs:
+        return ""
+    nets = read_json(NETWORKS_PATH) or {}
+    if not any(m in nets for m in macs):
+        return "linked network never seen; relink while tethered"
+    try:
+        age = (datetime.date.today()
+               - datetime.date.fromisoformat(tether["period_start"])).days
+    except (KeyError, ValueError):
+        return ""
+    if age >= 2 and tether["in"] + tether["out"] == 0:
+        return f"nothing counted in {age} days; relink while tethered"
+    return ""
 
 
 def ps_ucomm():
@@ -400,6 +602,30 @@ def ps_ucomm():
     return rows
 
 
+ERE_META = set(r".[]{}()\\*+?|^$")
+
+
+def ere_quote(s):
+    """Escape a label for pgrep's extended regex. 'networkserviceproxy (Apple
+    relay)' is a real label and its parentheses are a capture group unless
+    they are escaped, which made the pattern match nothing at all."""
+    return "".join("\\" + c if c in ERE_META else c for c in s)
+
+
+def app_pattern(label):
+    """The command-line regex for an app label.
+
+    A bare `pgrep -f Signal` matches any command line containing the word, and
+    on 2026-08-28 that meant a burst-cap freeze aimed at Signal the messenger
+    left `/Applications/WiFi Signal.app/.../WiFi Signal` stopped for four days.
+    So the label has to sit on a path boundary: preceded by a slash or the start
+    of the line, and followed by end-of-word rather than more letters. The
+    trailing half matters as much as the leading one, because `(^|/)Cursor`
+    alone still swept in Apple's CursorUIViewService, an XPC service the text
+    input system needs."""
+    return f"(^|/){ere_quote(label)}([ ./-]|$)"
+
+
 def app_pids(name):
     """Match by exact process name AND by command line, so both an app's main
     process (e.g. 'Granola') and its helpers ('Granola Helper') are caught.
@@ -411,7 +637,7 @@ def app_pids(name):
     sweep in every helper of the desktop app instead."""
     pattern = canonical(name)
     pids = set()
-    for args in (["-x", pattern], ["-f", pattern]):
+    for args in (["-x", pattern], ["-f", app_pattern(pattern)]):
         out = subprocess.run(["pgrep"] + args, capture_output=True, text=True).stdout
         pids.update(int(p) for p in out.split())
     for pat, label in FRIENDLY:
@@ -421,81 +647,678 @@ def app_pids(name):
     return sorted(pids)
 
 
-def set_paused(name, val, reason="manual"):
-    """paused.json maps app -> reason ("manual", "lowdata", "solo"). The reason is
-    what lets `solo off` unfreeze exactly what solo froze and nothing else. Older
-    files stored `true`; anything truthy still reads as paused."""
+def read_paused():
+    """paused.json normalized to {app: {"reason", "pids", "at"}}.
+
+    The pid list is new. Without it nothing could tell a still-frozen app from
+    one that was force-quit and relaunched, which is how paused.json came to
+    list Chrome, Cursor and Claude as frozen while all three were plainly
+    running. Older files stored a bare reason string, older ones still a bare
+    `true`; both still read."""
+    raw = read_json(PAUSED_PATH) or {}
+    out = {}
+    for name, v in raw.items():
+        if isinstance(v, dict):
+            out[name] = {"reason": v.get("reason", "manual"),
+                         "pids": [int(x) for x in v.get("pids", [])],
+                         "at": float(v.get("at", 0))}
+        elif v:
+            out[name] = {"reason": v if isinstance(v, str) else "manual",
+                         "pids": [], "at": 0.0}
+    return out
+
+
+def set_paused(name, val, reason="manual", pids=None):
+    """paused.json maps app -> {reason, pids, at}. The reason is what lets
+    `lowdata off` unfreeze exactly what low data froze and nothing else; the pids and
+    the timestamp are what let reconcile_paused() tell a live freeze from a
+    dead one."""
     with locked(PAUSED_PATH):
         p = read_json(PAUSED_PATH) or {}
         if val:
-            p[name] = reason
+            p[name] = {"reason": reason, "pids": sorted(pids or []),
+                       "at": round(time.time(), 3)}
         else:
             p.pop(name, None)
         save_json(PAUSED_PATH, p)
 
 
+def protected(pids):
+    """The subset of `pids` that must never be stopped, whatever asked. A last
+    line under the label matching: one wrong regex should not be able to take
+    the window server down, and app_pids has been wrong before."""
+    names = dict(ps_ucomm())
+    out = set()
+    for pid in pids:
+        ucomm = names.get(pid, "")
+        if ucomm in NEVER_FREEZE or friendly(ucomm) in NEVER_FREEZE:
+            out.add(pid)
+    return out
+
+
 def signal_pids(pids, sig):
+    """Returns the pids actually signalled, so the caller can record them."""
+    pids = list(pids)
+    if sig == signal.SIGSTOP:
+        pids = [p for p in pids if p not in protected(pids)]
+    sent = []
     for pid in pids:
         with contextlib.suppress(ProcessLookupError, PermissionError):
             os.kill(pid, sig)
-    return len(pids)
+            sent.append(pid)
+    return sent
 
 
 def signal_app(name, sig):
     return signal_pids(app_pids(name), sig)
 
 
+def parse_etime(s):
+    """`ps -o etime=` as seconds: [[dd-]hh:]mm:ss."""
+    days = 0
+    if "-" in s:
+        d, _, s = s.partition("-")
+        days = int(d)
+    parts = [int(x) for x in s.split(":")]
+    while len(parts) < 3:
+        parts.insert(0, 0)
+    return days * 86400 + parts[0] * 3600 + parts[1] * 60 + parts[2]
+
+
+def proc_info(pids):
+    """{pid: (state, started_epoch)} for the pids that still exist."""
+    pids = [p for p in pids if p > 0]
+    if not pids:
+        return {}
+    out = subprocess.run(["ps", "-o", "pid=,state=,etime=", "-p",
+                          ",".join(str(p) for p in pids)],
+                         capture_output=True, text=True).stdout
+    now = time.time()
+    info = {}
+    for line in out.splitlines():
+        f = line.split()
+        if len(f) < 3 or not f[0].isdigit():
+            continue
+        try:
+            info[int(f[0])] = (f[1], now - parse_etime(f[2]))
+        except ValueError:
+            continue
+    return info
+
+
+def mode_holds(cfg, name, reason):
+    """Is the mode that froze this app still asking for it to be frozen?
+    `cap` and `manual` are one-shot, so they never hold."""
+    if reason == "lowdata":
+        return bool(cfg["lowdata"]) and canonical(name) in {
+            canonical(a) for a in cfg.get("lowdata_apps") or []}
+    if reason == "all":
+        # Soft Pause All holds a throttle, not a freeze, so it never asks for
+        # one back. Without the hard check, reconcile would re-freeze an app the
+        # soft stage had just let up to its 5%.
+        return bool(cfg.get("pause_all")) and bool(cfg.get("pause_all_hard")) \
+            and canonical(name) not in {
+                canonical(a) for a in cfg.get("pause_all_allow") or []}
+    return False
+
+
+def stopped_procs():
+    """{pid: command line} for every process sitting in state T, in one `ps`.
+
+    The alternative is pgrep-per-app plus a ps sweep per app, which is ~120
+    subprocesses for a forty-app day. This runs once a minute in the daemon, so
+    it has to be one call."""
+    out = subprocess.run(["ps", "-Axo", "pid=,state=,command="],
+                         capture_output=True, text=True).stdout
+    procs = {}
+    for line in out.splitlines():
+        f = line.split(None, 2)
+        if len(f) < 3 or not f[0].isdigit() or not f[1].startswith("T"):
+            continue
+        procs[int(f[0])] = f[2]
+    return procs
+
+
+def sweep_orphans(cfg=None):
+    """SIGCONT anything netmeter can see stopped that no record claims.
+
+    paused.json is intent, `ps` is truth, and on 2026-08-28 they diverged badly
+    enough to strand 35 processes. A duty cycle's SIGSTOP landed a moment after
+    `resume-all` cleared the bookkeeping, so `netmeter paused` reported "Nothing
+    is paused" over 27 stopped Cursor helpers, five WebKit processes and cloudd,
+    with no way back short of `kill -CONT` by hand. reconcile_paused() could not
+    have found them either: it only walks entries that already exist. This walks
+    the other direction, from what is actually stopped back to whether anything
+    still wants it stopped.
+
+    The candidate set is deliberately narrow: apps netmeter has watched move
+    bytes today, plus the names on its own mode lists. It will not touch a
+    process netmeter has never met. It can still wake a job suspended by hand,
+    if that job happens to be an app on today's list; that is the honest cost of
+    sweeping, and a stranded editor is the more expensive mistake. Anything a
+    live record does claim (paused, throttled, mid-ramp) is left alone, which is
+    what keeps it off a duty cycle's back: a throttled app is legitimately
+    stopped for most of every period."""
+    cfg = cfg or load_config()
+    paused = read_paused()
+    busy = set(paused) | set(read_throttled()) | set(read_ramping())
+    claimed = set()
+    for e in paused.values():
+        claimed.update(e["pids"])
+    today = load(datetime.date.today().isoformat())
+    names = (set(today.get("apps") or {})
+             | set(cfg.get("lowdata_apps") or [])
+             | set(cfg.get("lowdata_throttle") or [])
+             | set(cfg.get("pause_all_allow") or []))
+    procs = {p: c for p, c in stopped_procs().items() if p not in claimed}
+    if not procs:
+        return {}
+    woken = {}
+    for name in sorted(names - busy):
+        if name in NEVER_FREEZE:
+            continue
+        pattern = canonical(name)
+        rx = re.compile(app_pattern(pattern))
+        friend = [pat for pat, label in FRIENDLY if label == pattern]
+        hits = []
+        for pid, cmd in procs.items():
+            base = os.path.basename(cmd.split(" ")[0])
+            if rx.search(cmd) or base == pattern or any(p.match(base) for p in friend):
+                hits.append(pid)
+        if hits:
+            sent = signal_pids(hits, signal.SIGCONT)
+            if sent:
+                woken[name] = sent
+                log(f"sweep: woke {len(sent)} stranded process(es) of {name}")
+    return woken
+
+
+def reconcile_paused(cfg=None):
+    """Make paused.json agree with what is actually stopped, and unstop what
+    nothing is asking to be stopped any more.
+
+    Nothing used to check. paused.json changed only on an explicit pause or
+    resume, so an app that was frozen, force-quit and relaunched stayed listed
+    as paused forever, and the helper processes stopped alongside it stayed
+    stopped forever with it: on 2026-08-28 three Chrome crashpad handlers had
+    been sitting in state T for four days, under an entry claiming Chrome was
+    frozen while Chrome was running. Four cases, in order:
+
+      no processes left        -> drop the entry, the app is gone
+      a mode still holds it    -> freeze any process that got away
+      nothing is stopped       -> drop it, something resumed the app already
+      stopped and running both -> the app came back; free the leftovers
+
+    The last case is the orphan sweep, and it is why entries carry the pids and
+    the timestamp: a process younger than the freeze cannot be one we froze."""
+    cfg = cfg or load_config()
+    lifted, refroze, dropped = [], [], []
+    for name, entry in read_paused().items():
+        known = set(entry["pids"]) | set(app_pids(name))
+        info = proc_info(known)
+        if not info:
+            set_paused(name, False)
+            dropped.append(name)
+            continue
+        stopped = {p for p, (st, _) in info.items() if st.startswith("T")}
+        running = set(info) - stopped
+        if mode_holds(cfg, name, entry["reason"]):
+            if running:
+                sent = signal_pids(running, signal.SIGSTOP)
+                if sent:
+                    refroze.append(name)
+            set_paused(name, True, entry["reason"], set(info))
+            continue
+        if not stopped:
+            set_paused(name, False)
+            dropped.append(name)
+            continue
+        if not running:
+            continue                      # a clean, intentional freeze
+        # Both states at once. A process that started after the freeze belongs
+        # to a relaunched app, so the stopped ones are leftovers of the old.
+        # A legacy entry (at == 0) cannot date anything, and every one of those
+        # seen in the wild was exactly this case, so it resolves the same way.
+        newer = [p for p in running if info[p][1] > entry["at"]]
+        if newer or not entry["at"]:
+            signal_pids(stopped, signal.SIGCONT)
+            set_paused(name, False)
+            lifted.append(name)
+        else:
+            signal_pids(running, signal.SIGSTOP)
+            set_paused(name, True, entry["reason"], set(info))
+            refroze.append(name)
+    # The backstop under everything above. Reconcile fixes entries that exist;
+    # the sweep is the only thing that can find a freeze no entry describes, and
+    # a minute is a tolerable worst case for one to sit there.
+    sweep_orphans(cfg)
+    if lifted or refroze or dropped:
+        log("reconcile: " + " ".join(filter(None, [
+            f"freed {', '.join(lifted)};" if lifted else "",
+            f"re-froze {', '.join(refroze)};" if refroze else "",
+            f"forgot {', '.join(dropped)}" if dropped else ""])))
+    return lifted, refroze, dropped
+
+
+def show_paused():
+    """What is frozen, why, and whether the freeze is real."""
+    reconcile_paused()
+    paused = read_paused()
+    if not paused:
+        print("Nothing is paused.")
+    else:
+        why = {"manual": "by hand", "lowdata": "by low data mode",
+               "cap": "by the burst cap",
+               "all": "by pause all"}
+        for name, e in sorted(paused.items()):
+            info = proc_info(set(e["pids"]) | set(app_pids(name)))
+            n = sum(1 for st, _ in info.values() if st.startswith("T"))
+            print(f"  {name}: {why.get(e['reason'], e['reason'])}, "
+                  f"{n} process(es) stopped")
+    for name, e in sorted(read_ramping().items()):
+        age = time.time() - float(e.get("started", 0))
+        end = ("freezing" if e.get("land", True)
+               else f"settling at {PAUSE_ALL_FLOOR}%")
+        print(f"  {name}: ramping down ({age:.0f}s in), {end} once it goes quiet")
+    t = read_throttled()
+    for name, v in sorted(t.items()):
+        if (v or {}).get("reason") == "ramp":
+            continue          # already named above, as the ramp it belongs to
+        held = " and held there by pause all" if (v or {}).get("reason") == "all" else ""
+        print(f"  {name}: throttled to {v.get('pct', 25)}%{held}")
+
+
 def pause(name, quiet=False, reason="manual"):
-    n = signal_app(name, signal.SIGSTOP)
-    if n:
-        set_paused(canonical(name), True, reason)
+    cfg = load_config()
+    # The ramp needs a long-lived process to step it. With no daemon there is
+    # nothing to do the stepping, so the freeze stays immediate rather than
+    # being silently dropped.
+    if cfg.get("ramp", True) and daemon_running() and app_pids(name):
+        ramp_start(name, reason)
+        if not quiet:
+            span = cfg.get("ramp_seconds") or 8.0
+            print(f"Slowing {canonical(name)} to a stop over the next "
+                  f"{span:.0f}s, once it goes quiet. "
+                  f"Undo with: netmeter resume {name}")
+        pids = []
+    else:
+        pids = signal_app(name, signal.SIGSTOP)
+        if pids:
+            set_paused(canonical(name), True, reason, pids)
+    if cfg.get("pause_all"):
+        # Pausing by hand under pause-all mode means "no, I did mean this one":
+        # take it back off the allow list so the next tick keeps it frozen.
+        allow = [a for a in cfg.get("pause_all_allow") or []
+                 if canonical(a) != canonical(name)]
+        if len(allow) != len(cfg.get("pause_all_allow") or []):
+            update_config(pause_all_allow=allow)
     if quiet:
         return
-    if n:
-        print(f"Froze {n} process(es) matching '{name}'. The app's window will be "
-              f"unresponsive until you run: netmeter resume {name}")
-    else:
+    if pids:
+        print(f"Froze {len(pids)} process(es) matching '{name}'. The app's window "
+              f"will be unresponsive until you run: netmeter resume {name}")
+    elif not read_ramping().get(canonical(name)):
         print(f"No running processes match '{name}'.")
 
 
 def resume(name):
-    n = signal_app(name, signal.SIGCONT)
+    ramping = ramp_cancel(name)
+    pids = signal_app(name, signal.SIGCONT)
     set_paused(canonical(name), False)
     # Resume means "leave this app alone", so it lifts a throttle too. Without
     # this the SIGCONT is undone by the next duty cycle a second later.
     set_throttled(canonical(name), 0)
-    if n:
-        print(f"Resumed {n} process(es) matching '{name}'.")
-        cfg = load_config()
-        if cfg["lowdata"]:
+    cfg = load_config()
+    if cfg.get("pause_all"):
+        # Same reasoning one level up: under pause-all mode the daemon re-freezes
+        # on sight, so a resume that does not add to the allow list lasts a tick.
+        # This is the selective half of "pause everything, then let a few back".
+        allow = list(cfg.get("pause_all_allow") or [])
+        if canonical(name) not in {canonical(a) for a in allow}:
+            allow.append(canonical(name))
+            cfg = update_config(pause_all_allow=allow)
+        print(f"Allowed {canonical(name)} while Pause All is on "
+              f"({len(allow)} allowed).")
+    if ramping and not pids:
+        print(f"Stopped ramping {canonical(name)} down; it stays running.")
+    if pids:
+        print(f"Resumed {len(pids)} process(es) matching '{name}'."
+              + (" It was still ramping down." if ramping else ""))
+        if cfg["lowdata"] and canonical(name) in {
+                canonical(a) for a in cfg.get("lowdata_apps") or []}:
             print("Note: low data mode is still ON, the daemon will re-freeze it. "
                   "Run: netmeter lowdata off")
-        if cfg["solo"] and canonical(name) != canonical(cfg.get("solo_app", "")):
-            print(f"Note: solo mode is still ON ({cfg['solo_app']} only), the daemon "
-                  "will re-freeze it. Run: netmeter solo off")
     else:
         print(f"No running processes match '{name}'.")
 
 
 def resume_all():
-    paused = read_json(PAUSED_PATH) or {}
+    """Let everything go: freezes, ramps, held throttles, and the modes behind
+    them.
+
+    The order is the fix. This used to signal first and clear the state files
+    afterwards, which leaves a window where the daemon is still enforcing a mode
+    it is about to be told is over, and it cleared them with a bare save_json
+    against writers that take a lock. On 2026-08-28 the two together stranded 35
+    processes: the throttle worker's SIGSTOP landed just after the SIGCONTs, its
+    set_paused() write landed inside the unlocked clear and was overwritten by
+    it, and the result was 27 stopped Cursor helpers described by an empty
+    paused.json. Now enforcement is switched off first, the signals go second,
+    and sweep_orphans() picks up whatever a duty cycle stopped in the gap."""
+    cfg = load_config()
+    if cfg.get("pause_all"):
+        # The allow list survives; see pause_all().
+        update_config(pause_all=False, pause_all_hard=False)
+    paused = read_paused()
     throttled = read_throttled()
-    for name in set(paused) | set(throttled):
+    ramping = read_ramping()
+    for path in (PAUSED_PATH, THROTTLED_PATH, RAMP_PATH):
+        with locked(path):
+            save_json(path, {})
+    for name in set(paused) | set(throttled) | set(ramping):
         signal_app(name, signal.SIGCONT)
-    save_json(PAUSED_PATH, {})
-    save_json(THROTTLED_PATH, {})
-    n = len(set(paused) | set(throttled))
-    print(f"Resumed {n} app(s)." if n else "Nothing was paused or throttled.")
+        # The pids we recorded outlive the label: an app whose process list has
+        # since changed still has our SIGSTOPs on the old ones.
+        signal_pids(paused.get(name, {}).get("pids", []), signal.SIGCONT)
+    orphans = sweep_orphans(cfg)
+    n = len(set(paused) | set(throttled) | set(ramping))
+    tail = " Pause All is off." if cfg.get("pause_all") else ""
+    if orphans:
+        tail += (f" Also woke {sum(len(v) for v in orphans.values())} stranded "
+                 f"process(es): {', '.join(sorted(orphans))}.")
+    print((f"Resumed {n} app(s).{tail}") if n else
+          (f"Nothing was paused or throttled.{tail}"))
 
 
 def resume_reason(reason):
-    """Unfreeze only the apps a given mode froze. Returns how many."""
-    paused = read_json(PAUSED_PATH) or {}
-    names = [n for n, why in paused.items() if why == reason]
+    """Let go of everything a given mode is holding: its ramps, its freezes and
+    its held throttles. Returns how many apps that was.
+
+    The throttle half arrived with Pause All's soft stage on 2026-08-28. Before
+    it, lifting a mode dropped the mode's freezes and left its throttles
+    running, which under a mode that now *ends* at a throttle would have lifted
+    nothing at all."""
+    for name, entry in read_ramping().items():
+        if entry.get("reason") == reason:
+            ramp_cancel(name)
+            signal_app(name, signal.SIGCONT)
+    held = unthrottle_reason(reason)
+    paused = read_paused()
+    names = [n for n, e in paused.items() if e["reason"] == reason]
     for name in names:
         signal_app(name, signal.SIGCONT)
+        signal_pids(paused[name]["pids"], signal.SIGCONT)
         set_paused(name, False)
-    return len(names)
+    return len(names) + held
+
+
+# --- the ramp ------------------------------------------------------------
+# A pause used to be a SIGSTOP and nothing else, which is a wall rather than a
+# stop: an app mid-request loses the request, an app mid-save can lose worse,
+# and the window is unresponsive from one instant to the next. Turning off the
+# wifi does not feel like that, because the app gets to notice. So a pause now
+# spends a few seconds on the way down: 25% of its duty cycle, then 5%, then a
+# freeze once the app has actually gone quiet. It cannot make an app stay alive
+# and offline at the same time (that needs a Network Extension, which is the
+# founding limit of this tool), but it can stop being abrupt about the landing.
+#
+# Since Pause All grew two stages the ramp has two landings. A pause still ends
+# in a freeze. Pause All's soft stage ends at PAUSE_ALL_FLOOR and stays there,
+# which is the same slope stopping one step short of the wall.
+
+
+def read_ramping():
+    return read_json(RAMP_PATH) or {}
+
+
+def ramp_start(name, reason, land=True):
+    """Begin a ramp, or leave a running one alone. The daemon does the stepping;
+    the CLI only records the intent, because a CLI process that exits in 40ms
+    cannot hold a duty cycle.
+
+    `land` is what the ramp is a ramp *to*. True ends in a freeze, which is what
+    a pause means. False ends at PAUSE_ALL_FLOOR and stays there, which is what
+    Pause All's soft stage means: the same slope, a different bottom."""
+    name = canonical(name)
+    with locked(RAMP_PATH):
+        r = read_json(RAMP_PATH) or {}
+        if name in r:
+            return False
+        r[name] = {"reason": reason, "started": round(time.time(), 3),
+                   "land": bool(land)}
+        save_json(RAMP_PATH, r)
+    set_throttled(name, 25, "ramp")
+    return True
+
+
+def ramp_cancel(name):
+    """Stop ramping an app and lift the ramp's throttle. Resuming an app that is
+    on its way down has to catch it there, or the daemon freezes it a tick later
+    and the switch you just flipped appears to do nothing."""
+    name = canonical(name)
+    with locked(RAMP_PATH):
+        r = read_json(RAMP_PATH) or {}
+        if name not in r:
+            return False
+        r.pop(name)
+        save_json(RAMP_PATH, r)
+    if (read_throttled().get(name) or {}).get("reason") == "ramp":
+        set_throttled(name, 0)
+    return True
+
+
+def ramp_done(name):
+    """Take an app off the ramp without lifting the throttle the ramp applied.
+    ramp_cancel() is the other ending: it means "never mind", so it lifts. This
+    one means "arrived", and what it arrives at is the hold."""
+    name = canonical(name)
+    with locked(RAMP_PATH):
+        r = read_json(RAMP_PATH) or {}
+        r.pop(name, None)
+        save_json(RAMP_PATH, r)
+
+
+def ramp_step(cfg, tick_bytes):
+    """Advance every ramp one tick. `tick_bytes` is per-app bytes moved in the
+    sample just read, which is how "has it gone quiet" gets answered without
+    keeping a second history."""
+    ramping = read_ramping()
+    if not ramping:
+        return []
+    now = time.time()
+    span = max(1.0, float(cfg.get("ramp_seconds") or 8.0))
+    deadline = max(span, float(cfg.get("ramp_max") or 30.0))
+    quiet_at = max(0, int(cfg.get("ramp_quiet_kb") or 50)) * KB
+    landed = []
+    for name, entry in ramping.items():
+        elapsed = now - float(entry.get("started", now))
+        reason = entry.get("reason", "manual")
+        if elapsed >= span:
+            quiet = tick_bytes.get(name, 0) <= quiet_at
+            if not (quiet or elapsed >= deadline):
+                continue          # still busy, and there is deadline left
+            if not entry.get("land", True):
+                # The soft landing: off the ramp, still throttled, and the
+                # throttle changes hands from the ramp to the mode that asked
+                # for it, so lifting the mode lifts the hold.
+                ramp_done(name)
+                set_throttled(name, PAUSE_ALL_FLOOR, reason)
+                landed.append((name, "holding"))
+                continue
+            ramp_cancel(name)
+            pids = signal_app(name, signal.SIGSTOP)
+            if pids:
+                set_paused(name, True, reason, pids)
+                landed.append((name, "froze"))
+        elif elapsed >= span / 2:
+            if (read_throttled().get(name) or {}).get("pct") != PAUSE_ALL_FLOOR:
+                set_throttled(name, PAUSE_ALL_FLOOR, "ramp")
+    return landed
+
+
+def pause_all_apply(cfg, names):
+    """Put everything in `names` under Pause All that the mode has not been told
+    to allow. Called on `pause-all` with the day's app list, and on every daemon
+    tick with the apps that just moved bytes, which is what makes the mode a
+    mode rather than a one-off sweep.
+
+    Where an app lands depends on the stage. Soft, the default, ramps it down to
+    PAUSE_ALL_FLOOR% of the duty cycle and leaves it there: slow enough to save
+    the data, alive enough that the app you are working in keeps working. Hard
+    lands the freeze, which is what the mode used to do on its own until it did
+    it to Cursor mid-session on 2026-08-28."""
+    hard = bool(cfg.get("pause_all_hard"))
+    allow = {canonical(a) for a in cfg.get("pause_all_allow") or []}
+    already = read_paused()
+    throttled = read_throttled()
+    ramping = read_ramping()
+    ramp = cfg.get("ramp", True) and daemon_running()
+    started = []
+    for name in names:
+        if name in NEVER_FREEZE or canonical(name) in allow or name in already:
+            continue
+        if canonical(name) in ramping:
+            continue
+        if not hard and (throttled.get(name) or {}).get("reason") == "all":
+            continue          # already parked at the floor
+        if ramp:
+            if app_pids(name):
+                ramp_start(name, "all", land=hard)
+                started.append(name)
+            continue
+        if hard:
+            pids = signal_app(name, signal.SIGSTOP)
+            if pids:
+                set_paused(name, True, "all", pids)
+                started.append(name)
+        elif app_pids(name):
+            # No daemon, so no duty cycle and nothing to hold the hold. The
+            # entry is written anyway, so the mode reads honestly and starts
+            # being enforced the moment a daemon comes back.
+            set_throttled(name, PAUSE_ALL_FLOOR, "all")
+            started.append(name)
+    return started
+
+
+def pause_all_hard_stop(cfg):
+    """Land the freeze on everything Pause All is holding, now.
+
+    No ramp: the hold already is the bottom of one, and spending another eight
+    seconds at 5% on the way to a stop the user has just asked for twice would
+    be the tool arguing. Anything the mode has not touched yet but has seen
+    today goes down with it, so Hard Stop means all of it."""
+    allow = {canonical(a) for a in cfg.get("pause_all_allow") or []}
+    already = read_paused()
+    names = {n for n, v in read_throttled().items()
+             if (v or {}).get("reason") in ("all", "ramp")}
+    names |= set(read_ramping())
+    names |= set(load(datetime.date.today().isoformat())["apps"])
+    frozen = []
+    for name in sorted(names):
+        if name in NEVER_FREEZE or canonical(name) in allow or name in already:
+            continue
+        ramp_cancel(name)
+        set_throttled(name, 0)
+        pids = signal_app(name, signal.SIGSTOP)
+        if pids:
+            set_paused(name, True, "all", pids)
+            frozen.append(name)
+    return frozen
+
+
+def pause_all(action):
+    """`netmeter pause-all` / `pause-all off` / bare `pause-all` for status.
+
+    This replaced solo mode on 2026-08-28. Solo picked one app and defended it;
+    this freezes the lot and lets you name exceptions afterwards, one switch at
+    a time, which is the shape of the actual question on a metered link: not
+    "which one app do I want" but "which handful can I live without". Solo was
+    the same mode with the allow list capped at one, so it became a preset of
+    this one and then stopped being worth its own machinery.
+
+    It has two stages, since 2026-08-28. On, the soft one, ramps everything down
+    to PAUSE_ALL_FLOOR% and holds it there; `hard` lands the freeze; `soft` goes
+    back to the hold; `off` lifts the lot. The mode used to have only the hard
+    stage, which meant pressing it once stopped the editor the press was made
+    from. A hold is the answer to the question people actually ask on a metered
+    link, and a freeze is the answer to a question worth pressing twice for.
+
+    There are no app exemptions. Cursor and Claude Code go down with everything
+    else; the only things spared are NEVER_FREEZE, which is the system floor,
+    and netmeter itself, because freezing what does the unfreezing leaves no way
+    back."""
+    cfg = load_config()
+    if action == "status":
+        if not cfg.get("pause_all"):
+            print("off")
+            return
+        allow = cfg.get("pause_all_allow") or []
+        stage = ("hard stopped" if cfg.get("pause_all_hard")
+                 else f"holding everything at {PAUSE_ALL_FLOOR}%")
+        print(f"Pause All is ON, {stage}. "
+              f"Allowed: {', '.join(allow) if allow else 'nothing yet'}.")
+        return
+    if action == "clear":
+        update_config(pause_all_allow=[])
+        print("Allow list cleared. The next Pause All starts from nothing.")
+        return
+    if action == "off":
+        # The allow list survives. The apps worth letting through are the ones
+        # you work in, and they are the same ones tomorrow: making you re-pick
+        # them every time would be the tool forgetting something it watched you
+        # decide. `pause-all clear` is how you throw it away on purpose.
+        update_config(pause_all=False, pause_all_hard=False)
+        n = resume_reason("all")
+        sweep_orphans()
+        allow = cfg.get("pause_all_allow") or []
+        tail = f" Still allowing {', '.join(allow)} next time." if allow else ""
+        print(f"Pause All OFF. Resumed {n} app(s).{tail}")
+        return
+    if action == "hard":
+        cfg = update_config(pause_all=True, pause_all_hard=True)
+        frozen = pause_all_hard_stop(cfg)
+        allow = cfg.get("pause_all_allow") or []
+        print(f"Hard Stop ON. Froze {len(frozen)} app(s)"
+              f"{': ' + ', '.join(frozen) if frozen else ''}."
+              + (f" Still allowing {', '.join(allow)}." if allow else "") +
+              " Their windows will be unresponsive until you run "
+              "`netmeter pause-all soft` or `netmeter resume-all`.")
+        return
+    if action == "soft":
+        if not cfg.get("pause_all"):
+            print("Pause All is off, so there is nothing to soften. "
+                  "`netmeter pause-all` turns it on.")
+            return
+        cfg = update_config(pause_all_hard=False)
+        # The apps coming off the freeze go straight back onto the hold, named
+        # explicitly rather than left to today's list: an app frozen since this
+        # morning may not have moved a byte since, and "it stopped showing up in
+        # the totals" is not a reason to let it back to full speed.
+        held = [n for n, e in read_paused().items() if e["reason"] == "all"]
+        n = resume_reason("all")
+        sweep_orphans()
+        today = load(datetime.date.today().isoformat())
+        pause_all_apply(cfg, sorted(set(held) | set(today["apps"])))
+        print(f"Hard Stop OFF. Woke {n} app(s); Pause All is still on and "
+              f"everything is back to {PAUSE_ALL_FLOOR}% of its duty cycle.")
+        return
+    cfg = update_config(pause_all=True, pause_all_hard=False)
+    today = load(datetime.date.today().isoformat())
+    started = pause_all_apply(cfg, list(today["apps"]))
+    allow = cfg.get("pause_all_allow") or []
+    live = cfg.get("ramp", True) and daemon_running()
+    verb = "Ramping down" if live else "Throttled"
+    warn = ("" if daemon_running() else
+            " The daemon is not running, so nothing is holding the throttle:"
+            " start it with `netmeter start`.")
+    print(f"Pause All ON. {verb} {len(started)} app(s)"
+          f"{': ' + ', '.join(started) if started else ''} to "
+          f"{PAUSE_ALL_FLOOR}% and holding."
+          + (f" Allowing {', '.join(allow)}." if allow else "") +
+          f" Anything else that reaches for the network gets throttled on sight."
+          f" Switch individual apps back on to allow them, "
+          f"`netmeter pause-all hard` to freeze the lot outright, or "
+          f"`netmeter resume-all` to lift the whole thing.{warn}")
 
 
 # --- throttle -----------------------------------------------------------
@@ -550,6 +1373,10 @@ def unthrottle_reason(reason):
 def burst_cap_check(bucket, cap_mb, already):
     """Freeze anything that has moved more than cap_mb inside the current minute.
 
+    This one does not ramp, deliberately. The ramp spends its first seconds at
+    25% of the duty cycle, and 25% of a fast link is tens of megabytes: a soft
+    landing for the exact transfer the cap exists to stop is no cap at all.
+
     This is the backstop the throttle cannot be. A 953 MB minute is not a session
     ramping up, it is a bulk transfer nobody asked for, and the only thing that
     reliably stops one is taking the process off the CPU. The daemon already
@@ -563,8 +1390,40 @@ def burst_cap_check(bucket, cap_mb, already):
         if name in already or name in NEVER_FREEZE or moved < limit:
             continue
         already.add(name)
-        if signal_app(name, signal.SIGSTOP):
-            set_paused(name, True, "cap")
+        pids = signal_app(name, signal.SIGSTOP)
+        if pids:
+            set_paused(name, True, "cap", pids)
+            frozen.append((name, moved))
+    return frozen
+
+
+def drain_check(cfg, drained, minute):
+    """The bleed a per-minute cap cannot see. 30 MB a minute for ten minutes
+    never trips a 50 MB/min burst cap and still costs 300 MB, which on a 50 GB
+    plan is a morning. Reads the completed minutes already in recent.jsonl
+    rather than keeping a second window: the file is capped, reading it once a
+    minute is nothing, and it survives a daemon restart, which in-memory state
+    would not.
+
+    `drained` maps app -> the minute it was frozen, so one bleed is one freeze
+    rather than one per minute. An app the user resumed deliberately is not
+    re-frozen inside the same window; the next one may catch it again."""
+    cap = (cfg.get("drain_cap_mb") or 0) * MB
+    if not cap:
+        return []
+    window = max(2, int(cfg.get("drain_window_min") or 5))
+    paused = read_paused()
+    frozen = []
+    for name, (d_in, d_out) in read_recent(window).items():
+        moved = d_in + d_out
+        if moved < cap or name in NEVER_FREEZE or name in paused:
+            continue
+        if minute - drained.get(name, -10 ** 9) < window:
+            continue
+        pids = signal_app(name, signal.SIGSTOP)
+        if pids:
+            set_paused(name, True, "cap", pids)
+            drained[name] = minute
             frozen.append((name, moved))
     return frozen
 
@@ -581,9 +1440,29 @@ def throttle_worker(stop):
     scheduled rather than done all at once.
 
     PIDs are re-read every few seconds, not every period: `pgrep` plus a `ps`
-    sweep per app is far too much work to repeat twice a second."""
+    sweep per app is far too much work to repeat twice a second.
+
+    `held` is what this thread stopped in the period it is in the middle of, and
+    it is woken at the top of every iteration before anything else happens. The
+    wake used to be implicit: the next period's schedule SIGCONTs whatever it is
+    about to re-stop, which works right up until there is no next schedule. On
+    2026-08-28 `resume-all` emptied throttled.json while 35 apps sat in the
+    stopped half of their duty cycle; this loop read the empty file, took the
+    `continue`, and left every one of them stopped with no record anywhere that
+    they were. Cursor was one of them, and nothing could have woken it:
+    unfreeze_throttled() reads the same file that had just been emptied."""
     pid_cache, cached_at = {}, 0.0
+    held = []
     while not stop.is_set():
+        if held:
+            # A pid some other path has frozen for real since we stopped it
+            # stays stopped: a duty cycle must not undo a freeze that outranks
+            # it. Everything else this loop stopped, it wakes.
+            owned = set()
+            for e in read_paused().values():
+                owned.update(e["pids"])
+            signal_pids([p for p in held if p not in owned], signal.SIGCONT)
+            held = []
         cfg = load_config()
         period = max(0.5, min(5.0, float(cfg.get("throttle_period") or 4.0)))
         throttled = read_throttled()
@@ -592,7 +1471,7 @@ def throttle_worker(stop):
             stop.wait(period)
             continue
         # An app that was deliberately paused stays paused. Throttling must not
-        # quietly undo a pause, a solo, or a low data freeze.
+        # quietly undo a pause or a low data freeze.
         paused = read_json(PAUSED_PATH) or {}
         names = [n for n in throttled if n not in paused]
         if time.time() - cached_at > 5:
@@ -615,8 +1494,9 @@ def throttle_worker(stop):
         for at in sorted(schedule):
             stop.wait(max(0.0, started + at - time.time()))
             for group in schedule[at]:
-                signal_pids(group, signal.SIGSTOP)
+                held.extend(signal_pids(group, signal.SIGSTOP))
         stop.wait(max(0.0, started + period - time.time()))
+    signal_pids(held, signal.SIGCONT)
     unfreeze_throttled()
 
 
@@ -686,45 +1566,6 @@ def throttle(app, pct=None):
               "Start it with `netmeter start`.")
 
 
-def solo_freeze(cfg, names):
-    """Freeze every app in `names` that is neither the soloed app nor protected.
-    Called on `solo on` with today's app list, and on every daemon tick with the
-    apps that just moved bytes, which is what catches an app the moment it wakes
-    up and tries to phone home."""
-    target = canonical(cfg.get("solo_app", ""))
-    already = read_json(PAUSED_PATH) or {}
-    frozen = []
-    for name in names:
-        if name == target or name in SOLO_PROTECT or name in already:
-            continue
-        if signal_app(name, signal.SIGSTOP):
-            set_paused(name, True, "solo")
-            frozen.append(name)
-    return frozen
-
-
-def solo(app):
-    """`netmeter solo APP` / `netmeter solo off` / `netmeter solo` for status."""
-    cfg = load_config()
-    if app is None:
-        if cfg["solo"]:
-            print(f"Solo mode ON: {cfg['solo_app']} only.")
-        else:
-            print("off")
-        return
-    if app == "off":
-        update_config(solo=False)
-        n = resume_reason("solo")
-        print(f"Solo mode OFF. Resumed {n} app(s).")
-        return
-    cfg = update_config(solo=True, solo_app=canonical(app))
-    today = load(datetime.date.today().isoformat())
-    frozen = solo_freeze(cfg, list(today["apps"]))
-    tail = f" Froze {len(frozen)}: {', '.join(frozen)}." if frozen else ""
-    print(f"Solo mode ON: {cfg['solo_app']} only.{tail} Anything else that reaches "
-          f"for the network gets frozen on sight. Lift it with `netmeter solo off`.")
-
-
 def status(name):
     pids = app_pids(name)
     if not pids:
@@ -741,6 +1582,91 @@ def status(name):
     print("paused" if any(s.startswith("T") for s in out.split()) else "running")
 
 
+def background_freeze(cfg=None):
+    """Stop the daemons that fetch things nobody asked for. Frozen outright
+    rather than ramped: a ramp exists so an app's in-flight work can finish, and
+    the in-flight work here is the download being stopped. Returns what it froze
+    this call, so the daemon can be quiet about the ones already down."""
+    cfg = cfg or load_config()
+    if not cfg.get("lowdata_background", True):
+        return []
+    already = read_paused()
+    frozen = []
+    for name in sorted(BACKGROUND_DOWNLOADS):
+        if name in already:
+            continue
+        pids = signal_app(name, signal.SIGSTOP)
+        if pids:
+            set_paused(name, True, "lowdata", pids)
+            frozen.append(name)
+    return frozen
+
+
+def background_lift():
+    for name in BACKGROUND_DOWNLOADS:
+        signal_app(name, signal.SIGCONT)
+        set_paused(name, False)
+
+
+# The auto-update preferences worth flipping, as (domain, key, value-while-low).
+# Only user-domain keys, because those are the ones that take effect without
+# sudo: the system's own update schedule lives in a root-owned plist, so
+# `lowdata on` names the command for it rather than pretending it can.
+UPDATE_PREFS = [
+    ("com.apple.commerce", "AutoUpdate", "false"),
+    ("com.apple.commerce", "AutoUpdateRestartRequired", "false"),
+    ("com.google.Keystone.Agent", "checkInterval", "0"),
+]
+
+
+def _defaults_read(domain, key):
+    out = subprocess.run(["defaults", "read", domain, key],
+                         capture_output=True, text=True)
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def update_prefs_apply(cfg):
+    """Turn the auto-updaters off politely, remembering what they were.
+
+    Freezing an updater stops this download; telling it not to check stops the
+    next one, and stops the catch-up burst the moment low data comes off. Both,
+    because neither is enough alone."""
+    if not cfg.get("update_prefs", True):
+        return []
+    saved, changed = {}, []
+    for domain, key, value in UPDATE_PREFS:
+        prev = _defaults_read(domain, key)
+        saved[f"{domain}/{key}"] = prev
+        kind = "-int" if value.isdigit() else "-bool"
+        r = subprocess.run(["defaults", "write", domain, key, kind, value],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            changed.append(f"{domain} {key}")
+    save_json(UPDATE_PREFS_PATH, saved)
+    return changed
+
+
+def update_prefs_restore():
+    """Put back exactly what was there, including "there was nothing here"."""
+    saved = read_json(UPDATE_PREFS_PATH)
+    if not saved:
+        return 0
+    n = 0
+    for domain, key, _ in UPDATE_PREFS:
+        prev = saved.get(f"{domain}/{key}")
+        if prev is None:
+            subprocess.run(["defaults", "delete", domain, key],
+                           capture_output=True, text=True)
+        else:
+            kind = "-int" if prev.lstrip("-").isdigit() else "-string"
+            subprocess.run(["defaults", "write", domain, key, kind, prev],
+                           capture_output=True, text=True)
+        n += 1
+    with contextlib.suppress(OSError):
+        os.remove(UPDATE_PREFS_PATH)
+    return n
+
+
 def lowdata_apply(cfg):
     """The acting half of `lowdata on`: freeze the freeze list, throttle the
     throttle list. Split out so a network profile switching the mode on behaves
@@ -750,6 +1676,8 @@ def lowdata_apply(cfg):
     pct = max(1, min(95, int(cfg.get("throttle_pct") or 25)))
     for app in cfg.get("lowdata_throttle") or []:
         set_throttled(canonical(app), pct, "lowdata")
+    background_freeze(cfg)
+    update_prefs_apply(cfg)
     return pct
 
 
@@ -758,6 +1686,8 @@ def lowdata_lift(cfg):
     for app in cfg["lowdata_apps"]:
         signal_app(app, signal.SIGCONT)
         set_paused(canonical(app), False)
+    background_lift()
+    update_prefs_restore()
     return unthrottle_reason("lowdata")
 
 
@@ -769,13 +1699,23 @@ def lowdata(action):
         frozen = f" Frozen: {', '.join(cfg['lowdata_apps'])}." if cfg["lowdata_apps"] else ""
         slowed = (f" Throttled to {pct}%: {', '.join(cfg['lowdata_throttle'])}."
                   if cfg.get("lowdata_throttle") else "")
-        print(f"Low data mode ON.{frozen}{slowed} You'll get a notification every "
-              f"{cfg['notify_every_mb']} MB of session data.")
+        bg = (" Background downloads stopped (updates, App Store, iCloud, assets)."
+              if cfg.get("lowdata_background", True) else "")
+        prefs = (" Auto-update checks off." if cfg.get("update_prefs", True) else "")
+        print(f"Low data mode ON.{frozen}{slowed}{bg}{prefs} You'll get a "
+              f"notification every {cfg['notify_every_mb']} MB of session data.")
+        if cfg.get("update_prefs", True):
+            # The system's own update schedule lives in a root-owned plist, so
+            # this is the one piece that cannot be done from here. Say so rather
+            # than leaving the impression it was handled.
+            print("  macOS system updates need root to pause: "
+                  "sudo softwareupdate --schedule off")
     elif action == "off":
         cfg = update_config(lowdata=False)
         n = lowdata_lift(cfg)
         tail = f" {n} throttle(s) lifted." if n else ""
-        print(f"Low data mode OFF. Apps unfrozen.{tail}")
+        print(f"Low data mode OFF. Apps unfrozen, background downloads and "
+              f"auto-update checks restored.{tail}")
     else:
         print("on" if cfg["lowdata"] else "off")
 
@@ -797,20 +1737,20 @@ def lowdata(action):
 PROFILE_KEYS = ("lowdata", "lowdata_apps", "lowdata_throttle",
                 "throttle_pct", "burst_cap_mb")
 
-# What network memory remembers: the profile family plus solo. A profile is a
-# deliberate pin; memory is "how were the modes the last time I was here", and
-# solo is as much a part of that answer as low data.
-MEMORY_KEYS = PROFILE_KEYS + ("solo", "solo_app")
+# What network memory remembers: the profile family plus Pause All. A profile is
+# a deliberate pin; memory is "how were the modes the last time I was here", and
+# whether everything was blocked here is as much a part of that answer as low data.
+MEMORY_KEYS = PROFILE_KEYS + ("pause_all", "pause_all_allow")
 
 
-def solo_sync(cfg, overlay):
-    """Lift solo's freezes when an overlay turns the mode off or points it at
-    a different app. The daemon's next tick re-freezes under the new rules."""
-    if not cfg["solo"]:
+def pause_all_sync(cfg, overlay):
+    """Lift Pause All's freezes when an overlay turns the mode off or changes
+    which apps it allows. The daemon's next tick re-freezes under the new rules."""
+    if not cfg.get("pause_all"):
         return
-    if not overlay.get("solo", True) or \
-            overlay.get("solo_app", cfg["solo_app"]) != cfg["solo_app"]:
-        resume_reason("solo")
+    if not overlay.get("pause_all", True) or \
+            overlay.get("pause_all_allow", cfg["pause_all_allow"]) != cfg["pause_all_allow"]:
+        resume_reason("all")
 
 
 def profile_apply(mac, prof):
@@ -832,12 +1772,14 @@ def profile_apply(mac, prof):
         return False
     if cfg["lowdata"]:
         lowdata_lift(cfg)   # clean slate: the profile may freeze a different list
-    solo_sync(cfg, overlay)
+    pause_all_sync(cfg, overlay)
     cfg = update_config(**overlay)
     if cfg["lowdata"]:
         lowdata_apply(cfg)
     kind = "settings remembered" if prof.get("auto") else "network profile applied"
-    tail = f", solo {cfg['solo_app']}" if cfg["solo"] else ""
+    allowed = cfg.get("pause_all_allow") or []
+    tail = (f", pause all on ({len(allowed)} allowed)"
+            if cfg.get("pause_all") else "")
     notify(f"On {prof.get('name') or mac}: {kind}, "
            f"low data {'on' if cfg['lowdata'] else 'off'}{tail}")
     return True
@@ -850,7 +1792,7 @@ def profile_restore(stint):
     back = {k: v for k, v in saved.items() if cfg.get(k) == applied.get(k)}
     if cfg["lowdata"]:
         lowdata_lift(cfg)   # lift with the profile-era lists before they change back
-    solo_sync(cfg, back)
+    pause_all_sync(cfg, back)
     if back:
         cfg = update_config(**back)
     if cfg["lowdata"]:
@@ -919,7 +1861,7 @@ def profile_check(cfg, gw_mac, gw_ip=None):
     mem = entry.get("settings") or {}
     if prof and mem:
         # The profile pins what it pins; memory answers for the rest. Without
-        # the merge, a solo mode left on at the previous network sails straight
+        # the merge, a Pause All left on at the previous network sails straight
         # through a profiled join, because the profile only speaks lowdata.
         merged = dict(mem)
         merged.update(prof.get("settings") or {})
@@ -965,8 +1907,10 @@ def profile_summary(s):
                      f"to {s.get('throttle_pct', 25)}%")
     if s.get("burst_cap_mb"):
         parts.append(f"burst cap {s['burst_cap_mb']} MB/min")
-    if s.get("solo"):
-        parts.append(f"solo {s.get('solo_app') or '?'}")
+    if s.get("pause_all"):
+        allowed = s.get("pause_all_allow") or []
+        parts.append("pause all on, allowing "
+                     + (", ".join(allowed) if allowed else "nothing"))
     return ", ".join(parts)
 
 
@@ -1068,12 +2012,17 @@ def run_daemon(interval, ticks=None):
     counters are NOT monotonic — they drop when sockets close — so computing our
     own deltas double-counted traffic.)"""
     state = {"date": None, "data": None, "notified_mb": None,
-             "bucket_min": None, "bucket": {}, "capped": set(), "appends": 0}
+             "bucket_min": None, "bucket": {}, "capped": set(), "appends": 0,
+             "drained": {}}
     blocks_done = 0
     throttle_stop = start_throttle_worker()
+    # A daemon that just came up inherits whatever the last one left frozen.
+    # Some of it will be stale, and one pass of the reconciler is what turns a
+    # crashed run's leftovers back into running processes.
+    with contextlib.suppress(Exception):
+        reconcile_paused()
 
-    def handle_block(rows):
-        nonlocal blocks_done
+    def tick(rows):
         today = datetime.date.today().isoformat()
         if today != state["date"]:
             state["date"] = today
@@ -1084,6 +2033,7 @@ def run_daemon(interval, ticks=None):
         now_ts = time.time()
         tick_in = tick_out = 0
         active = set()
+        tick_bytes = {}
         for line in rows:
             row = parse_row(line)
             if row is None:
@@ -1102,6 +2052,7 @@ def run_daemon(interval, ticks=None):
                 tick_in += d_in
                 tick_out += d_out
                 active.add(label)
+                tick_bytes[label] = tick_bytes.get(label, 0) + d_in + d_out
                 b = state["bucket"].setdefault(label, [0, 0])
                 b[0] += d_in
                 b[1] += d_out
@@ -1116,6 +2067,16 @@ def run_daemon(interval, ticks=None):
             state["bucket_min"], state["bucket"] = minute, {}
             state["capped"] = set()
             state["appends"] += 1
+            # Once a minute is often enough to catch a relaunched app and cheap
+            # enough not to matter: one ps per frozen app, and the list is short.
+            cfg_now = load_config()
+            reconcile_paused(cfg_now)
+            if cfg_now["lowdata"] or state.get("tether_on"):
+                win = max(2, int(cfg_now.get("drain_window_min") or 5))
+                for name, moved in drain_check(cfg_now, state["drained"], minute):
+                    notify(f"Froze {name}: {fmt(moved)} over {win} min "
+                           f"(drain cap {cfg_now['drain_cap_mb']} MB). "
+                           f"Resume with: netmeter resume {name}")
             if state["appends"] % 60 == 0:
                 prune_recent()
         data["updated"] = datetime.datetime.now().isoformat(timespec="seconds")
@@ -1135,6 +2096,7 @@ def run_daemon(interval, ticks=None):
         gw_ip, gw_mac = gateway_mac(iface)
         macs = cfg.get("tether_gateway_macs") or []
         tether_on = gw_mac is not None and gw_mac in macs
+        state["tether_on"] = tether_on
         wb = wifi_bytes(iface)
         prev = state.get("wifi_prev")
         state["wifi_prev"] = wb
@@ -1162,7 +2124,7 @@ def run_daemon(interval, ticks=None):
             if profile_check(cfg, gw_mac, gw_ip):
                 cfg = load_config()   # the profile just rewrote config
         except Exception as e:
-            print(f"netmeter: profile check failed: {e}")
+            log(f"profile check failed: {e}", exc=True)
 
         save_json(NOW_PATH, {
             "ts": now_ts,
@@ -1176,23 +2138,40 @@ def run_daemon(interval, ticks=None):
             "tether_cap_gb": cfg.get("tether_cap_gb", 0),
             "tether_on": tether_on,
             "tether_setup": bool(macs),
+            "tether_warn": tether_link_warning(cfg, macs, tether, tether_on),
             # The bar's "always Low Data here" row needs to know which network
             # it is standing on; the profile lookup itself stays in config.json.
             "net_mac": gw_mac or "",
             "tether_resets": tether_next_reset(
                 datetime.date.fromisoformat(tether["period_start"])).isoformat(),
         })
-        if cfg["solo"]:
-            for name in solo_freeze(cfg, active):
-                notify(f"Solo mode froze {name} ({cfg['solo_app']} only)")
+        # Ramps first: an app that has reached the bottom of one gets frozen
+        # this tick, before pause-all looks at what is still running.
+        for name, landing in ramp_step(cfg, tick_bytes):
+            log(f"ramp finished: {landing} {name}")
+        if cfg.get("pause_all"):
+            started = pause_all_apply(cfg, active)
+            if started:
+                notify(f"Pause All is {'stopping' if cfg.get('pause_all_hard') else 'slowing'}"
+                       f" {', '.join(started)}")
+        # The burst cap is armed by the situation, not by the mode: a surprise
+        # 100 MB costs the same whether or not Low Data happens to be on, and on
+        # a metered network it is the only thing standing between a background
+        # update and the bill. (Design item 4, 2026-08-24.)
+        cap = cfg.get("burst_cap_mb") or 0
+        if cap and (cfg["lowdata"] or tether_on):
+            via = "low data" if cfg["lowdata"] else (cfg.get("tether_name")
+                                                     or "metered network")
+            for name, moved in burst_cap_check(state["bucket"], cap, state["capped"]):
+                notify(f"Froze {name}: {fmt(moved)} in under a minute "
+                       f"(cap {cap} MB, armed by {via}). "
+                       f"Resume with: netmeter resume {name}")
         if cfg["lowdata"]:
             for app in cfg["lowdata_apps"]:
                 signal_app(app, signal.SIGSTOP)
-            cap = cfg.get("burst_cap_mb") or 0
-            if cap:
-                for name, moved in burst_cap_check(state["bucket"], cap, state["capped"]):
-                    notify(f"Froze {name}: {fmt(moved)} in under a minute "
-                           f"(cap {cap} MB). Resume with: netmeter resume {name}")
+            # An updater that wakes up mid-stint has to go straight back down.
+            for name in background_freeze(cfg):
+                log(f"low data: stopped background downloader {name}")
             step = cfg.get("notify_every_mb") or 0
             if step:
                 total_mb = (s_in + s_out) / MB
@@ -1203,6 +2182,18 @@ def run_daemon(interval, ticks=None):
                     notify(f"Session has used {total_mb:.0f} MB")
         else:
             state["notified_mb"] = None
+
+    def handle_block(rows):
+        """One bad tick must not be a dead daemon. It used to be: anything
+        raising in here escaped the read loop, unwound past the respawn, and
+        left launchd to restart the process every few seconds with the reason
+        going nowhere anyone would look. The count advances either way, so a
+        bounded run still terminates."""
+        nonlocal blocks_done
+        try:
+            tick(rows)
+        except Exception:
+            log("tick failed", exc=True)
         blocks_done += 1
 
     try:
@@ -1235,6 +2226,7 @@ def run_daemon(interval, ticks=None):
                 proc.kill()
                 proc.wait()
             if ticks is None:
+                log(f"nettop exited (rc {proc.returncode}); respawning")
                 time.sleep(interval)  # nettop died; breathe before respawning
     finally:
         throttle_stop.set()
@@ -1343,8 +2335,8 @@ def main():
                               "`networks rm NAME|MAC` forgets one, on|off toggles remembering")
     nwp.add_argument("action", nargs="?", choices=["list", "rm", "on", "off"])
     nwp.add_argument("name", nargs="?")
-    slp = sub.add_parser("solo", help="only APP may use the network; `solo off` lifts it")
-    slp.add_argument("app", nargs="?", help="app name or alias, or `off`")
+    slp = sub.add_parser("solo", help=argparse.SUPPRESS)   # retired 2026-08-28
+    slp.add_argument("app", nargs="?")
     dp = sub.add_parser("display", help="menu bar display options")
     dp.add_argument("--combine", choices=["on", "off"],
                     help="show one combined rate instead of separate down and up")
@@ -1354,11 +2346,22 @@ def main():
                     help="minutes covered by the recent-usage table")
     dp.add_argument("--recent-open", choices=["on", "off"], dest="recent_open",
                     help="expand or collapse the recent-usage table")
+    dp.add_argument("--apps-view", choices=["min", "some", "all"], dest="apps_view",
+                    help="how much of the per-app list to show: 3, 6, or everything")
     dp.add_argument("--apps-open", choices=["on", "off"], dest="apps_open",
-                    help="show the per-app list past the top 8")
+                    help=argparse.SUPPRESS)   # the old two-state key
     rcp = sub.add_parser("recent", help="per-app usage over a recent window")
     rcp.add_argument("minutes", nargs="?", type=int, default=60)
-    sub.add_parser("resume-all", help="unfreeze every paused app")
+    sub.add_parser("resume-all", help="unfreeze every paused app and lift Pause All")
+    pap = sub.add_parser("pause-all",
+                         help="slow every app that is not protected to a trickle, "
+                              "then switch back on the ones you need; "
+                              "`pause-all hard` freezes them, `off` lifts it")
+    pap.add_argument("action", nargs="?", default="on",
+                     choices=["on", "hard", "soft", "off", "status", "clear"])
+    sub.add_parser("paused", help="what is frozen or throttled, and why")
+    lgp = sub.add_parser("log", help="netmeter's own error log")
+    lgp.add_argument("-n", type=int, default=40, help="lines to show (default 40)")
     tp = sub.add_parser("tether", help="metered-network status; pass GB to seed the period")
     tp.add_argument("used_gb", nargs="?", type=float)
     tcp = sub.add_parser("tether-config", help="set the metered network's name, cap, reset day")
@@ -1374,6 +2377,7 @@ def main():
     sub.add_parser("tether-forget", help="unlink all metered networks")
     sub.add_parser("reset", help="zero out today's counters and the session")
     args = p.parse_args()
+    migrate_state()
 
     if args.cmd == "start":
         try:
@@ -1401,7 +2405,13 @@ def main():
     elif args.cmd == "networks":
         networks_cmd(args.action, args.name)
     elif args.cmd == "solo":
-        solo(args.app)
+        # Retired into Pause All, which is the same idea without the cap of one.
+        app = args.app if args.app and args.app != "off" else "APP"
+        print("`solo` retired 2026-08-28. Pause All is the same thing with room "
+              "for more than one app:\n"
+              "  netmeter pause-all\n"
+              f"  netmeter resume {app}      (once per app you want through)\n"
+              "  netmeter resume-all        (lift it)")
     elif args.cmd == "display":
         changes = {}
         if args.combine is not None:
@@ -1414,8 +2424,10 @@ def main():
             changes["recent_window"] = max(1, min(720, args.recent_window))
         if args.recent_open is not None:
             changes["recent_open"] = args.recent_open == "on"
+        if args.apps_view is not None:
+            changes["apps_view"] = args.apps_view
         if args.apps_open is not None:
-            changes["apps_open"] = args.apps_open == "on"
+            changes["apps_view"] = "all" if args.apps_open == "on" else "some"
         cfg = update_config(**changes) if changes else load_config()
         shown = []
         if cfg["show_rate"]:
@@ -1429,6 +2441,12 @@ def main():
         show_recent(args.minutes)
     elif args.cmd == "resume-all":
         resume_all()
+    elif args.cmd == "pause-all":
+        pause_all(args.action)
+    elif args.cmd == "paused":
+        show_paused()
+    elif args.cmd == "log":
+        show_log(args.n)
     elif args.cmd == "tether-config":
         changes = {}
         if args.name is not None:
@@ -1477,9 +2495,15 @@ def main():
             state_txt = "connected, counting"
         else:
             state_txt = "not on the tether network"
+        warn = tether_link_warning(cfg, macs, t, gw in macs)
         pct = f" ({100 * used / (cap_gb * GB):.0f}%)" if cap_gb else ""
         print(f"{cfg.get('tether_name')}: {fmt(used)} of {cap_gb} GB{pct} · "
               f"resets {nr.isoformat()} ({days} days) · {state_txt}")
+        if warn:
+            print(f"  warning: {warn}")
+            print("  A phone hands out a new gateway MAC when its hotspot is "
+                  "re-created, and the cap counts nothing until the new one is "
+                  "linked. Run `netmeter tether-here` while on it.")
     elif args.cmd == "tether-here":
         cfg = load_config()
         ip, gw = gateway_mac(cfg.get("wifi_if", "en0"))
@@ -1506,4 +2530,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(130)
+    except Exception as e:
+        # The three tracebacks that sat unread in bar.log were CLI runs the bar
+        # had launched. Whatever launched this one, the reason lands somewhere
+        # readable now.
+        log(f"command failed: {' '.join(sys.argv[1:]) or '(default)'}", exc=True)
+        print(f"netmeter: {e}\nSee: netmeter log", file=sys.stderr)
+        sys.exit(1)

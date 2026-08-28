@@ -5,6 +5,11 @@ set -e
 cd "$(dirname "$0")"
 UID_NUM=$(id -u)
 
+# Nothing gets installed over a working copy that does not compile and pass.
+if [ -x ./bin/check ] && [ -z "$SKIP_CHECK" ]; then
+  ./bin/check
+fi
+
 mkdir -p "$HOME/bin" "$HOME/.netmeter/src" "$HOME/Library/LaunchAgents"
 
 cp netmeter "$HOME/bin/netmeter"

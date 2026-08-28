@@ -1,0 +1,11 @@
+#!/bin/bash
+# Everything that must pass before ./install.sh. No network, no side effects:
+# the test harness runs against a temp HOME and never signals a real process.
+set -e
+cd "$(dirname "$0")/.."
+echo "== py_compile"
+python3 -m py_compile netmeter
+echo "== swiftc -typecheck"
+swiftc -typecheck netmeter-bar.swift
+echo "== tests"
+python3 tests/test_pause.py

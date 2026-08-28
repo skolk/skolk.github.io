@@ -10,6 +10,24 @@ func readJSON(_ path: String) -> [String: Any]? {
     return (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any]
 }
 
+// Both halves report into one file. launchd already captures the bar's stderr
+// into bar.log, but what goes wrong here is usually a CLI call the bar made,
+// and reading that story across two files in two formats is how three
+// tracebacks sat unnoticed in bar.log for a week.
+func barLog(_ msg: String) {
+    let stamp = ISO8601DateFormatter().string(from: Date())
+    let line = "\(stamp) [bar] \(msg)\n"
+    let path = home + "/.netmeter/netmeter.log"
+    guard let data = line.data(using: .utf8) else { return }
+    if let fh = FileHandle(forWritingAtPath: path) {
+        fh.seekToEndOfFile()
+        fh.write(data)
+        fh.closeFile()
+    } else {
+        try? data.write(to: URL(fileURLWithPath: path))
+    }
+}
+
 func loadApps(_ path: String) -> [String: (Double, Double)] {
     guard let data = readJSON(path), let apps = data["apps"] as? [String: Any] else { return [:] }
     var out: [String: (Double, Double)] = [:]
@@ -362,7 +380,14 @@ class ChartView: NSView {
 
 // A row you can click without the menu closing. A normal NSMenuItem action
 // dismisses the menu, and NSMenu.popUp does not open from inside a menu that is
-// already tracking, so the solo picker is built from these instead.
+// already tracking, so a row that has to stay put is built from these.
+// A row's switch is built before the closure that restates the row, and the
+// switch needs to call it. One small box, rather than reordering a view that
+// reads top to bottom the way the row is drawn.
+final class StateBox {
+    var set: ((String) -> Void)?
+}
+
 class PickRow: NSControl {
     var onClick: (() -> Void)?
     var hot = false { didSet { needsDisplay = true } }
@@ -383,7 +408,15 @@ class PickRow: NSControl {
     }
     override func mouseEntered(with event: NSEvent) { hot = true }
     override func mouseExited(with event: NSEvent) { hot = false }
-    override func mouseDown(with event: NSEvent) { onClick?() }
+    // A row with two jobs (step the fold, or jump to an extreme) needs to know
+    // which half was hit. Two nested controls would each want their own
+    // tracking area inside a tracking menu, which is the mutation NSMenu does
+    // not tolerate; one row and an x coordinate does not.
+    override func mouseDown(with event: NSEvent) {
+        if let at = onClickAt { at(convert(event.locationInWindow, from: nil).x) }
+        else { onClick?() }
+    }
+    var onClickAt: ((CGFloat) -> Void)?
 }
 
 // Proportional bar. The share of the window is the thing worth seeing at a
@@ -404,19 +437,27 @@ class BarView: NSView {
     }
 }
 
-// Apps that get no on/off switch. System daemons because freezing mDNSResponder
-// breaks DNS; Claude Code because those processes are the running work sessions.
-// Solo mode keeps its own, shorter exemption list on the daemon side, so soloing
-// Chrome does freeze the Claude app when it reaches for an update.
+// Apps that get no on/off switch: system daemons, because freezing mDNSResponder
+// breaks DNS rather than saving data. Claude Code used to be on this list, on
+// the grounds that those processes are running work sessions. It came off on
+// 2026-08-28 with solo mode: Pause All means everything, and an exception you
+// cannot switch off is not one you chose.
+//
+// The background downloaders came off the same day for the opposite reason:
+// softwareupdated, nsurlsessiond, cloudd, bird and the App Store agents are
+// what pulls a six-gigabyte update over a hotspot, so Low Data stops them and
+// they need a switch to let one back through.
+// Mirrors PAUSE_ALL_FLOOR in the engine. Display only: the engine owns the
+// number, this is the menu saying it out loud.
+let PAUSE_ALL_FLOOR = 5
+
 let PAUSE_DENY: Set<String> = [
-    "Claude Code", "mDNSResponder", "syspolicyd", "apsd", "cloudd",
-    "nsurlsessiond", "trustd", "remindd", "gamed", "storekitagent",
-    "appstoreagent", "amsengagementd", "managedappdistr", "mstreamd",
+    "mDNSResponder", "syspolicyd", "apsd", "trustd", "remindd", "gamed",
     "AddressBookSour", "com.apple.geod", "WeatherWidget", "CategoriesServi",
-    "netbiosd", "networkserviceproxy (Apple relay)", "AssetCacheLocat",
+    "netbiosd", "networkserviceproxy (Apple relay)",
     "curl", "git-remote-http", "gh", "com.apple.Safar", "Safari (WebKit)",
-    "locationd", "bird", "identityservice", "softwareupdated", "timed",
-    "parsec-fbf", "familycircled", "rapportd", "sharingd", "searchpartyd"
+    "locationd", "identityservice", "timed",
+    "familycircled", "rapportd", "sharingd", "searchpartyd"
 ]
 
 // Preferences: the Bandwidth+-style pane. Everything it writes goes to
@@ -669,9 +710,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // is safe while a menu is tracking; adding or removing items is not, so the
     // two status lines are always present and toggle their isHidden instead.
     var lowButton: ModeButton?
-    var soloButton: ModeButton?
     var lowStatus: NSMenuItem?
-    var soloStatus: NSMenuItem?
     // The "always Low Data on this network" row. netProfile is the name the
     // current gateway MAC is pinned under, or "" when it is not pinned.
     var netLine: NSMenuItem?
@@ -687,16 +726,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var recentNames: [NSTextField] = []
     var recentValues: [NSTextField] = []
     var recentBars: [BarView] = []
-    // Per-app rows past the top 8. Built into the menu but hidden, so the
+    // Per-app rows past the fold. Built into the menu but hidden, so the
     // "more" row can show them in place: fixed items toggling isHidden is the
-    // one mutation a tracking menu tolerates.
-    var appsOpen = false
-    var appExtraItems: [NSMenuItem] = []
+    // one mutation a tracking menu tolerates. Three depths rather than two,
+    // because "everything" is a lot of rows and "the top handful" is usually
+    // the question: min shows 3, some 6, all 20.
+    var appsView = "some"
+    var appRowItems: [NSMenuItem] = []      // every built row, in order
+    var appRowFrozen: [Bool] = []           // a frozen row is never hidden
+    var appRowSetters: [(String) -> Void] = []  // restate a row without rebuilding
+    var appRowPausable: [Bool] = []
+    var appRowNames: [String] = []
+    var menuOpen = false
+    var pauseAllButton: ModeButton?
+    // Three states across one button: off, holding, hard stopped. isOn alone
+    // cannot carry three, and the label changes meaning between them, so the
+    // delegate keeps the pair and the button is told what to draw.
+    var pauseAllOn = false
+    var pauseAllHard = false
     var appsMoreLabel: NSTextField?
-    var soloCandidates: [String] = []
-    var soloPickOpen = false
-    var soloPickItems: [NSMenuItem] = []
-    var soloPickLabels: [NSTextField] = []
+    var appsZoomLabel: NSTextField?
     var recentEmpty: NSMenuItem?
     var recentChartItem: NSMenuItem?
     var recentChart: ChartView?
@@ -724,6 +773,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func update() {
+        // A ramp lands while the menu is sitting open, so the rows have to
+        // follow it there: two small file reads on the same 2s beat the readout
+        // already runs on, and only while there is a menu to see them in.
+        if menuOpen { syncRowsFromPaused() }
         let wantRate = showRate(), wantTotal = showTotal()
         // With both readouts off the item is one glyph wide, so a stale daemon
         // has to say so inside that glyph: "⇅ …" rather than a bare arrow, which
@@ -756,13 +809,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.title = title
     }
 
+    func menuWillOpen(_ menu: NSMenu) { menuOpen = true }
+    func menuDidClose(_ menu: NSMenu) { menuOpen = false }
+
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         let cfg = config()
         let now = readJSON(home + "/.netmeter/now.json")
         let paused = readJSON(home + "/.netmeter/paused.json") ?? [:]
+        let ramping = readJSON(home + "/.netmeter/ramping.json") ?? [:]
+        // Pause All's soft stage parks apps in throttled.json rather than
+        // paused.json, so a row that reads only the freezes would show an app
+        // held at 5% as running normally.
+        let throttled = readJSON(home + "/.netmeter/throttled.json") ?? [:]
 
-        // Per-app rows first: the solo picker needs the same list the rows use.
         // Both sides get totalled either way, because the header shows both.
         let dayFile = readJSON(home + "/.netmeter/\(dayString(0)).json")
         let todayApps = loadApps(home + "/.netmeter/\(dayString(0)).json")
@@ -775,22 +835,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         // Modes, at the top, as buttons.
         let lowOn = (cfg["lowdata"] as? Bool) ?? false
-        let soloOn = (cfg["solo"] as? Bool) ?? false
-        let soloApp = (cfg["solo_app"] as? String) ?? ""
-        soloCandidates = rows.prefix(14).map { $0.0 }.filter { !PAUSE_DENY.contains($0) }
-        if !soloApp.isEmpty && !soloCandidates.contains(soloApp) {
-            soloCandidates.insert(soloApp, at: 0)
-        }
-        menu.addItem(modesRow(lowOn: lowOn, soloOn: soloOn, soloApp: soloApp))
-        let soloLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-        soloLine.isEnabled = false
-        menu.addItem(soloLine)
-        soloStatus = soloLine
+        menu.addItem(modesRow(lowOn: lowOn))
         let lowLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         lowLine.isEnabled = false
         menu.addItem(lowLine)
         lowStatus = lowLine
-        addSoloPicker(menu)
         let netItem = NSMenuItem(title: "", action: #selector(pinToggle), keyEquivalent: "")
         netItem.target = self
         menu.addItem(netItem)
@@ -809,11 +858,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let cap = (now?["tether_cap_gb"] as? NSNumber)?.doubleValue ?? 0
                 let resets = (now?["tether_resets"] as? String) ?? ""
                 let on = (now?["tether_on"] as? Bool) ?? false
-                addDisabled(menu, String(format: "\u{2441} %@: %.1f of %.0f GB \u{00B7} resets %@%@",
-                                         tname, used / GB, cap, resets,
-                                         on ? " \u{00B7} connected" : ""))
+                addDisabledWrapped(menu, glyph: "\u{2441}",
+                                   String(format: "%@: %.1f of %.0f GB \u{00B7} resets %@%@",
+                                          tname, used / GB, cap, resets,
+                                          on ? " \u{00B7} connected" : ""))
+                // A counter reading zero looks the same whether you have been
+                // careful or the link is dead. The daemon works out which.
+                if let warn = now?["tether_warn"] as? String, !warn.isEmpty {
+                    addDisabledWrapped(menu, glyph: "\u{26A0}", warn,
+                                       color: .systemOrange)
+                }
             } else {
-                addDisabled(menu, "\u{2441} \(tname): not linked \u{00B7} run `netmeter tether-here` while tethered")
+                addDisabledWrapped(menu, glyph: "\u{2441}",
+                                   "\(tname): not linked \u{00B7} run "
+                                   + "`netmeter tether-here` while tethered")
             }
         }
         menu.addItem(.separator())
@@ -825,38 +883,61 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                today: (todayTotal, todayAge), since: clock))
 
         // Per-app rows with an inline on/off switch (on = running, off = frozen).
-        // Top 8 always; the next dozen build hidden behind a "more" row.
-        appsOpen = (cfg["apps_open"] as? Bool) ?? false
-        appExtraItems = []
+        // All twenty are built; how many show is the fold's business.
+        appsView = appsViewFrom(cfg)
+        appRowItems = []
+        appRowFrozen = []
         var listed = Set<String>()
         let minBytes: Double = showSession ? 100 * KB : MB
-        for (i, r) in rows.filter({ $0.1 + $0.2 >= minBytes }).prefix(20).enumerated() {
+        appRowSetters = []
+        appRowPausable = []
+        appRowNames = []
+        for r in rows.filter({ $0.1 + $0.2 >= minBytes }).prefix(20) {
             listed.insert(r.0)
             let frozen = paused[r.0] != nil
-            let item = appRow(r.0, r.1 + r.2,
-                              pausable: !PAUSE_DENY.contains(r.0),
-                              frozen: frozen)
-            // A frozen row past the fold stays visible either way: the switch
-            // that unfreezes it must not be hidden by the fold that lists it.
-            if i >= 8 && !frozen {
-                item.isHidden = !appsOpen
-                appExtraItems.append(item)
-            }
+            let pausable = !PAUSE_DENY.contains(r.0)
+            let st = frozen ? "paused"
+                   : ramping[r.0] != nil ? "stopping"
+                   : throttled[r.0] != nil ? "slow" : "run"
+            let (item, setState) = appRow(r.0, r.1 + r.2,
+                                          pausable: pausable, state: st)
             menu.addItem(item)
+            appRowItems.append(item)
+            appRowFrozen.append(frozen)
+            appRowSetters.append(setState)
+            appRowPausable.append(pausable)
+            appRowNames.append(r.0)
         }
-        if appExtraItems.isEmpty {
-            appsMoreLabel = nil
-        } else {
+        if appRowItems.count > appsShown("min") {
             menu.addItem(appsMoreRow())
-            refreshAppsMore()
+        } else {
+            appsMoreLabel = nil
+            appsZoomLabel = nil
         }
+        applyAppsView()
         // Anything still frozen but no longer in today's top list stays reachable.
         for (name, _) in paused where !listed.contains(name) {
-            menu.addItem(appRow(name, -1, pausable: true, frozen: true))
+            menu.addItem(appRow(name, -1, pausable: true, state: "paused").0)
         }
-        if !paused.isEmpty {
-            menu.addItem(makeItem("Resume All", #selector(resumeAll)))
+        // Pause All in two stages: the soft one slows everything to a trickle
+        // and holds it there, and Hard Stop is the second press that freezes
+        // the lot. It replaced solo mode on 2026-08-28, which was this with the
+        // allow list capped at one, and grew the second stage the same day
+        // after the single-stage version froze the editor it was pressed from.
+        let pauseOn = (cfg["pause_all"] as? Bool) ?? false
+        let hardOn = pauseOn && ((cfg["pause_all_hard"] as? Bool) ?? false)
+        if pauseOn {
+            let allowed = (cfg["pause_all_allow"] as? [String]) ?? []
+            let frozen = paused.filter { ($0.value as? [String: Any])?["reason"] as? String == "all" }
+            let stage = hardOn ? "\(frozen.count) app\(frozen.count == 1 ? "" : "s") frozen"
+                               : "everything at \(PAUSE_ALL_FLOOR)%"
+            // Wrapped, because the allow list grows a name at a time and a
+            // plain title would drag the menu wider with every app let back in.
+            addDisabledWrapped(menu, glyph: "\u{25D1}", allowed.isEmpty
+                ? "Pause All is on \u{00B7} \(stage)"
+                : "Pause All is on \u{00B7} \(stage) \u{00B7} allowed: \(allowed.joined(separator: ", "))")
         }
+        menu.addItem(pauseAllRow(on: pauseOn, hard: hardOn))
 
         recentWindow = (cfg["recent_window"] as? NSNumber)?.intValue ?? 60
         recentOpen = (cfg["recent_open"] as? Bool) ?? true
@@ -875,13 +956,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func refreshModeUI() {
         let cfg = config()
         let lowOn = (cfg["lowdata"] as? Bool) ?? false
-        let soloOn = (cfg["solo"] as? Bool) ?? false
-        let soloApp = (cfg["solo_app"] as? String) ?? ""
         lowButton?.isOn = lowOn
-        soloButton?.isOn = soloOn
-        soloButton?.label = soloApp.isEmpty ? "Solo" : "Solo: \(soloApp)"
-        soloStatus?.title = "\u{25C9} Solo: only \(soloApp) may use the network"
-        soloStatus?.isHidden = !soloOn
         let every = (cfg["notify_every_mb"] as? NSNumber)?.intValue ?? 25
         let apps = (cfg["lowdata_apps"] as? [String]) ?? []
         let slowed = (cfg["lowdata_throttle"] as? [String]) ?? []
@@ -895,6 +970,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !apps.isEmpty { parts.append("freezing \(apps.joined(separator: ", "))") }
         if cap > 0 { parts.append("freezing anything over \(cap) MB/min") }
         if !slowed.isEmpty { parts.append("\(slowed.joined(separator: ", ")) at \(pct)%") }
+        if (cfg["lowdata_background"] as? Bool) ?? true {
+            parts.append("no background downloads")
+        }
+        if (cfg["update_prefs"] as? Bool) ?? true { parts.append("no update checks") }
         parts.append("notifying every \(every) MB")
         // Joined into one line this summary becomes the widest item in the
         // menu and drags the whole window out to its length, so it wraps
@@ -956,14 +1035,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             netLine?.state = .on
             netLine?.title = "\u{25D0} Always Low Data here (\(netProfile))"
                 + (lowOn ? "" : " \u{00B7} off until rejoin")
-        }
-
-        for (i, item) in soloPickItems.enumerated() {
-            guard soloPickOpen, i < soloCandidates.count else { item.isHidden = true; continue }
-            item.isHidden = false
-            let name = soloCandidates[i]
-            soloPickLabels[i].stringValue = (name == soloApp ? "\u{2713}  " : "     ") + name
-            soloPickLabels[i].textColor = (name == soloApp) ? .labelColor : .secondaryLabelColor
         }
     }
 
@@ -1103,112 +1174,197 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         runNetmeter(["display", "--recent-window", String(recentWindow)])
     }
 
-    func modesRow(lowOn: Bool, soloOn: Bool, soloApp: String) -> NSMenuItem {
+    // Low Data is the only mode button now. Solo retired on 2026-08-28 into
+    // Pause All, which lives under the app list because that is where its
+    // exceptions are made: one switch at a time, on the rows themselves.
+    func modesRow(lowOn: Bool) -> NSMenuItem {
         let item = NSMenuItem()
         let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 38))
-        let low = ModeButton(frame: NSRect(x: 10, y: 6, width: 108, height: 26))
+        let low = ModeButton(frame: NSRect(x: 10, y: 6, width: 328, height: 26))
         low.label = "Low Data"
         low.isOn = lowOn
         low.onClick = { [weak self] in self?.toggleLowData() }
         lowButton = low
         v.addSubview(low)
-        let solo = ModeButton(frame: NSRect(x: 126, y: 6, width: 212, height: 26))
-        solo.label = soloApp.isEmpty ? "Solo" : "Solo: \(soloApp)"
-        solo.isOn = soloOn
-        solo.arrowWidth = 26
-        solo.onClick = { [weak self] in self?.toggleSolo() }
-        solo.onArrow = { [weak self] in
-            guard let self = self else { return }
-            self.soloPickOpen.toggle()
-            self.refreshModeUI()
-        }
-        soloButton = solo
-        v.addSubview(solo)
         item.view = v
         return item
     }
 
-    // Twelve pre-built rows that show and hide. NSMenu.popUp does not open from
-    // inside a menu that is already tracking, which is why the first attempt at
-    // a chevron pop-up did nothing at all.
-    func addSoloPicker(_ menu: NSMenu) {
-        soloPickItems = []; soloPickLabels = []
-        for i in 0..<12 {
-            let item = NSMenuItem()
-            let row = PickRow(frame: NSRect(x: 0, y: 0, width: 348, height: 22))
-            let label = NSTextField(labelWithString: "")
-            label.font = NSFont.menuFont(ofSize: 13)
-            label.lineBreakMode = .byTruncatingTail
-            label.frame = NSRect(x: 34, y: 3, width: 300, height: 17)
-            row.addSubview(label)
-            row.onClick = { [weak self] in self?.pickSoloAt(i) }
-            item.view = row
-            item.isHidden = true
-            menu.addItem(item)
-            soloPickItems.append(item)
-            soloPickLabels.append(label)
+    // How many app rows each depth shows.
+    func appsShown(_ view: String) -> Int {
+        switch view {
+        case "min": return 3
+        case "all": return 20
+        default: return 6
         }
     }
 
-    // The fold under the top 8 app rows. A PickRow, so clicking it flips the
-    // hidden rows without closing the menu; the state persists via config so
-    // the menu reopens the way it was left.
+    // apps_view is the current key; apps_open was the older two-state one, and
+    // a config written before this change still has to land somewhere sensible.
+    func appsViewFrom(_ cfg: [String: Any]) -> String {
+        if let v = cfg["apps_view"] as? String, ["min", "some", "all"].contains(v) {
+            return v
+        }
+        return ((cfg["apps_open"] as? Bool) ?? false) ? "all" : "some"
+    }
+
+    // The fold under the app rows. One PickRow with two hit zones: the label
+    // steps down a depth (min -> some -> all -> min), the glyph on the right
+    // jumps straight to the far end, so maximize and minimize are each one
+    // click from anywhere. Clicking never closes the menu; the depth persists
+    // through config so the menu reopens the way it was left.
     func appsMoreRow() -> NSMenuItem {
         let item = NSMenuItem()
         let row = PickRow(frame: NSRect(x: 0, y: 0, width: 348, height: 22))
         let label = NSTextField(labelWithString: "")
         label.font = NSFont.menuFont(ofSize: 13)
         label.textColor = .secondaryLabelColor
-        label.frame = NSRect(x: 24, y: 3, width: 300, height: 17)
+        label.frame = NSRect(x: 24, y: 3, width: 262, height: 17)
         row.addSubview(label)
-        row.onClick = { [weak self] in self?.toggleAppsOpen() }
+        let zoom = NSTextField(labelWithString: "")
+        zoom.font = NSFont.menuFont(ofSize: 13)
+        zoom.textColor = .tertiaryLabelColor
+        zoom.alignment = .right
+        zoom.frame = NSRect(x: 286, y: 3, width: 52, height: 17)
+        row.addSubview(zoom)
+        row.onClickAt = { [weak self] x in
+            guard let self = self else { return }
+            self.setAppsView(x > 280 ? (self.appsView == "all" ? "min" : "all")
+                                     : self.nextAppsView())
+        }
         item.view = row
         appsMoreLabel = label
+        appsZoomLabel = zoom
         return item
     }
 
-    func refreshAppsMore() {
-        appsMoreLabel?.stringValue = appsOpen
-            ? "\u{25BE} Show fewer"
-            : "\u{25B8} \(appExtraItems.count) more app\(appExtraItems.count == 1 ? "" : "s")"
+    func nextAppsView() -> String {
+        switch appsView {
+        case "min": return "some"
+        case "some": return "all"
+        default: return "min"
+        }
     }
 
-    func toggleAppsOpen() {
-        appsOpen.toggle()
-        for item in appExtraItems { item.isHidden = !appsOpen }
-        refreshAppsMore()
-        runNetmeter(["display", "--apps-open", appsOpen ? "on" : "off"])
+    // Hide and show in place. A frozen row is never hidden whatever the depth:
+    // the switch that unfreezes it must not be behind the fold that lists it.
+    func applyAppsView() {
+        let shown = appsShown(appsView)
+        for (i, item) in appRowItems.enumerated() {
+            item.isHidden = i >= shown && !appRowFrozen[i]
+        }
+        let hidden = appRowItems.enumerated()
+            .filter { $0.offset >= shown && !appRowFrozen[$0.offset] }.count
+        appsMoreLabel?.stringValue = hidden > 0
+            ? "\u{25B8} \(hidden) more app\(hidden == 1 ? "" : "s")"
+            : "\u{25BE} Show fewer"
+        appsZoomLabel?.stringValue = appsView == "all" ? "\u{2921}" : "\u{2922}"
+        appsZoomLabel?.toolTip = appsView == "all" ? "Show the top three"
+                                                   : "Show every app"
     }
 
-    func pickSoloAt(_ i: Int) {
-        guard i < soloCandidates.count else { return }
-        let name = soloCandidates[i]
-        soloPickOpen = false
-        runNetmeter(["solo", name]) { [weak self] in self?.refreshModeUI() }
-        refreshModeUI()
+    func setAppsView(_ view: String) {
+        appsView = view
+        applyAppsView()
+        runNetmeter(["display", "--apps-view", view])
     }
 
-    func closeMenu() { statusItem.menu?.cancelTracking() }
+    // Pause All and Resume All, side by side under the list. The left button is
+    // one control that escalates: press it once and everything drops to a
+    // trickle, press it again and the trickle becomes a freeze. Two presses for
+    // the destructive half is the whole point, because the single-press version
+    // froze the editor it was pressed from. Resume All is the other end of both.
+    func pauseAllRow(on: Bool, hard: Bool) -> NSMenuItem {
+        pauseAllOn = on
+        pauseAllHard = hard
+        let item = NSMenuItem()
+        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 30))
+        let pauseBtn = ModeButton(frame: NSRect(x: 10, y: 3, width: 152, height: 24))
+        pauseBtn.momentary = true      // three states, so isOn is set by hand
+        pauseAllButton = pauseBtn
+        applyPauseAllButton()
+        pauseBtn.onClick = { [weak self] in
+            guard let self = self else { return }
+            // off -> holding -> frozen -> holding. Never off from here: that is
+            // what Resume All is for, and an escalating button that also
+            // reverses all the way is a button you cannot read.
+            let arg: String
+            if !self.pauseAllOn {
+                self.pauseAllOn = true; self.pauseAllHard = false
+                arg = "on"
+                self.setAllRows("stopping")
+            } else if !self.pauseAllHard {
+                self.pauseAllHard = true
+                arg = "hard"
+                self.setAllRows("paused")
+            } else {
+                self.pauseAllHard = false
+                arg = "soft"
+                self.setAllRows("slow")
+            }
+            self.applyPauseAllButton()
+            self.runNetmeter(["pause-all", arg]) {
+                self.syncRowsFromPaused()
+                self.refreshModeUI()
+            }
+        }
+        v.addSubview(pauseBtn)
+        let resumeBtn = ModeButton(frame: NSRect(x: 176, y: 3, width: 152, height: 24))
+        resumeBtn.label = "Resume All"
+        resumeBtn.momentary = true
+        resumeBtn.onClick = { [weak self] in
+            guard let self = self else { return }
+            self.setAllRows("run")
+            self.pauseAllOn = false
+            self.pauseAllHard = false
+            self.applyPauseAllButton()
+            self.runNetmeter(["resume-all"]) {
+                self.syncRowsFromPaused()
+                self.refreshModeUI()
+            }
+        }
+        v.addSubview(resumeBtn)
+        item.view = v
+        return item
+    }
 
-    @objc func toggleSolo() {
-        let cfg = config()
-        if (cfg["solo"] as? Bool) ?? false {
-            runNetmeter(["solo", "off"]) { [weak self] in self?.refreshModeUI() }
-            return
+    // The left button, drawn from the pair. Filled only when it is a hard stop,
+    // so the loudest state is the one that looks loudest.
+    func applyPauseAllButton() {
+        guard let b = pauseAllButton else { return }
+        b.label = !pauseAllOn ? "Pause All"
+                : pauseAllHard ? "Hard Stop is on" : "Hard Stop"
+        b.isOn = pauseAllHard
+        b.toolTip = !pauseAllOn
+            ? "Slow every app that is not allowed to \(PAUSE_ALL_FLOOR)% and hold it there"
+            : pauseAllHard ? "Back to \(PAUSE_ALL_FLOOR)%, windows responsive again"
+                           : "Freeze everything Pause All is holding"
+    }
+
+    // Restate every switch at once. The CLI is the truth and it runs a beat
+    // later; this is the menu keeping up with a click the user just made,
+    // because the alternative is a dozen switches reading "on" over a dozen
+    // frozen apps until the menu is closed and reopened.
+    func setAllRows(_ state: String) {
+        for (i, set) in appRowSetters.enumerated() where appRowPausable[i] {
+            set(state)
         }
-        var target = (cfg["solo_app"] as? String) ?? ""
-        if target.isEmpty {
-            // Nothing picked yet: solo whatever has moved the most data today,
-            // which is nearly always the thing you are actually looking at.
-            let source = loadApps(home + "/.netmeter/\(dayString(0)).json")
-            target = source.filter { !PAUSE_DENY.contains($0.key) }
-                .max { $0.value.0 + $0.value.1 < $1.value.0 + $1.value.1 }?.key ?? ""
+    }
+
+    // ...and then the correction, once the engine has actually run. The bar's
+    // PAUSE_DENY and the engine's NEVER_FREEZE are not the same list, so an
+    // optimistic sweep greys out a row or two the engine declined to touch.
+    // Reading back what it really froze costs one small file.
+    func syncRowsFromPaused() {
+        let paused = readJSON(home + "/.netmeter/paused.json") ?? [:]
+        let ramping = readJSON(home + "/.netmeter/ramping.json") ?? [:]
+        let throttled = readJSON(home + "/.netmeter/throttled.json") ?? [:]
+        for (i, set) in appRowSetters.enumerated() where appRowPausable[i] {
+            let name = appRowNames[i]
+            set(paused[name] != nil ? "paused"
+                : ramping[name] != nil ? "stopping"
+                : throttled[name] != nil ? "slow" : "run")
         }
-        guard !target.isEmpty else {
-            soloButton?.isOn = false   // nothing to solo; undo the optimistic flip
-            return
-        }
-        runNetmeter(["solo", target]) { [weak self] in self?.refreshModeUI() }
     }
 
     @objc func openStats() { stats.show() }
@@ -1221,7 +1377,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         a.messageText = "netmeter \(VERSION)"
         a.informativeText = """
         Per-app network meter for macOS: live speed, session and daily \
-        per-app totals, app freezing, Low Data and Solo modes, and a \
+        per-app totals, app freezing, Low Data and Pause All, and a \
         metered-network monthly cap.
 
         Daemon + menu bar app + Chrome extension, built July 2026 with Claude. \
@@ -1340,42 +1496,71 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let menu = statusItem.menu { menuNeedsUpdate(menu) }
     }
 
-    func appRow(_ name: String, _ total: Double, pausable: Bool, frozen: Bool) -> NSMenuItem {
+    // Returns the row and a closure that restates it. Three states, not two:
+    // an app on the way down is neither running nor stopped, and showing it as
+    // either is a lie for the ten seconds it takes to land. Pause All flips a
+    // dozen of these at once, and rebuilding the menu to show that is the one
+    // thing a tracking NSMenu will not survive.
+    func appRow(_ name: String, _ total: Double, pausable: Bool,
+                state: String) -> (NSMenuItem, (String) -> Void) {
         let item = NSMenuItem()
         let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 26))
 
         let dot = NSTextField(labelWithString: "●")
         dot.font = NSFont.systemFont(ofSize: 9)
-        dot.textColor = frozen ? .tertiaryLabelColor : .systemGreen
         dot.frame = NSRect(x: 10, y: 6, width: 12, height: 14)
         v.addSubview(dot)
 
-        let label = NSTextField(labelWithString: frozen ? "\(name) (paused)" : name)
+        let label = NSTextField(labelWithString: name)
         label.font = NSFont.menuFont(ofSize: 13)
-        label.textColor = frozen ? .tertiaryLabelColor : .labelColor
         label.lineBreakMode = .byTruncatingTail
         label.frame = NSRect(x: 24, y: 5, width: 172, height: 17)
         v.addSubview(label)
 
         let size = NSTextField(labelWithString: total < 0 ? "❄" : fmtBytes(total))
         size.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-        size.textColor = frozen ? .tertiaryLabelColor : .secondaryLabelColor
         size.alignment = .right
         size.frame = NSRect(x: 198, y: 5, width: 88, height: 16)
         v.addSubview(size)
 
+        var toggle: ToggleSwitch?
+        let setStateBox = StateBox()
         if pausable {
             let sw = ToggleSwitch(frame: NSRect(x: 298, y: 1, width: 40, height: 24))
-            sw.isOn = !frozen
             sw.onToggle = { [weak self] on in
-                self?.runNetmeter([on ? "resume" : "pause", name])
+                guard let self = self else { return }
+                // The engine ramps rather than freezing, so the row says
+                // "stopping" until the daemon reports it actually landed.
+                setStateBox.set?(on ? "run" : "stopping")
+                self.runNetmeter([on ? "resume" : "pause", name]) {
+                    self.syncRowsFromPaused()
+                }
             }
             v.addSubview(sw)
+            toggle = sw
         }
+        // Four states, and "slow" is the one Pause All normally leaves an app
+        // in: alive, throttled to a trickle, still doing its job badly rather
+        // than not at all. It reads as on, because it is, and the switch still
+        // means "let this one through at full speed".
+        let setState: (String) -> Void = { st in
+            let running = st == "run"
+            dot.textColor = st == "run" ? .systemGreen
+                          : st == "slow" ? .systemYellow
+                          : st == "stopping" ? .systemOrange : .tertiaryLabelColor
+            label.stringValue = st == "run" ? name
+                              : st == "slow" ? "\(name) (slow)"
+                              : st == "stopping" ? "\(name) (stopping\u{2026})"
+                              : "\(name) (paused)"
+            label.textColor = st == "paused" ? .tertiaryLabelColor : .labelColor
+            size.textColor = st == "paused" ? .tertiaryLabelColor : .secondaryLabelColor
+            toggle?.isOn = running || st == "slow"
+        }
+        setStateBox.set = setState
+        setState(state)
         item.view = v
-        return item
+        return (item, setState)
     }
-    @objc func resumeAll() { runNetmeter(["resume-all"]) }
     @objc func quit() { NSApp.terminate(nil) }
 
     // One serial queue, and we wait for each command to exit. Two of these
@@ -1390,8 +1575,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let p = Process()
             p.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
             p.arguments = [home + "/bin/netmeter"] + args
-            try? p.run()
-            p.waitUntilExit()
+            do {
+                try p.run()
+                p.waitUntilExit()
+                if p.terminationStatus != 0 {
+                    barLog("netmeter \(args.joined(separator: " ")) exited "
+                           + "\(p.terminationStatus)")
+                }
+            } catch {
+                barLog("could not run netmeter \(args.joined(separator: " ")): \(error)")
+            }
             if let then = then { DispatchQueue.main.async(execute: then) }
         }
     }
@@ -1406,6 +1599,42 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let i = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         i.isEnabled = false
         menu.addItem(i)
+    }
+
+    // A disabled row whose text wraps instead of setting the menu's width.
+    // One long sentence in a plain title drags the whole window out to its
+    // length, which is what a single tether warning did to the menu. A title
+    // swallows newlines, so wrapped text has to go through attributedTitle,
+    // which also forfeits the automatic disabled dimming: colour and font are
+    // set by hand. U+2028 breaks the line without ending the paragraph, so
+    // headIndent can hang the continuations under the text rather than under
+    // the glyph.
+    func addDisabledWrapped(_ menu: NSMenu, glyph: String, _ text: String,
+                            color: NSColor = .disabledControlTextColor,
+                            width: Int = 48) {
+        let font = NSFont.menuFont(ofSize: 13)
+        var lines: [String] = []
+        var acc = ""
+        for word in text.split(separator: " ").map(String.init) {
+            let joined = acc.isEmpty ? word : acc + " " + word
+            if joined.count > width && !acc.isEmpty {
+                lines.append(acc)
+                acc = word
+            } else {
+                acc = joined
+            }
+        }
+        if !acc.isEmpty { lines.append(acc) }
+        let para = NSMutableParagraphStyle()
+        para.headIndent = ((glyph + " ") as NSString)
+            .size(withAttributes: [.font: font]).width
+        let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        item.attributedTitle = NSAttributedString(
+            string: glyph + " " + lines.joined(separator: "\u{2028}"),
+            attributes: [.font: font, .foregroundColor: color,
+                         .paragraphStyle: para])
+        menu.addItem(item)
     }
 }
 
