@@ -738,6 +738,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var appRowPausable: [Bool] = []
     var appRowNames: [String] = []
     var menuOpen = false
+    var daemonStale = false       // now.json has stopped moving
+    var staleNotified = false     // one notification per stale episode, not per tick
+    var daemonWasSeen = false     // so a first launch does not warn about a daemon
+                                  // that has simply never written now.json yet
     var pauseAllButton: ModeButton?
     // Three states across one button: off, holding, hard stopped. isOn alone
     // cannot carry three, and the label changes meaning between them, so the
@@ -777,11 +781,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // follow it there: two small file reads on the same 2s beat the readout
         // already runs on, and only while there is a menu to see them in.
         if menuOpen { syncRowsFromPaused() }
+        checkDaemonHealth()
         let wantRate = showRate(), wantTotal = showTotal()
         // With both readouts off the item is one glyph wide, so a stale daemon
         // has to say so inside that glyph: "⇅ …" rather than a bare arrow, which
         // would be indistinguishable from a quiet network.
         var title = (wantRate || wantTotal) ? "netmeter …" : "⇅ …"
+        if daemonStale { title = (wantRate || wantTotal) ? "netmeter ⚠︎" : "⚠︎" }
         if let now = readJSON(home + "/.netmeter/now.json"),
            let ts = now["ts"] as? Double,
            Date().timeIntervalSince1970 - ts < 30 {
@@ -832,6 +838,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             rows.append((name, v.0, v.1))
         }
         rows.sort { $0.1 + $0.2 > $1.1 + $1.2 }
+
+        // Above the mode buttons on purpose: a switch that reads ON while
+        // nothing is enforcing it is the thing being warned about, so the
+        // warning cannot sit underneath it.
+        if daemonStale {
+            let age = daemonAge()
+            let howLong = age == nil ? "" : " (\(fmtDuration(age!)) ago)"
+            addDisabledWrapped(menu, glyph: "\u{26A0}",
+                               "netmeter has stopped reporting\(howLong). "
+                               + staleConsequence(), color: .systemOrange)
+            menu.addItem(.separator())
+        }
 
         // Modes, at the top, as buttons.
         let lowOn = (cfg["lowdata"] as? Bool) ?? false
@@ -1586,6 +1604,71 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 barLog("could not run netmeter \(args.joined(separator: " ")): \(error)")
             }
             if let then = then { DispatchQueue.main.async(execute: then) }
+        }
+    }
+
+    // --- the stale-daemon watchdog (design item 2) --------------------------
+    // Every control in netmeter is enforced by the daemon. launchd restarts one
+    // that crashes, but a wedged one (a hung nettop under `script`, a stuck
+    // lock) enforces nothing for as long as it stays up, and the only thing the
+    // bar used to do about it was quietly degrade the readout to "⇅ …", which
+    // looks exactly like a quiet network. Low Data reads as on, and nothing is
+    // holding anything down. Hit for real on 2026-08-28, when a failed install
+    // left no daemon at all and the bar said nothing.
+    //
+    // The bar is the right place to watch from precisely because it is the half
+    // that is not the daemon. No second watchdog process: this is the 2s
+    // readout timer noticing that now.json has stopped moving.
+    static let staleAfter: Double = 60
+
+    func daemonAge() -> Double? {
+        guard let now = readJSON(home + "/.netmeter/now.json"),
+              let ts = now["ts"] as? Double else { return nil }
+        return Date().timeIntervalSince1970 - ts
+    }
+
+    // What is set but not being enforced, named rather than left to be inferred.
+    func staleConsequence() -> String {
+        let cfg = config()
+        var on: [String] = []
+        if (cfg["lowdata"] as? Bool) ?? false { on.append("Low Data") }
+        if (cfg["pause_all"] as? Bool) ?? false { on.append("Pause All") }
+        if on.isEmpty { return "Nothing is being enforced." }
+        return "\(on.joined(separator: " and ")) \(on.count > 1 ? "are" : "is") "
+               + "set but not enforced."
+    }
+
+    func checkDaemonHealth() {
+        let age = daemonAge()
+        // No now.json at all is a daemon that has never run, not one that
+        // stopped: a first launch should not fire a warning at nobody.
+        let stale = age == nil ? daemonWasSeen : age! > AppDelegate.staleAfter
+        if age != nil && age! <= AppDelegate.staleAfter { daemonWasSeen = true }
+        if stale && !staleNotified {
+            staleNotified = true
+            let msg = "netmeter has stopped reporting. \(staleConsequence())"
+            barLog("watchdog: \(msg)")
+            notifyUser(msg)
+        } else if !stale && staleNotified {
+            // Recovery re-arms in silence. The daemon coming back is the good
+            // outcome and does not need a notification of its own.
+            staleNotified = false
+            barLog("watchdog: daemon reporting again")
+        }
+        daemonStale = stale
+    }
+
+    // osascript, the same door the engine's notify() uses. netmeter-bar is a
+    // bare executable rather than an .app bundle, so UNUserNotificationCenter
+    // has no bundle identifier to register against and does nothing.
+    func notifyUser(_ text: String) {
+        let safe = text.replacingOccurrences(of: "\"", with: "'")
+        cliQueue.async {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            p.arguments = ["-e", "display notification \"\(safe)\" with title \"netmeter\""]
+            try? p.run()
+            p.waitUntilExit()
         }
     }
 

@@ -1,5 +1,7 @@
 # netmeter PRD: the robustness wave
 
+**Status: complete, 2026-08-28.** All six shipped and are deployed. 1 (harness), 4 (cap arming) and 5 (drain) landed first; 2 (watchdog), 3 (wake race) and 6 (attribution) closed it out. The harness stands at 153 checks. Two things the wave did not predict were found by building it and are fixed alongside: the orphan sweep fighting job control, and `install.sh` racing `launchctl bootout` into leaving nothing running. Both are in TODO.md and the README.
+
 Requirements doc for the six gaps identified in the 2026-08-24 assessment, after the network-memory wave shipped. Sean owns priority; suggested order is the numbering below. Each item stands alone and can ship alone.
 
 ## Why this wave

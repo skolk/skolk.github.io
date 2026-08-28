@@ -439,6 +439,57 @@ nm.update_config(drain_cap_mb=0)
 check("the drain cap is off unless you arm it",
       nm.drain_check(nm.load_config(), {}, minute) == [])
 
+# --- waking up --------------------------------------------------------------
+# Design item 3. The first seconds after the lid opens are the ones worth
+# protecting, and they used to be the ones running on the previous network's
+# rules with counters that spanned the sleep.
+
+reset()
+st = {"last_tick": None, "bucket_min": 1, "bucket": {"Alpha": [9, 9]},
+      "capped": {"Alpha"}, "drained": {"Alpha": 1}, "wifi_prev": (5, 5)}
+now = time.time()
+check("the first tick of a run is not a wake", nm.wake_check(st, now, 5) == 0.0)
+check("an ordinary tick is not a wake", nm.wake_check(st, now + 5, 5) == 0.0)
+check("a jump past the gap is", nm.wake_check(st, now + 3600, 5) >= 3590)
+check("and the threshold scales with a slow sample interval",
+      nm.wake_check(st, now + 3640, 10) == 0.0)
+
+nm.wake_reset(st, now)
+check("the minute bucket starts fresh at the wake minute",
+      st["bucket"] == {} and st["bucket_min"] == int(now // 60))
+check("a cap that fired before the sleep can fire again after it",
+      st["capped"] == set())
+check("the drain window does not span the sleep", st["drained"] == {})
+check("and the interface reading that would charge a night to this network is dropped",
+      st["wifi_prev"] is None)
+
+reset()
+real_gw, real_pc = nm.gateway_mac, nm.profile_check
+SEEN = []
+nm.gateway_mac = lambda iface: ("10.0.0.1", "ff:ee:dd")
+nm.profile_check = lambda cfg, mac, ip=None: (SEEN.append((mac, ip)) or False)
+try:
+    PIDS["Downpour"] = [1401]
+    nm.update_config(lowdata=True, lowdata_apps=["Downpour"], lowdata_background=False)
+    del SENT[:]
+    nm.wake_engage()
+    check("waking re-checks the network off a fresh MAC read",
+          SEEN == [("ff:ee:dd", "10.0.0.1")])
+    check("and low data is enforced before the tick counts a byte",
+          ([1401], signal.SIGSTOP) in SENT)
+
+    nm.update_config(lowdata=False)
+    del SENT[:]
+    nm.wake_engage()
+    check("with the mode off, waking freezes nothing", SENT == [])
+
+    nm.profile_check = lambda cfg, mac, ip=None: (_ for _ in ()).throw(RuntimeError("boom"))
+    nm.wake_engage()
+    check("a profile that raises on wake does not take the daemon down with it",
+          "wake: profile check failed" in open(nm.LOG_PATH).read())
+finally:
+    nm.gateway_mac, nm.profile_check = real_gw, real_pc
+
 # --- the tether link warning ------------------------------------------------
 
 reset()
@@ -456,6 +507,46 @@ check("no warning while actually on the tether",
 t2 = {"period_start": "2026-08-04", "in": 5, "out": 5, "notified_pct": 0}
 check("no warning once bytes are counted",
       nm.tether_link_warning(cfg, ["aa:bb"], t2, False) == "")
+
+# --- who spent the tether data ----------------------------------------------
+# Design item 6. The counter could answer "how much" and never "who".
+
+reset()
+cfg = nm.load_config()
+t = nm.load_tether(cfg)
+check("a fresh period starts with an empty tally", t["apps"] == {})
+nm.tether_attribute(t, {"Alpha": [100, 20], "Beta": [5, 0]})
+nm.tether_attribute(t, {"Alpha": [50, 5]})
+check("per-app bytes accumulate across ticks", t["apps"]["Alpha"] == [150, 25])
+check("and each app keeps its own", t["apps"]["Beta"] == [5, 0])
+
+nm.save_json(nm.TETHER_PATH, t)
+check("the tally survives a reload",
+      nm.load_tether(nm.load_config())["apps"]["Alpha"] == [150, 25])
+
+old = dict(t, period_start="2000-01-01")
+nm.save_json(nm.TETHER_PATH, old)
+check("and the period rollover zeroes it with everything else",
+      nm.load_tether(nm.load_config())["apps"] == {})
+
+stale = {"period_start": nm.tether_period_start(
+    nm.load_config()["tether_reset_day"]).isoformat(), "in": 1, "out": 1}
+nm.save_json(nm.TETHER_PATH, stale)
+check("a tether file written before attribution shipped still loads",
+      nm.load_tether(nm.load_config())["apps"] == {})
+
+import io as _io, contextlib as _ctx
+big = {f"App{i}": [1000 * (20 - i) * 1024, 0] for i in range(12)}
+big["Noise"] = [500, 0]                      # under the 10KB floor
+buf = _io.StringIO()
+with _ctx.redirect_stdout(buf):
+    nm.print_table(big, "head", top=3)
+out = buf.getvalue()
+check("a capped table prints the top N", out.count("App") == 3)
+check("and says how many it did not print", "+ 9 more" in out)
+check("sub-10KB noise is not counted as one of them", "Noise" not in out)
+check("the total still covers everything, not just the rows shown",
+      nm.fmt(sum(v[0] for v in big.values())) in out.splitlines()[-1])
 
 # --- the error log ----------------------------------------------------------
 

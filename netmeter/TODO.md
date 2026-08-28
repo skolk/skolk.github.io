@@ -11,11 +11,15 @@ Working list for the netmeter project. Sean owns prioritization. Assessment date
 
 - [ ] **Relink the tether.** `tether_gateway_macs` holds one MAC that network memory has never seen, so the 50 GB cap has counted nothing all period. Run `netmeter tether-here` while on the hotspot. The engine now warns instead of reading a quiet zero, but the link itself still has to be remade by hand.
 
-- [ ] **The robustness wave**, three of six left: see `PRD.md` and `DESIGN.md` (both 2026-08-24). Remaining: stale-daemon watchdog in the bar, wake-up race, per-network usage attribution. Done: the test harness (2026-08-28), the burst cap armed on tether (2026-08-28), sustained-drain detection (2026-08-28).
 - [ ] **Project page catch-up** for network memory and the app-list fold, once the wave is committed.
 - [ ] **Preferences fields for the new settings.** `lowdata_throttle`, `throttle_pct`, `burst_cap_mb`, the network profiles, and now `remember_networks` are config.json-only; decide whether they earn spots in the Preferences window.
 
 ## Done
+
+- 2026-08-28: **the robustness wave is done, six of six.** The last three landed together:
+  - **Stale-daemon watchdog** (item 2). The bar's 2s timer watches `now.json`; 60 seconds without a fresh timestamp turns the readout to `⚠︎`, puts a warning row above the mode buttons it is failing to enforce, and posts one notification naming the consequence ("Low Data is set but not enforced"). One per episode, recovery re-arms in silence. Verified live by booting the daemon out for 75s: one warning, then "daemon reporting again" on its return.
+  - **The wake-up race** (item 3). A tick more than 30s after the last one is a sleep or a stall, not a tick. The daemon re-reads the gateway MAC and applies profiles, memory and Low Data freezes before it counts a byte, and drops the counters that would span the gap (minute bucket, cap memory, drain window, the interface reading that would charge a night elsewhere to this network). The part-minute before the sleep is flushed to history under its own stamp rather than binned.
+  - **Per-network attribution** (item 6). `tether.json` carries a per-app tally for the billing period, and `netmeter tether` prints it under the header, top 10 by default (`--top 0` for all). The table runs 10-15% under the header because one counts payload and the other counts the interface, which the output says out loud: the header is the bill, the table is who to talk to about it.
 
 - 2026-08-28: **the sweep was fighting job control.** `sweep: woke 1 stranded process(es) of node` had been repeating every few minutes: two Ctrl-Z'd terminal sessions each held a stopped `npm exec` with a `node` child, `node` was on the day's app list, and the sweep kept waking a process the user had deliberately put to sleep, which the shell then re-stopped on its next terminal read. Nothing was ever stranded. `stopped_procs()` now carries each process's tty and `sweep_candidates()` splits on it: no controlling terminal is netmeter's business (GUI helpers, launchd daemons), a terminal means a shell owns the stop. The narrow cost, a terminal-launched process netmeter froze and lost the record of, is named rather than hidden: `netmeter paused` counts the jobs it passed over and `netmeter paused --jobs` lists them with the way back. Five new checks, 131 total.
 

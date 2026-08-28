@@ -555,14 +555,37 @@ def load_tether(cfg):
     t = read_json(TETHER_PATH) or {}
     ps = tether_period_start(cfg["tether_reset_day"]).isoformat()
     if t.get("period_start") != ps:
-        t = {"period_start": ps, "in": 0, "out": 0, "notified_pct": 0}
+        t = {"period_start": ps, "in": 0, "out": 0, "notified_pct": 0,
+             "apps": {}}
         # Persist the rollover here, not only where the counting happens. The
         # write used to live inside the tick's "on the tether" branch, so a
         # period that turned over while off the tether was recomputed in memory
         # every tick and never written: on 2026-08-28 tether.json still read
         # period_start 2026-07-04 with 24.7 GB against it.
         save_json(TETHER_PATH, t)
+    t.setdefault("apps", {})      # a file written before attribution shipped
     return t
+
+
+def tether_attribute(tether, tick_io):
+    """Add this tick's per-app bytes to the period's tether tally.
+
+    The counter above this one answers "how much", off the interface, which is
+    what the carrier bills. It cannot answer "who": interface bytes have no
+    process attached to them. This is the other half, accumulated from the same
+    nettop rows the daily file uses, kept per billing period and thrown away
+    with the rest of the period at rollover.
+
+    The two do not agree, and are not meant to: nettop counts payload and the
+    interface counts payload plus headers plus everything netmeter's sampler
+    never sees, so the table runs 10-15% under the header. The header is the
+    number to trust against the bill; the table is the number to act on."""
+    apps = tether.setdefault("apps", {})
+    for label, (d_in, d_out) in tick_io.items():
+        a = apps.setdefault(label, [0, 0])
+        a[0] += d_in
+        a[1] += d_out
+    return tether
 
 
 def tether_link_warning(cfg, macs, tether, on_it):
@@ -2051,6 +2074,65 @@ def notify(text):
                    capture_output=True)
 
 
+WAKE_GAP = 30.0                # a tick this far from the last one is not a tick
+
+
+def wake_check(state, now_ts, interval):
+    """The seconds the daemon was not looking, or 0 for an ordinary tick.
+
+    Ticks are ~5s apart. A minutes-wide gap means the lid was shut or the
+    sampler wedged, and either way the counters on the other side of it measure
+    an interval with a hole in the middle."""
+    last = state.get("last_tick")
+    state["last_tick"] = now_ts
+    if last is None:
+        return 0.0
+    gap = now_ts - last
+    return gap if gap > max(WAKE_GAP, interval * 4) else 0.0
+
+
+def wake_reset(state, now_ts):
+    """Forget every counter that measures an interval across the gap.
+
+    The burst cap reads a minute bucket, the drain cap reads a window of them,
+    and the tether counter reads the difference between two interface
+    readings. Carried across a sleep, the first is stamped with a minute that
+    has already passed, the second has a hole in it, and the third can charge a
+    whole night of somebody else's network to this one. A skipped interval is
+    the honest answer; a stale one is not."""
+    state["bucket_min"] = int(now_ts // 60)
+    state["bucket"] = {}
+    state["capped"] = set()
+    state["drained"] = {}
+    state["wifi_prev"] = None
+
+
+def wake_engage(cfg=None):
+    """Apply what this network asks for now, not at the end of the tick.
+
+    The most dangerous seconds of a metered day are the first ones after the
+    lid opens: every sync client that queued work overnight starts at once,
+    while the profile for the network the laptop woke up on has not applied
+    yet. Enforcement used to sit at the bottom of the tick, a full sample
+    behind the bytes. This runs the network check and the freezes first, off a
+    fresh MAC read, so the rest of the tick counts a connection that is already
+    being protected. Returns the config, reloaded if the profile rewrote it."""
+    cfg = cfg or load_config()
+    iface = cfg.get("wifi_if", "en0")
+    gw_ip, gw_mac = gateway_mac(iface)
+    try:
+        if profile_check(cfg, gw_mac, gw_ip):
+            cfg = load_config()
+    except Exception as e:
+        log(f"wake: profile check failed: {e}", exc=True)
+    if cfg.get("lowdata"):
+        for app in cfg.get("lowdata_apps") or []:
+            signal_app(app, signal.SIGSTOP)
+        for name in background_freeze(cfg):
+            log(f"wake: stopped background downloader {name}")
+    return cfg
+
+
 def run_daemon(interval, ticks=None):
     """Stream `nettop -d`: each sample after the first reports per-interval deltas
     per process, so no baseline arithmetic is needed. (Per-process cumulative
@@ -2058,7 +2140,7 @@ def run_daemon(interval, ticks=None):
     own deltas double-counted traffic.)"""
     state = {"date": None, "data": None, "notified_mb": None,
              "bucket_min": None, "bucket": {}, "capped": set(), "appends": 0,
-             "drained": {}}
+             "drained": {}, "last_tick": None}
     blocks_done = 0
     throttle_stop = start_throttle_worker()
     # A daemon that just came up inherits whatever the last one left frozen.
@@ -2076,9 +2158,26 @@ def run_daemon(interval, ticks=None):
                 state["data"]["started"] = datetime.datetime.now().isoformat(timespec="seconds")
         data = state["data"]
         now_ts = time.time()
+        # Before anything is counted: if the clock jumped, the machine slept.
+        # Engage for wherever it woke up, and drop the interval counters that
+        # now span the sleep. (Design item 3.)
+        gap = wake_check(state, now_ts, interval)
+        if gap:
+            log(f"wake: {gap:.0f}s gap, re-checking the network before counting")
+            # The part-minute on the near side of the sleep is real traffic
+            # under a stamp that is still correct, so it goes to history rather
+            # than in the bin; only the counters that would span the gap are
+            # thrown away.
+            if state["bucket"]:
+                with contextlib.suppress(Exception):
+                    append_recent(state["bucket_min"], state["bucket"])
+            wake_reset(state, now_ts)
+            with contextlib.suppress(Exception):
+                wake_engage()
         tick_in = tick_out = 0
         active = set()
         tick_bytes = {}
+        tick_io = {}          # {app: [in, out]}, for the tether's per-app tally
         for line in rows:
             row = parse_row(line)
             if row is None:
@@ -2098,6 +2197,9 @@ def run_daemon(interval, ticks=None):
                 tick_out += d_out
                 active.add(label)
                 tick_bytes[label] = tick_bytes.get(label, 0) + d_in + d_out
+                io = tick_io.setdefault(label, [0, 0])
+                io[0] += d_in
+                io[1] += d_out
                 b = state["bucket"].setdefault(label, [0, 0])
                 b[0] += d_in
                 b[1] += d_out
@@ -2151,6 +2253,7 @@ def run_daemon(interval, ticks=None):
             t_out = wb[1] - prev[1] if wb[1] >= prev[1] else wb[1]
             tether["in"] += t_in
             tether["out"] += t_out
+            tether_attribute(tether, tick_io)
             cap = cfg.get("tether_cap_gb", 0) * GB
             if cap:
                 pct = 100 * (tether["in"] + tether["out"]) / cap
@@ -2286,17 +2389,23 @@ def fmt(b):
     return f"{b / KB:.0f} KB"
 
 
-def print_table(apps, header):
+def print_table(apps, header, top=None):
+    """`top` caps the rows printed. TOTAL stays the total of everything, so a
+    capped table never reads as though the rest of the traffic did not
+    happen."""
     rows = sorted(apps.items(), key=lambda kv: kv[1][0] + kv[1][1], reverse=True)
+    rows = [r for r in rows if r[1][0] + r[1][1] >= 10 * 1024]   # sub-10KB noise
     tot_in = sum(v[0] for v in apps.values())
     tot_out = sum(v[1] for v in apps.values())
-    width = max([len(name) for name, _ in rows] + [len("TOTAL")])
+    shown = rows if top is None else rows[:top]
+    width = max([len(name) for name, _ in shown] + [len("TOTAL")])
     print(header)
     print(f"{'APP':<{width}}  {'DOWN':>10}  {'UP':>10}  {'TOTAL':>10}")
-    for name, (b_in, b_out) in rows:
-        if b_in + b_out < 10 * 1024:  # hide sub-10KB noise
-            continue
+    for name, (b_in, b_out) in shown:
         print(f"{name:<{width}}  {fmt(b_in):>10}  {fmt(b_out):>10}  {fmt(b_in + b_out):>10}")
+    rest = len(rows) - len(shown)
+    if rest:
+        print(f"{f'+ {rest} more':<{width}}")
     print(f"{'TOTAL':<{width}}  {fmt(tot_in):>10}  {fmt(tot_out):>10}  {fmt(tot_in + tot_out):>10}")
 
 
@@ -2411,6 +2520,8 @@ def main():
     lgp.add_argument("-n", type=int, default=40, help="lines to show (default 40)")
     tp = sub.add_parser("tether", help="metered-network status; pass GB to seed the period")
     tp.add_argument("used_gb", nargs="?", type=float)
+    tp.add_argument("--top", type=int, default=10,
+                    help="apps to list in the per-app breakdown (default 10, 0 for all)")
     tcp = sub.add_parser("tether-config", help="set the metered network's name, cap, reset day")
     tcp.add_argument("--name")
     tcp.add_argument("--cap", type=float, help="GB per billing month")
@@ -2551,6 +2662,20 @@ def main():
             print("  A phone hands out a new gateway MAC when its hotspot is "
                   "re-created, and the cap counts nothing until the new one is "
                   "linked. Run `netmeter tether-here` while on it.")
+        # Who spent it. The line above is the bill; this is the reason for it.
+        apps = t.get("apps") or {}
+        if apps:
+            print()
+            print_table(apps, f"Who spent it, since {t['period_start']}:",
+                        top=args.top or None)
+            print("  Per-app numbers are payload bytes seen by the sampler and "
+                  "run 10-15% under the")
+            print("  header, which counts every byte on the interface. The "
+                  "header is the bill; this")
+            print("  table is who to talk to about it.")
+        elif macs:
+            print("  (No per-app tally yet for this period. Attribution starts "
+                  "the first tick on the network; there is no backfill.)")
     elif args.cmd == "tether-here":
         cfg = load_config()
         ip, gw = gateway_mac(cfg.get("wifi_if", "en0"))
