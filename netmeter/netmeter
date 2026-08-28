@@ -763,20 +763,53 @@ def mode_holds(cfg, name, reason):
 
 
 def stopped_procs():
-    """{pid: command line} for every process sitting in state T, in one `ps`.
+    """{pid: (tty, command line)} for every process in state T, in one `ps`.
 
     The alternative is pgrep-per-app plus a ps sweep per app, which is ~120
     subprocesses for a forty-app day. This runs once a minute in the daemon, so
-    it has to be one call."""
-    out = subprocess.run(["ps", "-Axo", "pid=,state=,command="],
+    it has to be one call.
+
+    The tty rides along because it is what separates netmeter's business from
+    the shell's: `??` for a process no terminal owns, a device name for one a
+    shell can suspend. See sweep_orphans."""
+    out = subprocess.run(["ps", "-Axo", "pid=,state=,tty=,command="],
                          capture_output=True, text=True).stdout
     procs = {}
     for line in out.splitlines():
-        f = line.split(None, 2)
-        if len(f) < 3 or not f[0].isdigit() or not f[1].startswith("T"):
+        f = line.split(None, 3)
+        if len(f) < 4 or not f[0].isdigit() or not f[1].startswith("T"):
             continue
-        procs[int(f[0])] = f[2]
+        procs[int(f[0])] = (f[2], f[3])
     return procs
+
+
+def sweep_candidates(claimed=()):
+    """The stopped processes the sweep may consider, and the jobs it must not.
+
+    Returns ({pid: cmd}, {pid: cmd}): what is fair game, and what a terminal
+    owns. Job control is the whole reason for the split. Ctrl-Z stops a process
+    group, SIGTTIN and SIGTTOU stop its members again whenever they touch the
+    terminal, and every one of them lands in exactly the state T the sweep reads
+    as a strand. netmeter's own targets never look like that: a GUI app's
+    helpers and a launchd daemon have no controlling terminal at all.
+
+    Found live on 2026-08-28, once an hour of log said "sweep: woke 1 stranded
+    process(es) of node". Two suspended terminal sessions each held a stopped
+    npm exec with a node child; node was on the day's app list, so the sweep
+    woke the child of a job the user had deliberately put to sleep, the shell
+    re-stopped it on its next read, and the two of them traded the process back
+    and forth every minute. Nothing was ever stranded.
+
+    The cost of the rule is narrow and worth naming: a process netmeter froze
+    that does have a terminal (`node server.js` in a shell) will not be picked
+    up by the sweep if its bookkeeping is lost. `netmeter paused` says so rather
+    than leaving it to be discovered."""
+    fair, jobs = {}, {}
+    for pid, (tty, cmd) in stopped_procs().items():
+        if pid in claimed:
+            continue
+        (jobs if tty and tty != "??" else fair)[pid] = cmd
+    return fair, jobs
 
 
 def sweep_orphans(cfg=None):
@@ -793,11 +826,10 @@ def sweep_orphans(cfg=None):
 
     The candidate set is deliberately narrow: apps netmeter has watched move
     bytes today, plus the names on its own mode lists. It will not touch a
-    process netmeter has never met. It can still wake a job suspended by hand,
-    if that job happens to be an app on today's list; that is the honest cost of
-    sweeping, and a stranded editor is the more expensive mistake. Anything a
-    live record does claim (paused, throttled, mid-ramp) is left alone, which is
-    what keeps it off a duty cycle's back: a throttled app is legitimately
+    process netmeter has never met, and it will not touch one a terminal owns,
+    which is where a suspended shell job lives (see sweep_candidates). Anything
+    a live record does claim (paused, throttled, mid-ramp) is left alone, which
+    is what keeps it off a duty cycle's back: a throttled app is legitimately
     stopped for most of every period."""
     cfg = cfg or load_config()
     paused = read_paused()
@@ -810,7 +842,7 @@ def sweep_orphans(cfg=None):
              | set(cfg.get("lowdata_apps") or [])
              | set(cfg.get("lowdata_throttle") or [])
              | set(cfg.get("pause_all_allow") or []))
-    procs = {p: c for p, c in stopped_procs().items() if p not in claimed}
+    procs, _ = sweep_candidates(claimed)
     if not procs:
         return {}
     woken = {}
@@ -900,7 +932,7 @@ def reconcile_paused(cfg=None):
     return lifted, refroze, dropped
 
 
-def show_paused():
+def show_paused(jobs=False):
     """What is frozen, why, and whether the freeze is real."""
     reconcile_paused()
     paused = read_paused()
@@ -926,6 +958,19 @@ def show_paused():
             continue          # already named above, as the ramp it belongs to
         held = " and held there by pause all" if (v or {}).get("reason") == "all" else ""
         print(f"  {name}: throttled to {v.get('pct', 25)}%{held}")
+    # The sweep will not touch these, so this is the only place they surface.
+    # Almost always a Ctrl-Z'd shell job, which is nobody's business but the
+    # shell's; occasionally something netmeter froze from a terminal and lost
+    # the record of, which is worth being able to see.
+    _, held = sweep_candidates()
+    if held and not jobs:
+        print(f"  ({len(held)} stopped terminal job(s) left alone; a shell owns "
+              f"those, not netmeter. See them with: netmeter paused --jobs)")
+    elif held:
+        print(f"  {len(held)} stopped terminal job(s), left alone:")
+        for pid, cmd in sorted(held.items()):
+            print(f"    {pid}  {cmd[:96]}")
+        print("    Resume one in the shell that owns it (fg), or: kill -CONT <pid>")
 
 
 def pause(name, quiet=False, reason="manual"):
@@ -2359,7 +2404,9 @@ def main():
                               "`pause-all hard` freezes them, `off` lifts it")
     pap.add_argument("action", nargs="?", default="on",
                      choices=["on", "hard", "soft", "off", "status", "clear"])
-    sub.add_parser("paused", help="what is frozen or throttled, and why")
+    psd = sub.add_parser("paused", help="what is frozen or throttled, and why")
+    psd.add_argument("--jobs", action="store_true",
+                     help="also list the stopped terminal jobs the sweep leaves alone")
     lgp = sub.add_parser("log", help="netmeter's own error log")
     lgp.add_argument("-n", type=int, default=40, help="lines to show (default 40)")
     tp = sub.add_parser("tether", help="metered-network status; pass GB to seed the period")
@@ -2444,7 +2491,7 @@ def main():
     elif args.cmd == "pause-all":
         pause_all(args.action)
     elif args.cmd == "paused":
-        show_paused()
+        show_paused(args.jobs)
     elif args.cmd == "log":
         show_log(args.n)
     elif args.cmd == "tether-config":

@@ -18,8 +18,35 @@ cp netmeter-bar.swift "$HOME/.netmeter/src/netmeter-bar.swift"
 echo "Compiling menu bar app..."
 swiftc -swift-version 5 -O -o "$HOME/bin/netmeter-bar" netmeter-bar.swift
 
+# bootout returns before launchd has finished tearing the job down. Bootstrap
+# into a domain that still holds the old one and it fails with EIO(5), which on
+# 2026-08-28 aborted the install between the two calls and left the machine
+# with no daemon and no bar: nothing enforcing, no error anyone would read as
+# that. So: wait for each one to actually go, and retry the way back in.
+boot_out() {
+  launchctl bootout "gui/$UID_NUM/$1" 2>/dev/null || true
+  n=0
+  while launchctl print "gui/$UID_NUM/$1" >/dev/null 2>&1; do
+    n=$((n + 1))
+    [ "$n" -gt 50 ] && break     # 5s, then try anyway rather than refuse to install
+    sleep 0.1
+  done
+}
+
+boot_in() {
+  n=0
+  while [ "$n" -lt 5 ]; do
+    launchctl bootstrap "gui/$UID_NUM" "$2" 2>/dev/null && return 0
+    n=$((n + 1))
+    sleep 1
+  done
+  echo "netmeter: launchctl would not start $1. NOTHING IS RUNNING." >&2
+  echo "  retry with: launchctl bootstrap gui/$UID_NUM $2" >&2
+  return 1
+}
+
 for name in netmeter netmeterbar; do
-  launchctl bootout "gui/$UID_NUM/com.seankolk.$name" 2>/dev/null || true
+  boot_out "com.seankolk.$name"
 done
 
 cat > "$HOME/Library/LaunchAgents/com.seankolk.netmeter.plist" <<EOF
@@ -59,6 +86,9 @@ cat > "$HOME/Library/LaunchAgents/com.seankolk.netmeterbar.plist" <<EOF
 </plist>
 EOF
 
-launchctl bootstrap "gui/$UID_NUM" "$HOME/Library/LaunchAgents/com.seankolk.netmeter.plist"
-launchctl bootstrap "gui/$UID_NUM" "$HOME/Library/LaunchAgents/com.seankolk.netmeterbar.plist"
+# Not && chained: a bar that will not start must not stop the daemon going up.
+ok=0
+boot_in com.seankolk.netmeter "$HOME/Library/LaunchAgents/com.seankolk.netmeter.plist" || ok=1
+boot_in com.seankolk.netmeterbar "$HOME/Library/LaunchAgents/com.seankolk.netmeterbar.plist" || ok=1
+if [ "$ok" -ne 0 ]; then exit 1; fi
 echo "netmeter installed. Daemon and menu bar app are running and will start at every login."

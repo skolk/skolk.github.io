@@ -542,6 +542,33 @@ check("resume-all empties the throttles too", nm.read_throttled() == {})
 check("and clears the hard stage",
       nm.load_config()["pause_all_hard"] is False)
 
+# --- reading `ps` -----------------------------------------------------------
+# The parse the sweep stands on. A command line holds spaces, so the split has
+# to stop counting fields at the tty; a tty of `??` is what "no shell owns
+# this" looks like.
+
+class _PS:
+    def __init__(self, out): self.stdout = out
+
+real_run = nm.subprocess.run
+nm.subprocess.run = lambda *a, **k: _PS(
+    "  501 T    ??       /Applications/Cursor.app/Contents/MacOS/Cursor --type=x\n"
+    "  502 T    s002     node /path/to/thing --flag\n"
+    "  503 S    ??       /usr/libexec/awake\n"
+    "  504 T+   ttys010  npm exec @playwright/mcp@latest\n"
+    "garbage line\n")
+try:
+    procs = nm.stopped_procs()
+    check("only the stopped processes come back", sorted(procs) == [501, 502, 504])
+    check("a command line with spaces survives the split",
+          procs[501][1] == "/Applications/Cursor.app/Contents/MacOS/Cursor --type=x")
+    check("no terminal reads as ??", procs[501][0] == "??")
+    check("a terminal is carried through", procs[502][0] == "s002")
+    check("a T+ (foreground, stopped) job still counts as stopped",
+          procs[504][0] == "ttys010")
+finally:
+    nm.subprocess.run = real_run
+
 # --- the orphan sweep -------------------------------------------------------
 # What would have caught 2026-08-28: 35 processes stopped, paused.json empty,
 # and nothing anywhere that could look from `ps` back to the bookkeeping.
@@ -549,14 +576,18 @@ check("and clears the hard stage",
 reset()
 real_stopped, real_load = nm.stopped_procs, nm.load
 nm.stopped_procs = lambda: {
-    2001: "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin)",
-    2002: "/usr/libexec/nsurlsessiond",
-    2003: "/System/Library/.../mDNSResponder",
-    2004: "/Applications/Beta.app/Contents/MacOS/Beta",
-    2005: "/opt/unrelated/Zephyr",
+    2001: ("??", "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin)"),
+    2002: ("??", "/usr/libexec/nsurlsessiond"),
+    2003: ("??", "/System/Library/.../mDNSResponder"),
+    2004: ("??", "/Applications/Beta.app/Contents/MacOS/Beta"),
+    2005: ("??", "/opt/unrelated/Zephyr"),
+    # The 2026-08-28 loop: a node inside a Ctrl-Z'd shell job. On the day's app
+    # list, stopped, and none of netmeter's business.
+    2006: ("s002", "node /Users/x/.npm/_npx/abc/node_modules/.bin/playwright-mcp"),
+    2007: ("ttys010", "npm exec @playwright/mcp@latest"),
 }
 nm.load = lambda d: {"apps": {"Cursor": 1, "nsurlsessiond": 1,
-                              "mDNSResponder": 1, "Beta": 1}}
+                              "mDNSResponder": 1, "Beta": 1, "node": 1}}
 try:
     nm.set_paused("Beta", True, "all", [2004])
     woken = nm.sweep_orphans(nm.load_config())
@@ -568,6 +599,14 @@ try:
     check("it leaves a live, recorded freeze alone", "Beta" not in woken)
     check("and never touches a process netmeter has not met",
           all(2005 not in v for v in woken.values()))
+    check("it leaves a suspended shell job alone, however stopped it looks",
+          all(2006 not in v for v in woken.values()))
+    check("and does not count one as a candidate at all",
+          2006 not in nm.sweep_candidates()[0])
+    check("it can still name the jobs it passed over",
+          sorted(nm.sweep_candidates()[1]) == [2006, 2007])
+    check("a claimed pid is not offered as a job either",
+          2006 not in nm.sweep_candidates([2006])[1])
 
     nm.save_json(nm.PAUSED_PATH, {})
     nm.set_throttled("Cursor", nm.PAUSE_ALL_FLOOR, "all")
