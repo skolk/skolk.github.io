@@ -1,17 +1,19 @@
 # netmeter TODO
 
-Working list for the netmeter project. Sean owns prioritization. Assessment date: 2026-08-24.
+Working list for the netmeter project. Sean owns prioritization. Assessment date: 2026-08-28.
 
 ## Where the project is
 
-- Committed history ends at `557766d` (the throttle wave and per-network profiles, committed 2026-08-20).
-- The working tree holds one new uncommitted feature wave (2026-08-24): network memory (`remember_networks`, `networks.json`, `netmeter networks`) and the top-8 fold in the bar's per-app list (`apps_open`, `display --apps-open`). Verified by 24 sandboxed-HOME checks plus `py_compile` and `swiftc -typecheck`. Deployed 2026-08-24 ~07:50 via `./install.sh` (first bootstrap hit launchd error 5, clean on retry); live daemon confirmed ticking and writing `networks.json`, current network remembered. Not yet committed, not yet on the project page.
+- Committed history ends at `fe69030` (the last three robustness-wave items, 2026-08-28). Everything written this month is committed; nothing is sitting uncommitted in the tree.
+- The tool is deployed and live: both launchd agents up, the installed engine byte-identical to the repo copy.
+- Verification is one command, `./bin/check`: `py_compile`, `swiftc -typecheck`, and 153 sandboxed checks. `install.sh` refuses to install over a failure.
+- The public project page (`_pages/projects/netmeter.md`) is stamped 2026-08-20 and is the one thing genuinely behind: it predates network memory, the app-list fold, Pause All and its two stages, the ramp, Low Data stopping the background downloaders, and the whole six-item robustness wave.
 
 ## Queued
 
 - [ ] **Relink the tether.** `tether_gateway_macs` holds one MAC that network memory has never seen, so the 50 GB cap has counted nothing all period. Run `netmeter tether-here` while on the hotspot. The engine now warns instead of reading a quiet zero, but the link itself still has to be remade by hand.
 
-- [ ] **Project page catch-up** for network memory and the app-list fold, once the wave is committed.
+- [ ] **Project page catch-up.** `_pages/projects/netmeter.md` is eight days and two waves behind: network memory, the three-way app-list fold, Pause All and its two stages, the ramp, Low Data stopping the background downloaders, and the robustness wave (watchdog, wake race, per-app tether attribution). The `last_updated` stamp says 2026-08-20.
 - [ ] **Preferences fields for the new settings.** `lowdata_throttle`, `throttle_pct`, `burst_cap_mb`, the network profiles, and now `remember_networks` are config.json-only; decide whether they earn spots in the Preferences window.
 
 ## Done
