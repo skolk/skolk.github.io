@@ -6,17 +6,23 @@ Working list for the netmeter project. Sean owns prioritization. Assessment date
 
 - Committed history ends at `fe69030` (the last three robustness-wave items, 2026-08-28). Everything written this month is committed; nothing is sitting uncommitted in the tree.
 - The tool is deployed and live: both launchd agents up, the installed engine byte-identical to the repo copy.
-- Verification is one command, `./bin/check`: `py_compile`, `swiftc -typecheck`, and 178 sandboxed checks. `install.sh` refuses to install over a failure.
+- Verification is one command, `./bin/check`: `py_compile`, `swiftc -typecheck`, and 188 sandboxed checks. `install.sh` refuses to install over a failure.
 - The public project page (`_pages/projects/netmeter.md`) is stamped 2026-08-20 and is the one thing genuinely behind: it predates network memory, the app-list fold, Pause All and its two stages, the ramp, Low Data stopping the background downloaders, and the whole six-item robustness wave.
 
 ## Queued
-
-- [ ] **Relink the tether.** `tether_gateway_macs` holds one MAC that network memory has never seen, so the 50 GB cap has counted nothing all period. Run `netmeter tether-here` while on the hotspot. The engine now warns instead of reading a quiet zero, but the link itself still has to be remade by hand.
 
 - [ ] **Project page catch-up.** `_pages/projects/netmeter.md` is eight days and two waves behind: network memory, the three-way app-list fold, Pause All and its two stages, the ramp, Low Data stopping the background downloaders, and the robustness wave (watchdog, wake race, per-app tether attribution). The `last_updated` stamp says 2026-08-20.
 - [ ] **Preferences fields for the new settings.** `lowdata_throttle`, `throttle_pct`, `burst_cap_mb`, the network profiles, and now `remember_networks` are config.json-only; decide whether they earn spots in the Preferences window.
 
 ## Done
+
+- 2026-08-31: **the tether was linked to a MAC that had never existed as far as netmeter knew, and the advice for fixing it only worked somewhere else.** The cap had counted nothing for 27 days. `tether-here` needs you standing on the hotspot, which is exactly where you are not when you notice, so the warning was unactionable wherever it was read. Three parts:
+  - `netmeter tether-link NAME|MAC` links any network memory has seen, from anywhere. It replaces rather than appends, because a stale link is not a second tether, it is the same one under an address the phone stopped using, and leaving it in means a cap that counts whoever inherits that MAC next.
+  - `tether_candidate()` matches `tether_name` against the names in memory, so the warning names the network it thinks you meant and hands over the command instead of a place to stand. Deliberately name-based: guessing from the shape of a MAC would be cleverer and wrong the first time a hotspot did not randomise.
+  - `mac_norm()`, because `arp` prints `30:23:3:...` and `30:23:03:...` for the same address depending on where it came from, and a link stored in one form never matched memory stored in the other.
+  - The "nothing counted in N days" check now ages from the day the link was made, not the period start. Relinking used to clear "linked network never seen" and instantly raise "nothing counted in 27 days", which is true, unfixable, and points at the thing you just fixed; it would have sat there until the period rolled over.
+
+  Relinked live to Pixi (`2e:b8:0:78:fa:3a`, router 10.59.187.218), confirmed with Sean. Both warnings clear, `now.json` publishes an empty `tether_warn`.
 
 - 2026-08-31: **Low Data was running at roughly half the throttle it claimed, and the log had stopped being readable.** Reported as "Cursor and Claude Code are still free in Low Data mode". Measured on the live machine before touching anything: a 25% throttle held Cursor stopped 47% of the time instead of 75%, and the per-process trace was ragged (awake 1.7s, 3.5s, stopped 0.45s, 2.5s) rather than the flat 1-on-3-off the duty cycle is. Four causes, all of them now measured fixed at 72%:
 

@@ -12,6 +12,7 @@ Safety rules, in force for every check in this file:
 Run: python3 tests/test_pause.py
 """
 
+import datetime
 import json
 import importlib.machinery
 import importlib.util
@@ -515,6 +516,57 @@ check("no warning while actually on the tether",
 t2 = {"period_start": "2026-08-04", "in": 5, "out": 5, "notified_pct": 0}
 check("no warning once bytes are counted",
       nm.tether_link_warning(cfg, ["aa:bb"], t2, False) == "")
+
+# --- relinking a tether from memory, from anywhere (2026-08-31) -------------
+# The old advice was "relink while tethered", which is only actionable in the
+# one place you are least likely to be when you notice the cap has counted
+# nothing for three weeks. Memory usually already knows the network.
+
+check("a MAC is compared in one form, however arp printed it",
+      nm.mac_norm("30:23:3:fd:a6:f1") == nm.mac_norm("30:23:03:FD:A6:F1"))
+nm.save_json(nm.NETWORKS_PATH, {"30:23:03:fd:a6:f1": {"last_seen": "2026-08-28"}})
+check("and a link stored short still matches memory stored long",
+      "never seen" not in nm.tether_link_warning(nm.load_config(),
+                                                 ["30:23:3:fd:a6:f1"], t, False))
+
+reset()
+nm.save_json(nm.NETWORKS_PATH, {
+    "2e:b8:0:78:fa:3a": {"name": "Pixi", "router": "10.59.187.218",
+                         "last_seen": "2026-08-31", "settings": {}},
+    "e4:d1:24:4e:b1:d0": {"name": "", "router": "172.16.102.254",
+                          "last_seen": "2026-08-31", "settings": {}}})
+cfg = nm.update_config(tether_name="A_Pixi")
+found = nm.tether_candidate(cfg, ["30:23:3:fd:a6:f1"])
+check("a stale link finds the remembered network its name points at",
+      found is not None and found[0] == "2e:b8:0:78:fa:3a")
+check("and the warning hands over the command instead of a place to stand",
+      "tether-link Pixi" in nm.tether_link_warning(cfg, ["30:23:3:fd:a6:f1"],
+                                                   t, False))
+check("the warning is still short enough not to widen the menu",
+      len(nm.tether_link_warning(cfg, ["30:23:3:fd:a6:f1"], t, False)) <= 60)
+check("a link that is fine suggests nothing",
+      nm.tether_candidate(cfg, ["2e:b8:00:78:fa:3a"]) is None)
+cfg = nm.update_config(tether_name="Somewhere Else")
+check("and a name nothing answers to suggests nothing either",
+      nm.tether_candidate(cfg, ["30:23:3:fd:a6:f1"]) is None)
+
+# A fresh link must not inherit the blame for the period it arrived in the
+# middle of: relinking cleared "never seen" and instantly raised "nothing
+# counted in 27 days", pointing at the thing that had just been fixed.
+reset()
+nm.save_json(nm.NETWORKS_PATH, {"aa:bb": {"last_seen": "2026-08-28"}})
+old_period = {"period_start": "2026-08-04", "in": 0, "out": 0, "notified_pct": 0}
+cfg = nm.update_config(tether_linked="")
+check("a long-dead link in a long-running period is still called out",
+      "nothing counted" in nm.tether_link_warning(cfg, ["aa:bb"], old_period, False))
+cfg = nm.update_config(tether_linked=datetime.date.today().isoformat())
+check("but a link made today is given the same two days as any other",
+      nm.tether_link_warning(cfg, ["aa:bb"], old_period, False) == "")
+cfg = nm.update_config(
+    tether_linked=(datetime.date.today() - datetime.timedelta(days=9)).isoformat())
+check("and one that has had nine days to count something is called out again",
+      "nothing counted in 9 days" in
+      nm.tether_link_warning(cfg, ["aa:bb"], old_period, False))
 
 # --- who spent the tether data ----------------------------------------------
 # Design item 6. The counter could answer "how much" and never "who".
