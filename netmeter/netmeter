@@ -39,10 +39,13 @@ Usage:
                           leaving it restores what they replaced. A mode flipped by
                           hand while connected stands until you leave and rejoin
   netmeter profile        list per-network profiles; `profile rm NAME` forgets one
-  netmeter networks       list the networks the daemon remembers. Every network's
-                          mode settings (the low data family plus Pause All) are
-                          they change, and rejoining a remembered network brings
-                          back how it was last used; explicit profiles still win.
+  netmeter networks       list the networks the daemon remembers. Each one
+                          remembers whether Low Data and Pause All were on
+                          there, written as you flip them, so rejoining brings
+                          the modes back. What those modes *do* (the app lists,
+                          the percentage, the cap) stays global and does not
+                          travel; an explicit profile is the way to pin that to
+                          a network. `networks name MAC LABEL` names one,
                           `networks rm NAME|MAC` forgets one, `networks on|off`
                           toggles the remembering itself
   netmeter recent [MIN]   who spent the data over the last MIN minutes (default 60)
@@ -149,9 +152,10 @@ DEFAULT_CONFIG = {
     # never trips a 50 MB/min cap and still costs 300 MB. Off by default; set it
     # to arm it. Armed under the same condition as the burst cap.
     "drain_cap_mb": 0, "drain_window_min": 5,
-    # remember_networks: every network the daemon sees gets its mode settings
-    # (the lowdata family plus Pause All) written to networks.json as they change,
-    # and rejoining a remembered network brings back how it was last used.
+    # remember_networks: every network the daemon sees gets the position of its
+    # mode switches (Low Data, Pause All) written to networks.json as they
+    # change, and rejoining a remembered network brings them back. Only the
+    # switches: see MEMORY_KEYS for why the settings behind them stay global.
     # Explicit profiles in network_profiles still win where both exist.
     "remember_networks": True,
     "combine_updown": False, "show_rate": True, "show_total": True,
@@ -210,6 +214,15 @@ BACKGROUND_DOWNLOADS = {
 FRIENDLY = [
     (re.compile(r"^\d+\.\d+\.\d+$"), "Claude Code"),          # CLI shows as its version, e.g. 2.1.220
     (re.compile(r"^Cursor Helper"), "Cursor"),
+    # An app whose helpers report under their own name gets two rows in the
+    # table and, worse, two identities the enforcement has to agree about: the
+    # throttle held "Claude" (whose command-line regex catches the helpers) while
+    # the sweep saw six stopped processes filed under "Claude Helper", which no
+    # record claimed, and woke them once a minute. Folding is the fix Cursor and
+    # Chrome already had.
+    (re.compile(r"^Claude Helper"), "Claude"),
+    (re.compile(r"^Granola Helper"), "Granola"),
+    (re.compile(r"^Signal Helper"), "Signal"),
     (re.compile(r"^Google Chrome"), "Google Chrome"),
     (re.compile(r"^com\.apple\.Web"), "Safari (WebKit)"),
     (re.compile(r"^networkservicep"), "networkserviceproxy (Apple relay)"),
@@ -400,6 +413,45 @@ def read_recent(window_minutes):
 
 
 def migrate_state():
+    """Bring state on disk up to the current config_version, one step per wave.
+
+    Each step is gated on the version it was written for, so the common case is
+    one small read and nothing else."""
+    raw = read_json(CONFIG_PATH) or {}
+    version = raw.get("config_version", 1)
+    if version < 2:
+        _migrate_solo(raw)
+    if version < 3:
+        _migrate_memory_keys()
+
+
+def _migrate_memory_keys():
+    """v3, 2026-08-31: network memory stopped speaking for the preference keys.
+
+    Every entry written before today carries a copy of lowdata_apps,
+    lowdata_throttle, throttle_pct and burst_cap_mb as they stood on the last
+    visit, and every one of those copies is a stale edit waiting to be restored
+    over a current one. Trim them to the switches. Explicit profiles in
+    network_profiles are untouched: pinning one is deliberate, and the pin is
+    supposed to speak for the whole family."""
+    nets = read_json(NETWORKS_PATH) or {}
+    trimmed = 0
+    for entry in nets.values():
+        st = entry.get("settings")
+        if not isinstance(st, dict):
+            continue
+        keep = {k: st[k] for k in MEMORY_KEYS if k in st}
+        if keep != st:
+            entry["settings"] = keep
+            trimmed += 1
+    if trimmed:
+        save_json(NETWORKS_PATH, nets)
+    update_config(config_version=3)
+    log(f"migrated config to v3 (network memory -> mode switches only): "
+        f"{trimmed} entr{'y' if trimmed == 1 else 'ies'} trimmed")
+
+
+def _migrate_solo(raw):
     """One-time conversion of anything still carrying solo mode, retired
     2026-08-28 into Pause All. Solo was Pause All with the allow list capped at
     one, so every solo fact has an exact translation: the mode becomes Pause
@@ -408,10 +460,7 @@ def migrate_state():
     migration that skipped any one of them would leave a network rejoining into
     a mode that no longer exists.
 
-    Gated on config_version so the common case is one small read."""
-    raw = read_json(CONFIG_PATH) or {}
-    if raw.get("config_version", 1) >= 2:
-        return
+    Gated on config_version by migrate_state()."""
     changes = {"config_version": 2}
     solo_on, solo_app = bool(raw.get("solo")), raw.get("solo_app") or ""
     if solo_on:
@@ -723,7 +772,14 @@ def signal_pids(pids, sig):
     """Returns the pids actually signalled, so the caller can record them."""
     pids = list(pids)
     if sig == signal.SIGSTOP:
-        pids = [p for p in pids if p not in protected(pids)]
+        # Hoisted out of the comprehension it used to sit in. protected() costs
+        # a full `ps`, and as a condition it paid that once per pid: stopping
+        # Cursor's 36 helpers ran `ps` 36 times and took half a second, every
+        # stop of every duty cycle. The overrun landed in the app's awake half,
+        # so a 25% throttle measured 47% stopped on 2026-08-31 instead of 75%,
+        # which is most of why Low Data felt like it was not holding anything.
+        skip = protected(pids)
+        pids = [p for p in pids if p not in skip]
     sent = []
     for pid in pids:
         with contextlib.suppress(ProcessLookupError, PermissionError):
@@ -860,6 +916,16 @@ def sweep_orphans(cfg=None):
     claimed = set()
     for e in paused.values():
         claimed.update(e["pids"])
+    # Skipping busy *names* is not enough, because the label holding a process
+    # down is not always the label the day's table files it under. The throttle
+    # held "Claude"; nettop reported its helpers as "Claude Helper"; that name
+    # was on the day's list, nothing claimed it, and the sweep woke six of the
+    # eight processes the duty cycle was stopping, once a minute, for days.
+    # ("node" did the same to Cursor's extension host.) Claiming by pid closes
+    # the whole class: whatever a busy app's processes are called, they are
+    # stopped on purpose and the sweep passes over them.
+    for name in busy:
+        claimed.update(app_pids(name))
     today = load(datetime.date.today().isoformat())
     names = (set(today.get("apps") or {})
              | set(cfg.get("lowdata_apps") or [])
@@ -948,11 +1014,34 @@ def reconcile_paused(cfg=None):
     # a minute is a tolerable worst case for one to sit there.
     sweep_orphans(cfg)
     if lifted or refroze or dropped:
-        log("reconcile: " + " ".join(filter(None, [
+        msg = "reconcile: " + " ".join(filter(None, [
             f"freed {', '.join(lifted)};" if lifted else "",
             f"re-froze {', '.join(refroze)};" if refroze else "",
-            f"forgot {', '.join(dropped)}" if dropped else ""])))
+            f"forgot {', '.join(dropped)}" if dropped else ""]))
+        _log_repeating("reconcile", msg)
     return lifted, refroze, dropped
+
+
+# A standing fight writes the same line once a minute for as long as it lasts.
+# launchd restarts the background downloaders Low Data freezes, so a long
+# tethered session logged "re-froze cloudd, nsurlsessiond" 113 times, and the
+# one line that mattered ("sweep: woke 6 stranded process(es) of Claude Helper")
+# sat in the middle of them for three days. Say it when it changes, and say it
+# again every quarter hour so a fight that never ends is still visible.
+_REPEATS = {}
+REPEAT_EVERY = 900
+
+
+def _log_repeating(key, msg):
+    last_msg, last_at = _REPEATS.get(key, (None, 0.0))
+    now = time.time()
+    if msg == last_msg and now - last_at < REPEAT_EVERY:
+        return
+    line = msg
+    if msg == last_msg:
+        line += f" (unchanged for {int((now - last_at) / 60)} min)"
+    _REPEATS[key] = (msg, now)
+    log(line)
 
 
 def show_paused(jobs=False):
@@ -1521,20 +1610,31 @@ def throttle_worker(stop):
     unfreeze_throttled() reads the same file that had just been emptied."""
     pid_cache, cached_at = {}, 0.0
     held = []
+
+    def release():
+        # A pid some other path has frozen for real since we stopped it stays
+        # stopped: a duty cycle must not undo a freeze that outranks it.
+        # Everything else this loop stopped, it wakes.
+        nonlocal held
+        if not held:
+            return
+        owned = set()
+        for e in read_paused().values():
+            owned.update(e["pids"])
+        signal_pids([p for p in held if p not in owned], signal.SIGCONT)
+        held = []
+
     while not stop.is_set():
-        if held:
-            # A pid some other path has frozen for real since we stopped it
-            # stays stopped: a duty cycle must not undo a freeze that outranks
-            # it. Everything else this loop stopped, it wakes.
-            owned = set()
-            for e in read_paused().values():
-                owned.update(e["pids"])
-            signal_pids([p for p in held if p not in owned], signal.SIGCONT)
-            held = []
+        # The wake used to be the first thing in the loop, which quietly made
+        # every read below it part of the app's running half: config, the two
+        # state files and, every five seconds, a pid refresh that costs three
+        # pgrep runs. The period's clock starts after all of it now, so the
+        # share an app gets is the share it was set to.
         cfg = load_config()
         period = max(0.5, min(5.0, float(cfg.get("throttle_period") or 4.0)))
         throttled = read_throttled()
         if not throttled:
+            release()
             pid_cache, cached_at = {}, 0.0
             stop.wait(period)
             continue
@@ -1553,9 +1653,11 @@ def throttle_worker(stop):
             pct = max(1, min(95, int((throttled[name] or {}).get("pct", 25))))
             schedule.setdefault(round(period * pct / 100, 3), []).append(pids)
         if not schedule:
+            release()
             stop.wait(period)
             continue
         started = time.time()
+        release()
         for pids in schedule.values():
             for group in pids:
                 signal_pids(group, signal.SIGCONT)
@@ -1805,10 +1907,34 @@ def lowdata(action):
 PROFILE_KEYS = ("lowdata", "lowdata_apps", "lowdata_throttle",
                 "throttle_pct", "burst_cap_mb")
 
-# What network memory remembers: the profile family plus Pause All. A profile is
-# a deliberate pin; memory is "how were the modes the last time I was here", and
-# whether everything was blocked here is as much a part of that answer as low data.
-MEMORY_KEYS = PROFILE_KEYS + ("pause_all", "pause_all_allow")
+# What network memory remembers on its own: the mode switches, and nothing else.
+# It used to remember the whole profile family, which read well until the lists
+# started travelling. Every remembered network kept its own copy of
+# lowdata_throttle, throttle_pct and burst_cap_mb as they stood the last time
+# you were there, so editing the throttle list at home and then walking into a
+# cafe last visited in July restored July's list over it, silently, with no
+# event anyone would connect to the edit. Found 2026-08-31 with five remembered
+# networks all holding a stale copy of the same three settings.
+#
+# The rule now: memory answers "was this mode on here", config answers "what
+# does this mode do". A profile is the deliberate exception, because pinning one
+# is an act rather than a side effect, so PROFILE_KEYS still spans the family.
+MEMORY_KEYS = ("lowdata", "pause_all")
+
+# Everything a stint may put in place, from either source. profile_apply walks
+# this rather than MEMORY_KEYS, which is what lets a profile keep pinning the
+# settings memory no longer touches.
+APPLY_KEYS = tuple(dict.fromkeys(PROFILE_KEYS + MEMORY_KEYS))
+
+
+def memory_settings(entry):
+    """A remembered network's settings, narrowed to what memory now speaks for.
+
+    Entries written before 2026-08-31 carry the full family. They are trimmed on
+    disk by migrate_state(), but this is the belt to that braces: an old entry
+    that arrives from anywhere still applies as switches only."""
+    st = (entry or {}).get("settings") or {}
+    return {k: st[k] for k in MEMORY_KEYS if k in st}
 
 
 def pause_all_sync(cfg, overlay):
@@ -1831,7 +1957,7 @@ def profile_apply(mac, prof):
     refreeze blip with a notification on top. Returns True when config moved."""
     cfg = load_config()
     settings = prof.get("settings") or {}
-    overlay = {k: settings[k] for k in MEMORY_KEYS
+    overlay = {k: settings[k] for k in APPLY_KEYS
                if k in settings and cfg.get(k, DEFAULT_CONFIG[k]) != settings[k]}
     saved = {k: cfg.get(k, DEFAULT_CONFIG[k]) for k in overlay}
     save_json(PROFILE_PATH, {"mac": mac, "name": prof.get("name", ""),
@@ -1884,7 +2010,14 @@ def network_remember(cfg, mac, ip=None):
             and entry.get("name", "") == name
             and (not ip or entry.get("router") == ip)):
         return
+    # "changed" is the day the switches last moved, as against "last_seen",
+    # the day we were last here. `networks` prints both, because "low data on,
+    # set in April" and "low data on, set this morning" are different claims
+    # about how much the entry should be trusted.
+    if entry.get("settings") != settings:
+        entry["changed"] = today
     entry.update({"settings": settings, "last_seen": today, "name": name})
+    entry.setdefault("changed", today)
     if ip:
         entry["router"] = ip
     nets[mac] = entry
@@ -1926,7 +2059,7 @@ def profile_check(cfg, gw_mac, gw_ip=None):
             cfg = load_config()
     prof = (cfg.get("network_profiles") or {}).get(gw_mac)
     entry = ((read_json(NETWORKS_PATH) or {}).get(gw_mac) or {}) if remember else {}
-    mem = entry.get("settings") or {}
+    mem = memory_settings(entry)
     if prof and mem:
         # The profile pins what it pins; memory answers for the rest. Without
         # the merge, a Pause All left on at the previous network sails straight
@@ -2017,9 +2150,10 @@ def profile_cmd(action, name):
               f"{profile_summary(prof.get('settings') or {})}{tail}")
 
 
-def networks_cmd(action, name):
+def networks_cmd(action, name, label=None):
     """`netmeter networks` lists every network the daemon remembers, `networks
-    rm NAME|MAC` forgets one, `networks on|off` toggles the remembering."""
+    name MAC LABEL` names one, `networks rm NAME|MAC` forgets one, and
+    `networks on|off` toggles the remembering."""
     if action in ("on", "off"):
         update_config(remember_networks=(action == "on"))
         if action == "on":
@@ -2030,6 +2164,26 @@ def networks_cmd(action, name):
                   "nothing applies or updates; `netmeter networks on` resumes.")
         return
     nets = read_json(NETWORKS_PATH) or {}
+    if action == "name":
+        # Naming used to come only with profile-here, which also pins settings,
+        # so a network you merely wanted to recognise had to be given a policy
+        # too. SSIDs are location-gated and the MAC is not a name anyone reads,
+        # which leaves this as the only way to make the list legible.
+        if not name or not label:
+            print("Usage: netmeter networks name MAC|OLDNAME LABEL\n"
+                  "  (`netmeter networks` lists the MACs; the one marked "
+                  "[here now] is this network)")
+            return
+        hits = [m for m, e in nets.items()
+                if m == name or (e.get("name") or "") == name]
+        if not hits:
+            print(f"No remembered network '{name}'.")
+            return
+        for m in hits:
+            nets[m]["name"] = label
+        save_json(NETWORKS_PATH, nets)
+        print(f"Named {len(hits)} network(s) '{label}'.")
+        return
     if action == "rm":
         if not name:
             print("Usage: netmeter networks rm NAME|MAC")
@@ -2063,9 +2217,15 @@ def networks_cmd(action, name):
         label = e.get("name") or mac
         paren = f" ({', '.join(detail)})" if detail else ""
         here = "  [here now]" if mac == gw else ""
-        print(f"  {label}{paren} · last seen "
-              f"{e.get('last_seen', '?')} · "
-              f"{profile_summary(e.get('settings') or {})}{here}")
+        seen = e.get("last_seen", "?")
+        # The day the switches last moved, said out loud only when it is not
+        # the day we were last here: an entry set months ago and merely walked
+        # past since is a weaker claim than one set this morning.
+        set_on = e.get("changed")
+        when = f"last seen {seen}" + (f", set {set_on}"
+                                      if set_on and set_on != seen else "")
+        print(f"  {label}{paren} · {when} · "
+              f"{profile_summary(memory_settings(e))}{here}")
 
 
 def notify(text):
@@ -2485,10 +2645,13 @@ def main():
     pfp.add_argument("action", nargs="?", choices=["list", "rm"])
     pfp.add_argument("name", nargs="?")
     nwp = sub.add_parser("networks",
-                         help="networks the daemon remembers the mode settings for; "
-                              "`networks rm NAME|MAC` forgets one, on|off toggles remembering")
-    nwp.add_argument("action", nargs="?", choices=["list", "rm", "on", "off"])
+                         help="networks the daemon remembers the mode switches for; "
+                              "`networks name MAC LABEL` names one, `networks rm "
+                              "NAME|MAC` forgets one, on|off toggles remembering")
+    nwp.add_argument("action", nargs="?",
+                     choices=["list", "name", "rm", "on", "off"])
     nwp.add_argument("name", nargs="?")
+    nwp.add_argument("label", nargs="?")
     slp = sub.add_parser("solo", help=argparse.SUPPRESS)   # retired 2026-08-28
     slp.add_argument("app", nargs="?")
     dp = sub.add_parser("display", help="menu bar display options")
@@ -2561,7 +2724,7 @@ def main():
     elif args.cmd == "profile":
         profile_cmd(args.action, args.name)
     elif args.cmd == "networks":
-        networks_cmd(args.action, args.name)
+        networks_cmd(args.action, args.name, args.label)
     elif args.cmd == "solo":
         # Retired into Pause All, which is the same idea without the cap of one.
         app = args.app if args.app and args.app != "off" else "APP"

@@ -37,6 +37,10 @@ nm.notify = lambda text: NOTES.append(text)
 nm.daemon_running = lambda: False
 
 SENT = []                      # (sorted pids, signal)
+# Kept so one check can exercise the real thing. It is only ever called there,
+# and only against pids above the macOS maximum, where os.kill can do nothing
+# but raise ESRCH. Every other caller in this file gets the stub.
+REAL_SIGNAL_PIDS = nm.signal_pids
 nm.signal_pids = lambda pids, sig: (SENT.append((sorted(pids), sig)) or sorted(pids))
 
 PROCS = {}                     # pid -> (state, started_epoch)
@@ -265,11 +269,15 @@ check("a soloed config becomes Pause All", cfg["pause_all"] is True)
 check("and the soloed app becomes the one exception",
       cfg["pause_all_allow"] == ["Google Chrome"])
 check("solo keys are gone from config", "solo" not in nm.read_json(nm.CONFIG_PATH))
-check("the migration stamps a version", cfg["config_version"] == 2)
+check("the migration stamps a version", cfg["config_version"] == 3)
 net = nm.read_json(nm.NETWORKS_PATH)["aa:bb"]["settings"]
-check("a remembered network migrates too",
-      net["pause_all"] is True and net["pause_all_allow"] == ["Ollama"])
+check("a remembered network migrates too", net["pause_all"] is True)
 check("and drops its solo keys", "solo" not in net and "solo_app" not in net)
+# v3 runs straight after v2 on a v1 config, so the solo->Pause All translation
+# lands in memory and is then trimmed to the switch. The allow list it built is
+# not lost: it went into config, where the mode reads it from now on.
+check("and v3 trims memory to the mode switches",
+      set(net) == {"pause_all", "lowdata"})
 stint = nm.read_json(nm.PROFILE_PATH)
 check("the live stint drops solo from its overlay",
       "solo" not in stint["applied"] and "solo" not in stint["saved"])
@@ -730,6 +738,165 @@ conts = [i for i, (p, sig) in enumerate(SENT) if p == [1401] and sig == signal.S
 check("and every stop it landed was followed by a wake",
       bool(conts) and max(conts) > max(stops))
 nm.update_config(throttle_period=4.0)
+
+# --- helpers fold into the app they belong to (2026-08-31) ------------------
+# An app whose helpers keep their own name gets two identities, and enforcement
+# has to agree about both. It did not: see the sweep check below.
+
+reset()
+check("the Claude desktop app's helpers fold into one row",
+      nm.friendly("Claude Helper (Renderer)") == "Claude")
+check("and the CLI, which reports as its version, stays its own app",
+      nm.friendly("2.1.220") == "Claude Code")
+check("Cursor's helpers still fold the way they always did",
+      nm.friendly("Cursor Helper (Plugin)") == "Cursor")
+
+# --- the sweep claims pids, not names (2026-08-31) --------------------------
+# The live bug: "sweep: woke 6 stranded process(es) of Claude Helper", once a
+# minute for days. The throttle held those six under the name "Claude"; the
+# day's table filed them under "Claude Helper"; that name was on the app list,
+# nothing claimed it, and the sweep undid the duty cycle it could not see.
+
+reset()
+real_stopped, real_load = nm.stopped_procs, nm.load
+nm.stopped_procs = lambda: {
+    2101: ("??", "/Applications/Claude.app/Contents/Frameworks/Claude Helper.app"
+                 "/Contents/MacOS/Claude Helper --type=renderer"),
+    2102: ("??", "/opt/unrelated/Zephyr"),
+}
+nm.load = lambda d: {"apps": {"Claude Helper": 1, "Zephyr": 1}}
+try:
+    PIDS["Claude"] = [2101]
+    nm.set_throttled("Claude", 25, "lowdata")
+    woken = nm.sweep_orphans(nm.load_config())
+    check("a throttled app's processes are spared under any label they carry",
+          "Claude Helper" not in woken)
+    check("and the sweep still wakes a strand nothing is holding",
+          woken.get("Zephyr") == [2102])
+finally:
+    nm.stopped_procs, nm.load = real_stopped, real_load
+
+# --- one `ps` per stop, not one per process (2026-08-31) --------------------
+# protected() sat inside a list comprehension's condition, so it ran once per
+# pid. Stopping Cursor's 36 helpers meant 36 `ps` runs and half a second, and
+# the overrun was charged to the app's running half: a 25% throttle measured
+# 47% stopped instead of 75%, which is why Low Data felt like it did nothing.
+
+reset()
+real_prot = nm.protected
+ASKED = []
+nm.protected = lambda pids: (ASKED.append(len(list(pids))) or set())
+try:
+    ghosts = [999001, 999002, 999003, 999004, 999005]
+    REAL_SIGNAL_PIDS(ghosts, signal.SIGSTOP)
+    check("a stop asks what is protected once, not once per process",
+          ASKED == [5])
+    ASKED.clear()
+    REAL_SIGNAL_PIDS(ghosts, signal.SIGCONT)
+    check("and a wake does not ask at all", ASKED == [])
+finally:
+    nm.protected = real_prot
+
+# --- network memory remembers the switches, not the settings (2026-08-31) ---
+# It used to remember the whole lowdata family per network, so every entry kept
+# its own copy of the throttle list, the percentage and the cap as they stood on
+# the last visit. Editing them at home and then walking into a network last seen
+# in July restored July's copy over the edit, with no event to connect it to.
+
+reset()
+nm.save_json(nm.NETWORKS_PATH, {})
+cfg = nm.update_config(lowdata=True, pause_all=False, lowdata_throttle=["Mine"],
+                       throttle_pct=40, burst_cap_mb=12, network_profiles={})
+nm.network_remember(cfg, "cc:dd", "10.0.0.1")
+entry = nm.read_json(nm.NETWORKS_PATH)["cc:dd"]
+check("memory records the mode switches",
+      entry["settings"] == {"lowdata": True, "pause_all": False})
+check("and nothing about what those modes do",
+      not ({"lowdata_throttle", "throttle_pct", "burst_cap_mb"}
+           & set(entry["settings"])))
+check("and dates the day the switches last moved", entry["changed"] == entry["last_seen"])
+check("an old full-shape entry still reads as switches only",
+      nm.memory_settings({"settings": {"lowdata": True, "throttle_pct": 90,
+                                       "lowdata_throttle": ["July"]}})
+      == {"lowdata": True})
+
+reset()
+real_bf, real_bl = nm.background_freeze, nm.background_lift
+real_ua, real_ur = nm.update_prefs_apply, nm.update_prefs_restore
+nm.background_freeze = lambda cfg=None: []
+nm.background_lift = lambda: None
+nm.update_prefs_apply = lambda cfg: None
+nm.update_prefs_restore = lambda: None
+try:
+    nm.save_json(nm.NETWORKS_PATH, {"cc:dd": {
+        "name": "Cafe", "last_seen": "2026-07-01",
+        "settings": {"lowdata": True, "lowdata_apps": [],
+                     "lowdata_throttle": ["July"], "throttle_pct": 90,
+                     "burst_cap_mb": 5, "pause_all": False,
+                     "pause_all_allow": []}}})
+    nm.save_json(nm.PROFILE_PATH, {"mac": "old:mac", "name": "",
+                                   "applied": {}, "saved": {}})
+    nm.update_config(lowdata=False, lowdata_throttle=["Today"], throttle_pct=25,
+                     burst_cap_mb=50, network_profiles={})
+    nm.profile_check(nm.load_config(), "cc:dd", "10.0.0.2")
+    cfg = nm.load_config()
+    check("rejoining a remembered network brings its mode switch back",
+          cfg["lowdata"] is True)
+    check("but July's throttle list stays in July",
+          cfg["lowdata_throttle"] == ["Today"])
+    check("and so does July's percentage", cfg["throttle_pct"] == 25)
+    check("and its burst cap", cfg["burst_cap_mb"] == 50)
+    check("the stint only claims to have moved the switch",
+          set(nm.read_json(nm.PROFILE_PATH)["applied"]) == {"lowdata"})
+    check("and the entry on disk is trimmed on the way past",
+          set(nm.read_json(nm.NETWORKS_PATH)["cc:dd"]["settings"])
+          == {"lowdata", "pause_all"})
+
+    # A profile is the deliberate exception: pinning one is an act, so it still
+    # speaks for the whole family.
+    nm.update_config(network_profiles={"ee:ff": {"name": "Pixi", "settings": {
+        "lowdata": True, "lowdata_throttle": ["Pinned"], "throttle_pct": 10}}})
+    nm.profile_check(nm.load_config(), "ee:ff", "10.0.0.3")
+    cfg = nm.load_config()
+    check("an explicit profile still pins what memory no longer touches",
+          cfg["lowdata_throttle"] == ["Pinned"] and cfg["throttle_pct"] == 10)
+    check("and leaving it puts the global list back",
+          nm.profile_check(nm.load_config(), "cc:dd", "10.0.0.2") is not None
+          and nm.load_config()["lowdata_throttle"] == ["Today"])
+finally:
+    nm.background_freeze, nm.background_lift = real_bf, real_bl
+    nm.update_prefs_apply, nm.update_prefs_restore = real_ua, real_ur
+
+# --- naming a network without pinning a policy to it ------------------------
+
+reset()
+nm.save_json(nm.NETWORKS_PATH, {"cc:dd": {"settings": {"lowdata": False},
+                                          "last_seen": "2026-08-30", "name": ""}})
+nm.networks_cmd("name", "cc:dd", "Kate's office")
+check("a remembered network can be named on its own",
+      nm.read_json(nm.NETWORKS_PATH)["cc:dd"]["name"] == "Kate's office")
+nm.network_remember(nm.load_config(), "cc:dd")
+check("and the name survives the next refresh",
+      nm.read_json(nm.NETWORKS_PATH)["cc:dd"]["name"] == "Kate's office")
+
+# --- a standing fight says itself once, not once a minute -------------------
+
+reset()
+open(nm.LOG_PATH, "w").close()
+nm._REPEATS.clear()
+for _ in range(5):
+    nm._log_repeating("reconcile", "reconcile: re-froze cloudd, nsurlsessiond;")
+body = open(nm.LOG_PATH).read()
+check("an unchanged line is logged once, not once per pass",
+      body.count("re-froze cloudd") == 1)
+nm._log_repeating("reconcile", "reconcile: re-froze bird;")
+body = open(nm.LOG_PATH).read()
+check("and a changed one is logged straight away", "re-froze bird" in body)
+nm._REPEATS["reconcile"] = ("reconcile: re-froze bird;",
+                            time.time() - nm.REPEAT_EVERY - 1)
+nm._log_repeating("reconcile", "reconcile: re-froze bird;")
+check("a fight that never ends is restated, with how long it has run",
+      "unchanged for" in open(nm.LOG_PATH).read())
 
 reset()
 nm.log("a thing went wrong")

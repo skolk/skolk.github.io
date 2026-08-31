@@ -14,8 +14,21 @@ func readJSON(_ path: String) -> [String: Any]? {
 // into bar.log, but what goes wrong here is usually a CLI call the bar made,
 // and reading that story across two files in two formats is how three
 // tracebacks sat unnoticed in bar.log for a week.
+// The engine writes local time (datetime.now().isoformat) and this used to
+// write ISO8601DateFormatter's default, which is UTC with a Z. Both halves
+// append to the same file, so two lines about the same second sat next to
+// each other seven hours apart and the log read as two interleaved days.
+// One clock, and it is the one Sean's day is in.
+let barStamp: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+    f.timeZone = TimeZone.current
+    f.locale = Locale(identifier: "en_US_POSIX")
+    return f
+}()
+
 func barLog(_ msg: String) {
-    let stamp = ISO8601DateFormatter().string(from: Date())
+    let stamp = barStamp.string(from: Date())
     let line = "\(stamp) [bar] \(msg)\n"
     let path = home + "/.netmeter/netmeter.log"
     guard let data = line.data(using: .utf8) else { return }
@@ -741,6 +754,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var daemonStale = false       // now.json has stopped moving
     var staleNotified = false     // one notification per stale episode, not per tick
     var daemonWasSeen = false     // so a first launch does not warn about a daemon
+    var lastHealthCheck: Double = 0   // wall clock, to tell a sleep from a stall
+    var wokeAt: Double = 0            // when the machine came back, for the grace
                                   // that has simply never written now.json yet
     var pauseAllButton: ModeButton?
     // Three states across one button: off, holding, hard stopped. isOn alone
@@ -1639,6 +1654,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func checkDaemonHealth() {
+        // A machine that slept looks exactly like a daemon that stopped: both
+        // leave now.json minutes old. The difference is whether *this* process
+        // was running through it, and the 2s readout timer answers that for
+        // free. If the bar's own clock skipped as far as the daemon's did, the
+        // whole laptop was away and nothing needed enforcing while it was.
+        //
+        // This was not a small false positive. 372 of the log's 831 lines were
+        // this warning and its all-clear, roughly 80 a day against ~576
+        // sleep/wake cycles since the last boot, and every one of them a
+        // notification. A watchdog that cries that often is one you stop
+        // reading, which is the failure mode it exists to prevent.
+        let now = Date().timeIntervalSince1970
+        let barGap = lastHealthCheck == 0 ? 0 : now - lastHealthCheck
+        lastHealthCheck = now
+        if barGap > AppDelegate.staleAfter { wokeAt = now }
+        if wokeAt != 0 && now - wokeAt < AppDelegate.staleAfter {
+            // The grace after a wake. now.json is minutes old because the whole
+            // machine was away, and the daemon samples every few seconds, so it
+            // needs a moment to be current again. Two seconds is not that
+            // moment: give it the same 60s any daemon gets before it counts as
+            // silent, or this trades one false alarm for another at every wake.
+            staleNotified = false
+            daemonStale = false
+            return
+        }
         let age = daemonAge()
         // No now.json at all is a daemon that has never run, not one that
         // stopped: a first launch should not fire a warning at nobody.
