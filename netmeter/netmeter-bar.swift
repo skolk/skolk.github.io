@@ -54,6 +54,37 @@ func loadApps(_ path: String) -> [String: (Double, Double)] {
     return out
 }
 
+// The current network's per-app split for the billing period. usage.json is
+// keyed by gateway MAC, which is the identity everything else in netmeter
+// already trusts, so the bar looks itself up with the MAC now.json publishes.
+func networkApps(_ mac: String) -> [String: (Double, Double)] {
+    guard !mac.isEmpty,
+          let u = readJSON(home + "/.netmeter/usage.json"),
+          let nets = u["nets"] as? [String: Any],
+          let e = nets[mac] as? [String: Any],
+          let apps = e["apps"] as? [String: Any] else { return [:] }
+    var out: [String: (Double, Double)] = [:]
+    for (k, v) in apps {
+        if let a = v as? [Any], a.count >= 2,
+           let i = (a[0] as? NSNumber)?.doubleValue,
+           let o = (a[1] as? NSNumber)?.doubleValue {
+            out[k] = (i, o)
+        }
+    }
+    return out
+}
+
+// "2026-08-04" -> "Aug 4". The period start is a fact about a month, and the
+// year in the middle of a menu row is four characters that never change.
+func shortDate(_ iso: String) -> String {
+    let p = iso.split(separator: "-")
+    guard p.count == 3, let m = Int(p[1]), let d = Int(p[2]),
+          (1...12).contains(m) else { return "" }
+    let names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    return "\(names[m - 1]) \(d)"
+}
+
 func sessionApps() -> [String: (Double, Double)] {
     var apps = loadApps(home + "/.netmeter/\(dayString(0)).json")
     if let sess = readJSON(home + "/.netmeter/session.json"),
@@ -718,7 +749,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem!
     let stats = StatsWindow()
     let prefs = PrefsWindow()
-    var showSession = false
+    // Three scopes now, so a bool no longer says it. 0 session, 1 today,
+    // 2 this network for the billing period. Session stays the default and
+    // stays first: the reset button belongs to it and it is the one you reach
+    // for mid-task, which is why it did not simply become another row.
+    var scope = 1
     // Live references into the open menu. Retitling an item and redrawing a view
     // is safe while a menu is tracking; adding or removing items is not, so the
     // two status lines are always present and toggle their isHidden instead.
@@ -848,8 +883,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let dayFile = readJSON(home + "/.netmeter/\(dayString(0)).json")
         let todayApps = loadApps(home + "/.netmeter/\(dayString(0)).json")
         let sessApps = sessionApps()
+        let netMac = (now?["net_mac"] as? String) ?? ""
+        let netApps = networkApps(netMac)
         var rows: [(String, Double, Double)] = []
-        for (name, v) in (showSession ? sessApps : todayApps) {
+        for (name, v) in (scope == 0 ? sessApps : scope == 1 ? todayApps : netApps) {
             rows.append((name, v.0, v.1))
         }
         rows.sort { $0.1 + $0.2 > $1.1 + $1.2 }
@@ -912,8 +949,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let sessTotal = sessApps.values.reduce(0.0) { $0 + $1.0 + $1.1 }
         let todayTotal = todayApps.values.reduce(0.0) { $0 + $1.0 + $1.1 }
         let todayAge = elapsed(since: dayFile?["started"] as? String)
+        // Off the interface, not the app table: this is the number that has to
+        // agree with the cap line above, and the per-app rows underneath run
+        // 10-15% under it for the reason `netmeter tether` spells out.
+        let netTotal = (now?["net_used"] as? NSNumber)?.doubleValue ?? 0
+        let netName = (now?["net_name"] as? String) ?? ""
+        let netSince = shortDate((now?["net_period_start"] as? String) ?? "")
         menu.addItem(headerRow(session: (sessTotal, sessAge),
-                               today: (todayTotal, todayAge), since: clock))
+                               today: (todayTotal, todayAge),
+                               network: (netTotal, netSince.isEmpty ? ""
+                                                 : "since \(netSince)"),
+                               netName: netName, since: clock))
 
         // Per-app rows with an inline on/off switch (on = running, off = frozen).
         // All twenty are built; how many show is the fold's business.
@@ -921,7 +967,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         appRowItems = []
         appRowFrozen = []
         var listed = Set<String>()
-        let minBytes: Double = showSession ? 100 * KB : MB
+        // A billing period's worth of bytes needs a coarser floor than a day's
+        // or the list is thirty rows of system chatter.
+        let minBytes: Double = scope == 0 ? 100 * KB : scope == 1 ? MB : 10 * MB
         appRowSetters = []
         appRowPausable = []
         appRowNames = []
@@ -1468,21 +1516,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // other number cost a click to see. Both live here now, each with how long
     // it has been accumulating, and the selected one is the one in full contrast.
     func headerRow(session: (Double, String), today: (Double, String),
+                   network: (Double, String), netName: String,
                    since: String) -> NSMenuItem {
         let item = NSMenuItem()
-        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 58))
-        let seg = NSSegmentedControl(labels: ["Session", "Today"],
+        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 80))
+        // The control moved onto its own row when the third scope arrived.
+        // Three labels do not fit beside the numbers in 348 points, and the
+        // numbers are the part you came to read.
+        let seg = NSSegmentedControl(labels: ["Session", "Today", "Network"],
                                      trackingMode: .selectOne,
                                      target: self, action: #selector(modeChanged(_:)))
-        seg.selectedSegment = showSession ? 0 : 1
+        seg.selectedSegment = scope
         seg.controlSize = .small
         seg.appearance = NSAppearance(
             named: NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) ?? .aqua)
-        seg.frame = NSRect(x: 10, y: 31, width: 150, height: 21)
+        seg.frame = NSRect(x: 10, y: 56, width: 200, height: 21)
         v.addSubview(seg)
 
         // Reset belongs beside the counter it resets, not adrift in a row above.
-        let reset = ModeButton(frame: NSRect(x: 10, y: 4, width: 104, height: 22))
+        let reset = ModeButton(frame: NSRect(x: 10, y: 14, width: 104, height: 22))
         reset.label = "Reset Session"
         reset.momentary = true
         reset.onClick = { [weak self] in
@@ -1494,14 +1546,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             started.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
             started.textColor = .tertiaryLabelColor
             started.toolTip = "This session started at \(since)"
-            started.frame = NSRect(x: 120, y: 8, width: 40, height: 13)
+            started.frame = NSRect(x: 118, y: 18, width: 28, height: 13)
             v.addSubview(started)
         }
 
-        let lines = [("Session", session, showSession), ("Today", today, !showSession)]
+        // All three at once, each with the span it covers, and the selected one
+        // in full contrast. The other numbers used to cost a click to see.
+        let netTag = netName.isEmpty ? "Network" : netName
+        let lines = [("Session", session, 0), ("Today", today, 1),
+                     (netTag, network, 2)]
         for (i, entry) in lines.enumerated() {
-            let (name, value, active) = entry
+            let (name, value, which) = entry
             let (bytes, age) = value
+            let active = which == scope
             let right = NSTextField(labelWithString:
                 age.isEmpty ? "\u{21C5}\(fmtBytes(bytes, space: false))"
                             : "\u{21C5}\(fmtBytes(bytes, space: false)) \u{00B7} \(age)")
@@ -1509,7 +1566,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                                           weight: active ? .semibold : .regular)
             right.textColor = active ? .labelColor : .tertiaryLabelColor
             right.alignment = .right
-            right.frame = NSRect(x: 206, y: 33 - CGFloat(i) * 16, width: 132, height: 14)
+            right.frame = NSRect(x: 210, y: 38 - CGFloat(i) * 16, width: 128, height: 14)
             v.addSubview(right)
 
             let tag = NSTextField(labelWithString: name)
@@ -1517,7 +1574,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                          weight: active ? .semibold : .regular)
             tag.textColor = active ? .secondaryLabelColor : .tertiaryLabelColor
             tag.alignment = .right
-            tag.frame = NSRect(x: 162, y: 33 - CGFloat(i) * 16, width: 40, height: 14)
+            tag.lineBreakMode = .byTruncatingTail
+            if which == 2 {
+                tag.toolTip = "Everything this network has moved this billing "
+                            + "period, off the interface. The rows below count "
+                            + "payload and run 10-15% under it."
+            }
+            tag.frame = NSRect(x: 148, y: 38 - CGFloat(i) * 16, width: 58, height: 14)
             v.addSubview(tag)
         }
         item.view = v
@@ -1525,7 +1588,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc func modeChanged(_ sender: NSSegmentedControl) {
-        showSession = sender.selectedSegment == 0
+        scope = sender.selectedSegment
         if let menu = statusItem.menu { menuNeedsUpdate(menu) }
     }
 

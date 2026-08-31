@@ -92,6 +92,12 @@ RECENT_PATH = os.path.join(STATE_DIR, "recent.jsonl")
 TETHER_PATH = os.path.join(STATE_DIR, "tether.json")
 PROFILE_PATH = os.path.join(STATE_DIR, "profile.json")
 NETWORKS_PATH = os.path.join(STATE_DIR, "networks.json")
+# Per-network byte totals for the billing period. Deliberately not in
+# networks.json: that file is memory, written only when a switch moves, and
+# folding a counter that changes every tick into it would rewrite it every five
+# seconds. This one is written like tether.json, because it is the same idea
+# widened from the one linked network to all of them.
+USAGE_PATH = os.path.join(STATE_DIR, "usage.json")
 CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
 RAMP_PATH = os.path.join(STATE_DIR, "ramping.json")
 UPDATE_PREFS_PATH = os.path.join(STATE_DIR, "update_prefs.json")
@@ -616,6 +622,44 @@ def load_tether(cfg):
         save_json(TETHER_PATH, t)
     t.setdefault("apps", {})      # a file written before attribution shipped
     return t
+
+
+def load_usage(cfg):
+    """Per-network totals for the current billing period, rolled over with it.
+
+    The tether counter already answered "how much on the metered network"; this
+    is the same question asked of every network, which is what makes it worth
+    knowing where the data went when more than one network is in play. Same
+    period as the cap on purpose: on the tether the two numbers then describe
+    the same span, so the network line and the cap line agree instead of being
+    two different truths about one hotspot."""
+    u = read_json(USAGE_PATH) or {}
+    ps = tether_period_start(cfg["tether_reset_day"]).isoformat()
+    if u.get("period_start") != ps:
+        u = {"period_start": ps, "nets": {}}
+        save_json(USAGE_PATH, u)      # same rollover-while-away bug as tether
+    u.setdefault("nets", {})
+    return u
+
+
+def usage_add(usage, mac, d_in, d_out, tick_io, name=""):
+    """Charge a tick to the network it happened on.
+
+    Totals come off the interface, the same source the cap trusts, because that
+    is what a carrier counts. The per-app split comes off nettop, which counts
+    payload and so runs 10-15% under. Both are kept: one answers how much, the
+    other answers who, and neither can answer the other's question."""
+    e = usage["nets"].setdefault(mac, {"in": 0, "out": 0, "apps": {}})
+    e["in"] += max(0, d_in)
+    e["out"] += max(0, d_out)
+    if name:
+        e["name"] = name
+    apps = e.setdefault("apps", {})
+    for label, (a_in, a_out) in (tick_io or {}).items():
+        a = apps.setdefault(label, [0, 0])
+        a[0] += a_in
+        a[1] += a_out
+    return e
 
 
 def tether_attribute(tether, tick_io):
@@ -2262,8 +2306,10 @@ def networks_cmd(action, name, label=None):
               "No networks remembered, and remembering is off: "
               "`netmeter networks on` starts it.")
         return
+    usage = load_usage(cfg)
     print(f"Remembering is {'on' if on else 'off'}. Rejoining a network "
-          f"below brings back the modes it lists:")
+          f"below brings back the modes it lists. Data is this billing "
+          f"period, since {usage['period_start']}:")
     _, gw = gateway_mac(cfg.get("wifi_if", "en0"))
     ranked = sorted(nets.items(),
                     key=lambda kv: kv[1].get("last_seen", ""), reverse=True)
@@ -2282,8 +2328,19 @@ def networks_cmd(action, name, label=None):
         set_on = e.get("changed")
         when = f"last seen {seen}" + (f", set {set_on}"
                                       if set_on and set_on != seen else "")
-        print(f"  {label}{paren} · {when} · "
+        u = usage["nets"].get(mac) or {}
+        moved = u.get("in", 0) + u.get("out", 0)
+        print(f"  {label}{paren} · {fmt(moved)} · {when} · "
               f"{profile_summary(memory_settings(e))}{here}")
+
+    # A network that has moved bytes but is not remembered still spent the
+    # data, and leaving it out would make the column quietly not add up.
+    stray = {m: u for m, u in usage["nets"].items()
+             if m not in nets and (u.get("in", 0) + u.get("out", 0))}
+    for mac, u in sorted(stray.items(),
+                         key=lambda kv: -(kv[1].get("in", 0) + kv[1].get("out", 0))):
+        print(f"  {u.get('name') or mac} · "
+              f"{fmt(u.get('in', 0) + u.get('out', 0))} · not remembered")
 
 
 def notify(text):
@@ -2460,15 +2517,40 @@ def run_daemon(interval, ticks=None):
         iface = cfg.get("wifi_if", "en0")
         gw_ip, gw_mac = gateway_mac(iface)
         macs = cfg.get("tether_gateway_macs") or []
-        tether_on = gw_mac is not None and gw_mac in macs
+        # Normalised, because `arp` prints 30:23:3:... and 30:23:03:... for the
+        # same address depending on where it came from. A raw comparison here
+        # is the same latent bug the link warning had: the counter would sit at
+        # zero forever with a link that looks perfectly correct.
+        linked = {mac_norm(m) for m in macs}
+        tether_on = gw_mac is not None and mac_norm(gw_mac) in linked
         state["tether_on"] = tether_on
         wb = wifi_bytes(iface)
         prev = state.get("wifi_prev")
         state["wifi_prev"] = wb
         tether = load_tether(cfg)
+        # The interface delta is read once and charged twice: to the network we
+        # are actually on, always, and to the cap as well when that network is
+        # the metered one. They cover the same period, so on the tether the two
+        # numbers describe one span rather than disagreeing about it.
+        d_in = d_out = 0
+        if wb and prev:
+            d_in = wb[0] - prev[0] if wb[0] >= prev[0] else wb[0]
+            d_out = wb[1] - prev[1] if wb[1] >= prev[1] else wb[1]
+        usage = load_usage(cfg)
+        if gw_mac and (d_in or d_out or tick_io):
+            nets_known = read_json(NETWORKS_PATH) or {}
+            usage_add(usage, gw_mac, d_in, d_out, tick_io,
+                      name=(nets_known.get(gw_mac) or {}).get("name", ""))
+            save_json(USAGE_PATH, usage)
+        # Only when the MAC actually read. A wi-fi blip returns None for a
+        # beat, and taking that as "this network has moved nothing" would blink
+        # the readout to zero and back, which is the same misread the stint
+        # machinery already refuses to make.
+        if gw_mac:
+            state["net_used"] = sum(
+                (usage["nets"].get(gw_mac) or {}).get(k, 0) for k in ("in", "out"))
         if tether_on and wb and prev:
-            t_in = wb[0] - prev[0] if wb[0] >= prev[0] else wb[0]
-            t_out = wb[1] - prev[1] if wb[1] >= prev[1] else wb[1]
+            t_in, t_out = d_in, d_out
             tether["in"] += t_in
             tether["out"] += t_out
             tether_attribute(tether, tick_io)
@@ -2508,6 +2590,14 @@ def run_daemon(interval, ticks=None):
             # The bar's "always Low Data here" row needs to know which network
             # it is standing on; the profile lookup itself stays in config.json.
             "net_mac": gw_mac or "",
+            # What this network has cost over the same period as the cap. On
+            # the tether these two agree by construction; anywhere else it is
+            # the number that says whether this network was worth worrying
+            # about. The bar reads the per-app split straight out of usage.json.
+            "net_used": state.get("net_used", 0),
+            "net_name": (read_json(NETWORKS_PATH) or {}).get(
+                gw_mac or "", {}).get("name", ""),
+            "net_period_start": usage["period_start"],
             "tether_resets": tether_next_reset(
                 datetime.date.fromisoformat(tether["period_start"])).isoformat(),
         })

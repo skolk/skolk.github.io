@@ -568,6 +568,48 @@ check("and one that has had nine days to count something is called out again",
       "nothing counted in 9 days" in
       nm.tether_link_warning(cfg, ["aa:bb"], old_period, False))
 
+# --- per-network totals for the billing period (2026-08-31) -----------------
+# The tether counter answered "how much on the metered network". This is the
+# same question asked of every network, on the same period, so that on the
+# tether the network line and the cap line describe one span rather than two.
+
+reset()
+try:
+    os.remove(nm.USAGE_PATH)
+except FileNotFoundError:
+    pass
+cfg = nm.update_config(tether_reset_day=4)
+u = nm.load_usage(cfg)
+check("usage rolls over with the cap's period, not the calendar month",
+      u["period_start"] == nm.tether_period_start(4).isoformat())
+check("and the rollover is written, not just computed",
+      nm.read_json(nm.USAGE_PATH)["period_start"] == u["period_start"])
+
+nm.usage_add(u, "aa:bb", 1000, 500, {"Chrome": [800, 400]}, name="Cafe")
+nm.usage_add(u, "aa:bb", 200, 100, {"Chrome": [150, 90], "Cursor": [40, 5]})
+nm.usage_add(u, "cc:dd", 7, 3, {"Chrome": [5, 2]})
+e = u["nets"]["aa:bb"]
+check("a network's total comes off the interface", e["in"] == 1200 and e["out"] == 600)
+check("its per-app split comes off nettop and stays separate",
+      e["apps"]["Chrome"] == [950, 490] and e["apps"]["Cursor"] == [40, 5])
+check("the split runs under the total, which is the point of keeping both",
+      sum(sum(v) for v in e["apps"].values()) < e["in"] + e["out"])
+check("a name is kept when memory has one", e.get("name") == "Cafe")
+check("and it is not clobbered by a later tick that has none", e.get("name") == "Cafe")
+check("each network is counted on its own",
+      u["nets"]["cc:dd"]["in"] == 7 and "Cursor" not in u["nets"]["cc:dd"]["apps"])
+u2 = nm.load_usage(cfg)
+check("a period that has not turned over is not thrown away",
+      u2["period_start"] == u["period_start"])
+nm.save_json(nm.USAGE_PATH, {"period_start": "2019-01-01", "nets": {"aa:bb": {"in": 9}}})
+check("but one that has is cleared out", nm.load_usage(cfg)["nets"] == {})
+
+# A MAC that would not read is not a network that moved nothing.
+u = {"period_start": "2026-08-04", "nets": {}}
+nm.usage_add(u, "aa:bb", 5, 5, {})
+check("a tick with no MAC cannot be charged to a network",
+      "" not in u["nets"] and None not in u["nets"])
+
 # --- who spent the tether data ----------------------------------------------
 # Design item 6. The counter could answer "how much" and never "who".
 

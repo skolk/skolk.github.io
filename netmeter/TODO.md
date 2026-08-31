@@ -6,7 +6,7 @@ Working list for the netmeter project. Sean owns prioritization. Assessment date
 
 - Committed history ends at `fe69030` (the last three robustness-wave items, 2026-08-28). Everything written this month is committed; nothing is sitting uncommitted in the tree.
 - The tool is deployed and live: both launchd agents up, the installed engine byte-identical to the repo copy.
-- Verification is one command, `./bin/check`: `py_compile`, `swiftc -typecheck`, and 188 sandboxed checks. `install.sh` refuses to install over a failure.
+- Verification is one command, `./bin/check`: `py_compile`, `swiftc -typecheck`, and 199 sandboxed checks. `install.sh` refuses to install over a failure.
 - The public project page (`_pages/projects/netmeter.md`) is stamped 2026-08-20 and is the one thing genuinely behind: it predates network memory, the app-list fold, Pause All and its two stages, the ramp, Low Data stopping the background downloaders, and the whole six-item robustness wave.
 
 ## Queued
@@ -15,6 +15,14 @@ Working list for the netmeter project. Sean owns prioritization. Assessment date
 - [ ] **Preferences fields for the new settings.** `lowdata_throttle`, `throttle_pct`, `burst_cap_mb`, the network profiles, and now `remember_networks` are config.json-only; decide whether they earn spots in the Preferences window.
 
 ## Done
+
+- 2026-08-31: **per-network usage, and a third scope in the menu to read it in.** Asked for as "how much data has been used per network; I don't care in a coffeeshop's wifi, I do care on Pixi". The tether counter already answered this for the one linked network, so the work was widening it rather than inventing it: `usage.json` keeps per-network totals off the interface plus a per-app split off nettop, keyed by gateway MAC and rolled over on the cap's billing period. Same period on purpose, so on the tether the network line and the cap line describe one span instead of being two truths about one hotspot.
+
+  In the bar, Session | Today becomes Session | Today | Network, all three totals shown at once the way the first two already were, the app list following the selection, and **Reset Session** kept where it was. The control moved onto its own row because three labels do not fit beside the numbers in 348 points. The Network row is labelled with the network's name once it has one and `Network` until then, and carries a coarser floor (10 MB) than a day's list, or a billing period's worth of traffic is thirty rows of system chatter.
+
+  Two bugs found while wiring it: `tether_on` compared gateway MACs raw, so the same latent mismatch that broke the link would have left the cap reading zero with a link that looks correct (normalised now), and the network total was recomputed on every tick including the ones where the MAC would not read, which would have blinked the readout to zero on every wi-fi blip.
+
+  Verified live: interface 22.1 MB against a 20.8 MB per-app split, 94%, inside the expected 85-95% band.
 
 - 2026-08-31: **the tether was linked to a MAC that had never existed as far as netmeter knew, and the advice for fixing it only worked somewhere else.** The cap had counted nothing for 27 days. `tether-here` needs you standing on the hotspot, which is exactly where you are not when you notice, so the warning was unactionable wherever it was read. Three parts:
   - `netmeter tether-link NAME|MAC` links any network memory has seen, from anywhere. It replaces rather than appends, because a stale link is not a second tether, it is the same one under an address the phone stopped using, and leaving it in means a cap that counts whoever inherits that MAC next.
