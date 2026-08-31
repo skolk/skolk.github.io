@@ -54,15 +54,27 @@ func loadApps(_ path: String) -> [String: (Double, Double)] {
     return out
 }
 
-// The current network's per-app split for the billing period. usage.json is
-// keyed by gateway MAC, which is the identity everything else in netmeter
-// already trusts, so the bar looks itself up with the MAC now.json publishes.
-func networkApps(_ mac: String) -> [String: (Double, Double)] {
-    guard !mac.isEmpty,
-          let u = readJSON(home + "/.netmeter/usage.json"),
-          let nets = u["nets"] as? [String: Any],
-          let e = nets[mac] as? [String: Any],
-          let apps = e["apps"] as? [String: Any] else { return [:] }
+// Today's per-network breakdown, out of the day file. Keyed by gateway MAC,
+// which is the identity everything else in netmeter already trusts, so the bar
+// looks the current one up with the MAC now.json publishes.
+func dayNets() -> [String: [String: Any]] {
+    guard let d = readJSON(home + "/.netmeter/\(dayString(0)).json"),
+          let nets = d["nets"] as? [String: Any] else { return [:] }
+    var out: [String: [String: Any]] = [:]
+    for (k, v) in nets {
+        if let e = v as? [String: Any] { out[k] = e }
+    }
+    return out
+}
+
+func netTotal(_ e: [String: Any]?) -> Double {
+    guard let e = e else { return 0 }
+    return ((e["in"] as? NSNumber)?.doubleValue ?? 0)
+         + ((e["out"] as? NSNumber)?.doubleValue ?? 0)
+}
+
+func networkApps(_ e: [String: Any]?) -> [String: (Double, Double)] {
+    guard let apps = e?["apps"] as? [String: Any] else { return [:] }
     var out: [String: (Double, Double)] = [:]
     for (k, v) in apps {
         if let a = v as? [Any], a.count >= 2,
@@ -72,17 +84,6 @@ func networkApps(_ mac: String) -> [String: (Double, Double)] {
         }
     }
     return out
-}
-
-// "2026-08-04" -> "Aug 4". The period start is a fact about a month, and the
-// year in the middle of a menu row is four characters that never change.
-func shortDate(_ iso: String) -> String {
-    let p = iso.split(separator: "-")
-    guard p.count == 3, let m = Int(p[1]), let d = Int(p[2]),
-          (1...12).contains(m) else { return "" }
-    let names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    return "\(names[m - 1]) \(d)"
 }
 
 func sessionApps() -> [String: (Double, Double)] {
@@ -754,6 +755,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // stays first: the reset button belongs to it and it is the one you reach
     // for mid-task, which is why it did not simply become another row.
     var scope = 1
+    // The other networks today, folded away until asked for. Collapsed is the
+    // right default: most days are one network, and a fold that opens onto a
+    // single row you are already looking at is a row wasted.
+    var netsExpanded = false
+    var netRowItems: [(item: NSMenuItem, here: Bool)] = []
+    var netsMoreLabel: NSTextField?
     // Live references into the open menu. Retitling an item and redrawing a view
     // is safe while a menu is tracking; adding or removing items is not, so the
     // two status lines are always present and toggle their isHidden instead.
@@ -884,7 +891,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let todayApps = loadApps(home + "/.netmeter/\(dayString(0)).json")
         let sessApps = sessionApps()
         let netMac = (now?["net_mac"] as? String) ?? ""
-        let netApps = networkApps(netMac)
+        let nets = dayNets()
+        let netApps = networkApps(nets[netMac])
         var rows: [(String, Double, Double)] = []
         for (name, v) in (scope == 0 ? sessApps : scope == 1 ? todayApps : netApps) {
             rows.append((name, v.0, v.1))
@@ -949,17 +957,58 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let sessTotal = sessApps.values.reduce(0.0) { $0 + $1.0 + $1.1 }
         let todayTotal = todayApps.values.reduce(0.0) { $0 + $1.0 + $1.1 }
         let todayAge = elapsed(since: dayFile?["started"] as? String)
-        // Off the interface, not the app table: this is the number that has to
-        // agree with the cap line above, and the per-app rows underneath run
-        // 10-15% under it for the reason `netmeter tether` spells out.
-        let netTotal = (now?["net_used"] as? NSNumber)?.doubleValue ?? 0
+        // Off the interface, not the app table: the per-app rows underneath
+        // count payload and run 10-15% under it, for the reason `netmeter
+        // tether` spells out. Same day as Today, so the three are comparable.
+        let netUsed = (now?["net_used"] as? NSNumber)?.doubleValue ?? 0
         let netName = (now?["net_name"] as? String) ?? ""
-        let netSince = shortDate((now?["net_period_start"] as? String) ?? "")
+        // The network's own span, not the day's. They are the same on a day
+        // spent in one place and very different on the day you moved.
+        let netAge = elapsed(since: nets[netMac]?["since"] as? String)
         menu.addItem(headerRow(session: (sessTotal, sessAge),
                                today: (todayTotal, todayAge),
-                               network: (netTotal, netSince.isEmpty ? ""
-                                                 : "since \(netSince)"),
+                               network: (netUsed, netAge),
                                netName: netName, since: clock))
+
+        // The other networks today, under the header and only in the scope
+        // that is about them. One row each, biggest first, the one you are
+        // standing on marked and never folded away.
+        netRowItems = []
+        netsMoreLabel = nil
+        if scope == 2 {
+            let ranked = nets.keys.sorted { netTotal(nets[$0]) > netTotal(nets[$1]) }
+                .filter { netTotal(nets[$0]) > 0 }
+            if ranked.count > 1 {
+                for mac in ranked {
+                    let e = nets[mac]
+                    let name = (e?["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? mac
+                    let here = mac == netMac
+                    let row = NSMenuItem()
+                    let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 18))
+                    let l = NSTextField(labelWithString: here ? "\u{25CF} \(name)" : "   \(name)")
+                    l.font = NSFont.systemFont(ofSize: 11,
+                                               weight: here ? .semibold : .regular)
+                    l.textColor = here ? .secondaryLabelColor : .tertiaryLabelColor
+                    l.lineBreakMode = .byTruncatingMiddle
+                    l.frame = NSRect(x: 24, y: 2, width: 190, height: 14)
+                    v.addSubview(l)
+                    let r = NSTextField(labelWithString: fmtBytes(netTotal(e), space: false))
+                    r.font = NSFont.monospacedDigitSystemFont(ofSize: 11,
+                                                              weight: here ? .semibold : .regular)
+                    r.textColor = here ? .secondaryLabelColor : .tertiaryLabelColor
+                    r.alignment = .right
+                    r.frame = NSRect(x: 218, y: 2, width: 120, height: 14)
+                    v.addSubview(r)
+                    row.view = v
+                    // The network you are on is the answer to the question the
+                    // scope asks, so it stays visible whatever the fold says.
+                    row.isHidden = !here && !netsExpanded
+                    menu.addItem(row)
+                    netRowItems.append((row, here))
+                }
+                menu.addItem(netsMoreRow(ranked.count - 1))
+            }
+        }
 
         // Per-app rows with an inline on/off switch (on = running, off = frozen).
         // All twenty are built; how many show is the fold's business.
@@ -1317,6 +1366,39 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         appsMoreLabel = label
         appsZoomLabel = zoom
         return item
+    }
+
+    // The fold under the network rows. Same idiom as the app list's: a
+    // PickRow whose click never closes the menu, so you can open the list,
+    // read it, and carry on without the menu snapping shut underneath you.
+    func netsMoreRow(_ hidden: Int) -> NSMenuItem {
+        let item = NSMenuItem()
+        let row = PickRow(frame: NSRect(x: 0, y: 0, width: 348, height: 20))
+        let label = NSTextField(labelWithString: "")
+        label.font = NSFont.systemFont(ofSize: 11)
+        label.textColor = .tertiaryLabelColor
+        label.frame = NSRect(x: 24, y: 2, width: 300, height: 15)
+        row.addSubview(label)
+        row.onClickAt = { [weak self] _ in
+            guard let self = self else { return }
+            self.netsExpanded.toggle()
+            self.applyNetsFold(hidden)
+        }
+        item.view = row
+        netsMoreLabel = label
+        applyNetsFold(hidden)
+        return item
+    }
+
+    func applyNetsFold(_ hidden: Int) {
+        // The network you are standing on is the answer to the question the
+        // scope asks, so it is never what the fold hides.
+        for row in netRowItems where !row.here {
+            row.item.isHidden = !netsExpanded
+        }
+        netsMoreLabel?.stringValue = netsExpanded
+            ? "\u{25BE} Show fewer"
+            : "\u{25B8} \(hidden) other network\(hidden == 1 ? "" : "s") today"
     }
 
     func nextAppsView() -> String {

@@ -92,12 +92,6 @@ RECENT_PATH = os.path.join(STATE_DIR, "recent.jsonl")
 TETHER_PATH = os.path.join(STATE_DIR, "tether.json")
 PROFILE_PATH = os.path.join(STATE_DIR, "profile.json")
 NETWORKS_PATH = os.path.join(STATE_DIR, "networks.json")
-# Per-network byte totals for the billing period. Deliberately not in
-# networks.json: that file is memory, written only when a switch moves, and
-# folding a counter that changes every tick into it would rewrite it every five
-# seconds. This one is written like tether.json, because it is the same idea
-# widened from the one linked network to all of them.
-USAGE_PATH = os.path.join(STATE_DIR, "usage.json")
 CONFIG_PATH = os.path.join(STATE_DIR, "config.json")
 RAMP_PATH = os.path.join(STATE_DIR, "ramping.json")
 UPDATE_PREFS_PATH = os.path.join(STATE_DIR, "update_prefs.json")
@@ -364,8 +358,14 @@ def read_json(path):
 
 
 def load(date):
-    return read_json(state_path(date)) or {
+    d = read_json(state_path(date)) or {
         "date": date, "started": None, "updated": None, "apps": {}}
+    # Per-network totals live in the day file rather than a file of their own.
+    # They rotate for free that way, they answer "today" without a second
+    # period concept to keep in step with the first, and every past day keeps
+    # its own breakdown instead of one running figure that forgets.
+    d.setdefault("nets", {})
+    return d
 
 
 RECENT_KEEP = 800          # minutes of history, a little over 13 hours
@@ -624,32 +624,30 @@ def load_tether(cfg):
     return t
 
 
-def load_usage(cfg):
-    """Per-network totals for the current billing period, rolled over with it.
-
-    The tether counter already answered "how much on the metered network"; this
-    is the same question asked of every network, which is what makes it worth
-    knowing where the data went when more than one network is in play. Same
-    period as the cap on purpose: on the tether the two numbers then describe
-    the same span, so the network line and the cap line agree instead of being
-    two different truths about one hotspot."""
-    u = read_json(USAGE_PATH) or {}
-    ps = tether_period_start(cfg["tether_reset_day"]).isoformat()
-    if u.get("period_start") != ps:
-        u = {"period_start": ps, "nets": {}}
-        save_json(USAGE_PATH, u)      # same rollover-while-away bug as tether
-    u.setdefault("nets", {})
-    return u
-
-
-def usage_add(usage, mac, d_in, d_out, tick_io, name=""):
-    """Charge a tick to the network it happened on.
+def net_add(data, mac, d_in, d_out, tick_io, name=""):
+    """Charge a tick to the network it happened on, inside the day it happened.
 
     Totals come off the interface, the same source the cap trusts, because that
     is what a carrier counts. The per-app split comes off nettop, which counts
     payload and so runs 10-15% under. Both are kept: one answers how much, the
-    other answers who, and neither can answer the other's question."""
-    e = usage["nets"].setdefault(mac, {"in": 0, "out": 0, "apps": {}})
+    other answers who, and neither can answer the other's question.
+
+    Daily rather than per billing period, which is what this was first built as.
+    The period version put a number next to Session and Today that covered a
+    different span from either, so a menu could read Today 652 MB and Network
+    35 MB and look broken while being correct. Three scopes worth comparing
+    have to be three scopes you can compare."""
+    if not mac:
+        return None
+    e = data.setdefault("nets", {}).setdefault(
+        mac, {"in": 0, "out": 0, "apps": {}})
+    # When this network first cost anything today. The header shows the span
+    # next to the number, which on an ordinary day reads as how long you have
+    # been on this network, and on the day this shipped is what stops "Today
+    # 722 MB / Network 4.8 MB" from looking like a bug. setdefault rather than
+    # a branch on the entry being new, so an entry written before the field
+    # existed picks one up instead of showing a number with no span at all.
+    e.setdefault("since", datetime.datetime.now().isoformat(timespec="seconds"))
     e["in"] += max(0, d_in)
     e["out"] += max(0, d_out)
     if name:
@@ -660,6 +658,14 @@ def usage_add(usage, mac, d_in, d_out, tick_io, name=""):
         a[0] += a_in
         a[1] += a_out
     return e
+
+
+def net_totals(data):
+    """{mac: bytes} for a day, biggest first, so the caller does not re-derive
+    the sort every time it wants to say which network cost the most."""
+    tot = {m: e.get("in", 0) + e.get("out", 0)
+           for m, e in (data.get("nets") or {}).items()}
+    return dict(sorted(tot.items(), key=lambda kv: -kv[1]))
 
 
 def tether_attribute(tether, tick_io):
@@ -2306,10 +2312,9 @@ def networks_cmd(action, name, label=None):
               "No networks remembered, and remembering is off: "
               "`netmeter networks on` starts it.")
         return
-    usage = load_usage(cfg)
+    day_nets = load(datetime.date.today().isoformat()).get("nets") or {}
     print(f"Remembering is {'on' if on else 'off'}. Rejoining a network "
-          f"below brings back the modes it lists. Data is this billing "
-          f"period, since {usage['period_start']}:")
+          f"below brings back the modes it lists. Data is today's:")
     _, gw = gateway_mac(cfg.get("wifi_if", "en0"))
     ranked = sorted(nets.items(),
                     key=lambda kv: kv[1].get("last_seen", ""), reverse=True)
@@ -2328,14 +2333,14 @@ def networks_cmd(action, name, label=None):
         set_on = e.get("changed")
         when = f"last seen {seen}" + (f", set {set_on}"
                                       if set_on and set_on != seen else "")
-        u = usage["nets"].get(mac) or {}
+        u = day_nets.get(mac) or {}
         moved = u.get("in", 0) + u.get("out", 0)
         print(f"  {label}{paren} · {fmt(moved)} · {when} · "
               f"{profile_summary(memory_settings(e))}{here}")
 
     # A network that has moved bytes but is not remembered still spent the
     # data, and leaving it out would make the column quietly not add up.
-    stray = {m: u for m, u in usage["nets"].items()
+    stray = {m: u for m, u in day_nets.items()
              if m not in nets and (u.get("in", 0) + u.get("out", 0))}
     for mac, u in sorted(stray.items(),
                          key=lambda kv: -(kv[1].get("in", 0) + kv[1].get("out", 0))):
@@ -2502,7 +2507,6 @@ def run_daemon(interval, ticks=None):
             if state["appends"] % 60 == 0:
                 prune_recent()
         data["updated"] = datetime.datetime.now().isoformat(timespec="seconds")
-        save_json(state_path(today), data)
 
         sess_apps, sess_started = session_totals(data)
         s_in = sum(v[0] for v in sess_apps.values())
@@ -2536,19 +2540,17 @@ def run_daemon(interval, ticks=None):
         if wb and prev:
             d_in = wb[0] - prev[0] if wb[0] >= prev[0] else wb[0]
             d_out = wb[1] - prev[1] if wb[1] >= prev[1] else wb[1]
-        usage = load_usage(cfg)
         if gw_mac and (d_in or d_out or tick_io):
             nets_known = read_json(NETWORKS_PATH) or {}
-            usage_add(usage, gw_mac, d_in, d_out, tick_io,
-                      name=(nets_known.get(gw_mac) or {}).get("name", ""))
-            save_json(USAGE_PATH, usage)
+            net_add(data, gw_mac, d_in, d_out, tick_io,
+                    name=(nets_known.get(gw_mac) or {}).get("name", ""))
         # Only when the MAC actually read. A wi-fi blip returns None for a
         # beat, and taking that as "this network has moved nothing" would blink
         # the readout to zero and back, which is the same misread the stint
         # machinery already refuses to make.
         if gw_mac:
-            state["net_used"] = sum(
-                (usage["nets"].get(gw_mac) or {}).get(k, 0) for k in ("in", "out"))
+            e = (data.get("nets") or {}).get(gw_mac) or {}
+            state["net_used"] = e.get("in", 0) + e.get("out", 0)
         if tether_on and wb and prev:
             t_in, t_out = d_in, d_out
             tether["in"] += t_in
@@ -2574,6 +2576,12 @@ def run_daemon(interval, ticks=None):
         except Exception as e:
             log(f"profile check failed: {e}", exc=True)
 
+        # After the network accounting, not before it: the per-network totals
+        # live in this file now, and writing it a step too early left every
+        # tick's last five seconds for the next one to pick up, or dropped
+        # altogether on the way out.
+        save_json(state_path(today), data)
+
         save_json(NOW_PATH, {
             "ts": now_ts,
             "down_bps": tick_in / elapsed,
@@ -2590,14 +2598,13 @@ def run_daemon(interval, ticks=None):
             # The bar's "always Low Data here" row needs to know which network
             # it is standing on; the profile lookup itself stays in config.json.
             "net_mac": gw_mac or "",
-            # What this network has cost over the same period as the cap. On
-            # the tether these two agree by construction; anywhere else it is
-            # the number that says whether this network was worth worrying
-            # about. The bar reads the per-app split straight out of usage.json.
+            # What this network has cost today, on the same clock as Today, so
+            # the three scopes in the menu are three spans you can hold against
+            # each other. The bar reads the per-app split, and every other
+            # network seen today, straight out of the day file.
             "net_used": state.get("net_used", 0),
             "net_name": (read_json(NETWORKS_PATH) or {}).get(
                 gw_mac or "", {}).get("name", ""),
-            "net_period_start": usage["period_start"],
             "tether_resets": tether_next_reset(
                 datetime.date.fromisoformat(tether["period_start"])).isoformat(),
         })

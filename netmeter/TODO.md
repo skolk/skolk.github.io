@@ -6,7 +6,7 @@ Working list for the netmeter project. Sean owns prioritization. Assessment date
 
 - Committed history ends at `fe69030` (the last three robustness-wave items, 2026-08-28). Everything written this month is committed; nothing is sitting uncommitted in the tree.
 - The tool is deployed and live: both launchd agents up, the installed engine byte-identical to the repo copy.
-- Verification is one command, `./bin/check`: `py_compile`, `swiftc -typecheck`, and 199 sandboxed checks. `install.sh` refuses to install over a failure.
+- Verification is one command, `./bin/check`: `py_compile`, `swiftc -typecheck`, and 201 sandboxed checks. `install.sh` refuses to install over a failure.
 - The public project page (`_pages/projects/netmeter.md`) is stamped 2026-08-20 and is the one thing genuinely behind: it predates network memory, the app-list fold, Pause All and its two stages, the ramp, Low Data stopping the background downloaders, and the whole six-item robustness wave.
 
 ## Queued
@@ -16,9 +16,11 @@ Working list for the netmeter project. Sean owns prioritization. Assessment date
 
 ## Done
 
-- 2026-08-31: **per-network usage, and a third scope in the menu to read it in.** Asked for as "how much data has been used per network; I don't care in a coffeeshop's wifi, I do care on Pixi". The tether counter already answered this for the one linked network, so the work was widening it rather than inventing it: `usage.json` keeps per-network totals off the interface plus a per-app split off nettop, keyed by gateway MAC and rolled over on the cap's billing period. Same period on purpose, so on the tether the network line and the cap line describe one span instead of being two truths about one hotspot.
+- 2026-08-31: **per-network usage, and a third scope in the menu to read it in.** Asked for as "how much data has been used per network; I don't care in a coffeeshop's wifi, I do care on Pixi". The tether counter already answered this for the one linked network, so the work was widening it rather than inventing it: per-network totals off the interface plus a per-app split off nettop, keyed by gateway MAC.
 
-  In the bar, Session | Today becomes Session | Today | Network, all three totals shown at once the way the first two already were, the app list following the selection, and **Reset Session** kept where it was. The control moved onto its own row because three labels do not fit beside the numbers in 348 points. The Network row is labelled with the network's name once it has one and `Network` until then, and carries a coarser floor (10 MB) than a day's list, or a billing period's worth of traffic is thirty rows of system chatter.
+  **Shipped per billing period, then changed to daily the same hour, on Sean seeing it.** The period version put a number next to Session and Today that covered a different span from either, so the menu read `Today 652MB` next to `Network 35MB · since Aug 4` and looked broken while being perfectly correct. Three scopes worth comparing have to be three spans you can compare. The totals moved into the day file with that change, which is where they should have been: they rotate for free, there is no second period concept to keep in step with the cap's, and every past day keeps its own breakdown instead of one running figure that forgets. Each entry carries the time it first cost anything that day, so the span beside the number is the network's own.
+
+  In the bar, Session | Today becomes Session | Today | Network, all three totals shown at once the way the first two already were, the app list following the selection, and **Reset Session** kept where it was. The control moved onto its own row because three labels do not fit beside the numbers in 348 points. Under the header, one row per network seen today, biggest first, the current one marked and never folded, the rest behind `▸ N other networks today`. The Network row is labelled with the network's name once it has one and `Network` until then, and carries a coarser floor (10 MB) than a day's list.
 
   Two bugs found while wiring it: `tether_on` compared gateway MACs raw, so the same latent mismatch that broke the link would have left the cap reading zero with a link that looks correct (normalised now), and the network total was recomputed on every tick including the ones where the MAC would not read, which would have blinked the readout to zero on every wi-fi blip.
 
