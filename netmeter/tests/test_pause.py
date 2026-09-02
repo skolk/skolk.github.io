@@ -817,6 +817,7 @@ finally:
 reset()
 nm.update_config(throttle_period=0.5)
 PIDS["Alpha"] = [1401]
+nm.mark_carrier(1401)
 nm.set_throttled("Alpha", 5, "all")
 stop = threading.Event()
 worker = threading.Thread(target=nm.throttle_worker, args=(stop,), daemon=True)
@@ -832,6 +833,42 @@ stops = [i for i, (p, sig) in enumerate(SENT) if p == [1401] and sig == signal.S
 conts = [i for i, (p, sig) in enumerate(SENT) if p == [1401] and sig == signal.SIGCONT]
 check("and every stop it landed was followed by a wake",
       bool(conts) and max(conts) > max(stops))
+nm.update_config(throttle_period=4.0)
+
+# --- the throttle holds what is moving bytes, not the whole app (2026-09-02) -
+# Cursor under Low Data: every byte came from its extension hosts, and the
+# duty cycle stopped the main process and the renderers with them, three
+# seconds in four. The editor froze mid-keystroke to save data it was not
+# using. The cycle now takes only the pids the daemon's nettop feed has seen
+# carrying traffic inside CARRIER_WINDOW.
+
+reset()
+check("parse_row keeps the pid nettop reports",
+      nm.parse_row("Cursor Helper (Plugin).75495,20117,193327")
+      == ("Cursor Helper (Plugin)", 75495, 20117, 193327))
+nm.CARRIERS.clear()
+nm.update_config(throttle_period=0.5)
+PIDS["Beta"] = [1501, 1502, 1503]
+PIDS["Gamma"] = [1601]
+nm.mark_carrier(1501)                                        # talking now
+nm.mark_carrier(1503, time.time() - nm.CARRIER_WINDOW - 5)   # talked a while ago
+nm.set_throttled("Beta", 25, "lowdata")
+nm.set_throttled("Gamma", 25, "lowdata")
+stop = threading.Event()
+worker = threading.Thread(target=nm.throttle_worker, args=(stop,), daemon=True)
+worker.start()
+time.sleep(1.4)
+stop.set()
+worker.join(timeout=3)
+stopped = {p for pids, sig in SENT if sig == signal.SIGSTOP for p in pids}
+check("the duty cycle stops the process that is moving bytes", 1501 in stopped)
+check("and never touches the one that is only drawing the window",
+      1502 not in stopped)
+check("a process quiet for longer than the window is let go", 1503 not in stopped)
+check("an app with nothing carrying is not signalled at all", 1601 not in stopped)
+nm.prune_carriers()
+check("pruning forgets the stale carrier and keeps the live one",
+      1503 not in nm.CARRIERS and 1501 in nm.CARRIERS)
 nm.update_config(throttle_period=4.0)
 
 # --- helpers fold into the app they belong to (2026-08-31) ------------------

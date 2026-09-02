@@ -527,7 +527,11 @@ def load_config():
 
 
 def parse_row(line):
-    """One nettop CSV row -> (process_name, bytes_in, bytes_out), or None."""
+    """One nettop CSV row -> (process_name, pid, bytes_in, bytes_out), or None.
+
+    The pid used to be matched and thrown away. It is what lets the throttle
+    tell an app's process that is moving bytes from one that is only drawing
+    the window (see CARRIERS)."""
     parts = line.split(",")
     if len(parts) < 3:
         return None
@@ -535,7 +539,7 @@ def parse_row(line):
     if not m:
         return None
     try:
-        return m.group(1), int(parts[1]), int(parts[2])
+        return m.group(1), int(m.group(2)), int(parts[1]), int(parts[2])
     except ValueError:
         return None
 
@@ -1595,6 +1599,44 @@ def pause_all(action):
 # rate-limits the socket directly; TCP does it, because a stopped process stops
 # draining its receive buffer, the window closes, and the sender backs off. The
 # transfer slows down rather than failing, which is the whole point.
+#
+# The cycle is aimed at the processes moving the bytes, not at every process
+# the app's label matches. It used to be the label, and for an Electron app
+# that is the wrong set: measured on Cursor on 2026-09-02, every byte in a
+# ten-second sample came from the extension hosts (`Cursor Helper (Plugin)`),
+# while the main process, the renderers that draw the editor and the GPU
+# process moved nothing and were stopped three seconds in four along with
+# them. That was the "Cursor freezes under Low Data" Sean kept hitting: not a
+# fault in the cycle but the cycle landing on the half of the app that draws
+# the window. The daemon's own nettop feed says which pids are talking, so the
+# throttle holds those and leaves the rest alone. The AI calls slow down; the
+# keystrokes do not. A process that starts talking is caught on the next
+# sample, and one that has been quiet for CARRIER_WINDOW is let go, so an idle
+# app is not signalled at all. Hard freezes (pause, the burst cap, Pause All's
+# second stage) still take the whole app: those are meant to stop it dead.
+CARRIERS = {}                  # pid -> last time nettop saw it move bytes
+CARRIERS_LOCK = threading.Lock()
+CARRIER_WINDOW = 60.0
+
+
+def mark_carrier(pid, ts=None):
+    with CARRIERS_LOCK:
+        CARRIERS[pid] = time.time() if ts is None else ts
+
+
+def prune_carriers(now=None):
+    now = time.time() if now is None else now
+    with CARRIERS_LOCK:
+        for pid in [p for p, t in CARRIERS.items() if now - t > CARRIER_WINDOW]:
+            del CARRIERS[pid]
+
+
+def carriers_among(pids, now=None):
+    """The subset of `pids` nettop has seen moving bytes inside CARRIER_WINDOW."""
+    now = time.time() if now is None else now
+    with CARRIERS_LOCK:
+        return [p for p in pids
+                if p in CARRIERS and now - CARRIERS[p] <= CARRIER_WINDOW]
 
 
 def read_throttled():
@@ -1705,7 +1747,10 @@ def throttle_worker(stop):
     scheduled rather than done all at once.
 
     PIDs are re-read every few seconds, not every period: `pgrep` plus a `ps`
-    sweep per app is far too much work to repeat twice a second.
+    sweep per app is far too much work to repeat twice a second. Of the pids
+    an app's label matches, only the ones nettop has seen carrying traffic go
+    into the cycle (CARRIERS): Cursor's editor keeps drawing while its
+    extension hosts are held.
 
     `held` is what this thread stopped in the period it is in the middle of, and
     it is woken at the top of every iteration before anything else happens. The
@@ -1751,7 +1796,7 @@ def throttle_worker(stop):
         paused = read_json(PAUSED_PATH) or {}
         names = [n for n in throttled if n not in paused]
         if time.time() - cached_at > 5:
-            pid_cache = {n: app_pids(n) for n in names}
+            pid_cache = {n: carriers_among(app_pids(n)) for n in names}
             cached_at = time.time()
         schedule = {}
         for name in names:
@@ -2462,13 +2507,14 @@ def run_daemon(interval, ticks=None):
             row = parse_row(line)
             if row is None:
                 continue
-            name, d_in, d_out = row
+            name, pid, d_in, d_out = row
             # nettop occasionally emits a negative interval delta when a
             # counter resets mid-sample. Summed as-is it walks the daily totals
             # backwards, so clamp rather than trust it. (Seen 2026-08-19:
             # syspolicyd reported [0, -28].)
             d_in, d_out = max(0, d_in), max(0, d_out)
             if d_in or d_out:
+                mark_carrier(pid, now_ts)
                 label = friendly(name)
                 t = data["apps"].setdefault(label, [0, 0])
                 t[0] += d_in
@@ -2494,6 +2540,7 @@ def run_daemon(interval, ticks=None):
             state["bucket_min"], state["bucket"] = minute, {}
             state["capped"] = set()
             state["appends"] += 1
+            prune_carriers(now_ts)
             # Once a minute is often enough to catch a relaunched app and cheap
             # enough not to matter: one ps per frozen app, and the list is short.
             cfg_now = load_config()
