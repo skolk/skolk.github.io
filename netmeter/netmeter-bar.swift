@@ -304,7 +304,7 @@ func combineUpDown() -> Bool { (config()["combine_updown"] as? Bool) ?? false }
 func showRate() -> Bool { (config()["show_rate"] as? Bool) ?? true }
 func showTotal() -> Bool { (config()["show_total"] as? Bool) ?? true }
 
-let RECENT_WINDOWS: [(Int, String)] = [(5, "5m"), (15, "15m"), (60, "1h"), (360, "6h"), (720, "12h")]
+let RECENT_WINDOWS: [(Int, String)] = [(15, "15m"), (30, "30m"), (60, "1hr"), (360, "6hr"), (720, "12hr")]
 
 func windowLabel(_ minutes: Int) -> String {
     if minutes < 60 { return "\(minutes)m" }
@@ -764,12 +764,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // Live references into the open menu. Retitling an item and redrawing a view
     // is safe while a menu is tracking; adding or removing items is not, so the
     // two status lines are always present and toggle their isHidden instead.
-    var lowButton: ModeButton?
-    var lowStatus: NSMenuItem?
-    // The "always Low Data on this network" row. netProfile is the name the
-    // current gateway MAC is pinned under, or "" when it is not pinned.
-    var netLine: NSMenuItem?
-    var netProfile = ""
     // Recent-usage table. Six fixed row slots that show and hide, rather than
     // items added and removed, so changing the window or collapsing the section
     // never mutates the item list of a menu that is currently tracking.
@@ -800,6 +794,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var wokeAt: Double = 0            // when the machine came back, for the grace
                                   // that has simply never written now.json yet
     var pauseAllButton: ModeButton?
+    var lowButton: ModeButton?
+    var capButton: ModeButton?
+    var holdLine: NSMenuItem?
+    var armedLine: NSMenuItem?
     // Three states across one button: off, holding, hard stopped. isOn alone
     // cannot carry three, and the label changes meaning between them, so the
     // delegate keeps the pair and the button is told what to draw.
@@ -837,7 +835,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // A ramp lands while the menu is sitting open, so the rows have to
         // follow it there: two small file reads on the same 2s beat the readout
         // already runs on, and only while there is a menu to see them in.
-        if menuOpen { syncRowsFromPaused() }
+        if menuOpen { syncRowsFromPaused(); refreshHolding() }
         checkDaemonHealth()
         let wantRate = showRate(), wantTotal = showTotal()
         // With both readouts off the item is one glyph wide, so a stale daemon
@@ -911,17 +909,35 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
-        // Modes, at the top, as buttons.
-        let lowOn = (cfg["lowdata"] as? Bool) ?? false
-        menu.addItem(modesRow(lowOn: lowOn))
-        let lowLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-        lowLine.isEnabled = false
-        menu.addItem(lowLine)
-        lowStatus = lowLine
-        let netItem = NSMenuItem(title: "", action: #selector(pinToggle), keyEquivalent: "")
-        netItem.target = self
-        menu.addItem(netItem)
-        netLine = netItem
+        // Pause All and Unpause All at the top, Low Data on its own row under
+        // them. The pair was under the app list until 2026-09-04, where twenty
+        // rows put it below the fold.
+        let pauseOn = (cfg["pause_all"] as? Bool) ?? false
+        let hardOn = pauseOn && ((cfg["pause_all_hard"] as? Bool) ?? false)
+        menu.addItem(pauseAllRow(on: pauseOn, hard: hardOn))
+        menu.addItem(lowDataRow(on: (cfg["lowdata"] as? Bool) ?? false))
+        menu.addItem(capRow(cfg))
+        if pauseOn {
+            let allowed = (cfg["pause_all_allow"] as? [String]) ?? []
+            let frozen = paused.filter { ($0.value as? [String: Any])?["reason"] as? String == "all" }
+            let stage = hardOn ? "\(frozen.count) app\(frozen.count == 1 ? "" : "s") frozen"
+                               : "everything at \(PAUSE_ALL_FLOOR)%"
+            // Wrapped, because the allow list grows a name at a time and a
+            // plain title would drag the menu wider with every app let back in.
+            addDisabledWrapped(menu, glyph: "\u{25D1}", allowed.isEmpty
+                ? "Pause All is on \u{00B7} \(stage)"
+                : "Pause All is on \u{00B7} \(stage) \u{00B7} allowed: \(allowed.joined(separator: ", "))")
+        }
+        let holdItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        holdItem.isEnabled = false
+        holdItem.toolTip = "What netmeter is holding right now, and which control did it; Unpause All or the app's own switch lets it go"
+        menu.addItem(holdItem)
+        holdLine = holdItem
+        let armedItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        armedItem.isEnabled = false
+        armedItem.toolTip = "What would hold an app if one moved too much: the modes that are on, and the cap when it is armed"
+        menu.addItem(armedItem)
+        armedLine = armedItem
         refreshModeUI()
         menu.addItem(.separator())
 
@@ -1049,26 +1065,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         for (name, _) in paused where !listed.contains(name) {
             menu.addItem(appRow(name, -1, pausable: true, state: "paused").0)
         }
-        // Pause All in two stages: the soft one slows everything to a trickle
-        // and holds it there, and Hard Stop is the second press that freezes
-        // the lot. It replaced solo mode on 2026-08-28, which was this with the
-        // allow list capped at one, and grew the second stage the same day
-        // after the single-stage version froze the editor it was pressed from.
-        let pauseOn = (cfg["pause_all"] as? Bool) ?? false
-        let hardOn = pauseOn && ((cfg["pause_all_hard"] as? Bool) ?? false)
-        if pauseOn {
-            let allowed = (cfg["pause_all_allow"] as? [String]) ?? []
-            let frozen = paused.filter { ($0.value as? [String: Any])?["reason"] as? String == "all" }
-            let stage = hardOn ? "\(frozen.count) app\(frozen.count == 1 ? "" : "s") frozen"
-                               : "everything at \(PAUSE_ALL_FLOOR)%"
-            // Wrapped, because the allow list grows a name at a time and a
-            // plain title would drag the menu wider with every app let back in.
-            addDisabledWrapped(menu, glyph: "\u{25D1}", allowed.isEmpty
-                ? "Pause All is on \u{00B7} \(stage)"
-                : "Pause All is on \u{00B7} \(stage) \u{00B7} allowed: \(allowed.joined(separator: ", "))")
-        }
-        menu.addItem(pauseAllRow(on: pauseOn, hard: hardOn))
-
         recentWindow = (cfg["recent_window"] as? NSNumber)?.intValue ?? 60
         recentOpen = (cfg["recent_open"] as? Bool) ?? true
         menu.addItem(.separator())
@@ -1084,88 +1080,123 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // Re-reads config and updates the open menu in place. Called on every menu
     // build and again once a mode command has actually finished writing.
     func refreshModeUI() {
-        let cfg = config()
-        let lowOn = (cfg["lowdata"] as? Bool) ?? false
+        let lowOn = (config()["lowdata"] as? Bool) ?? false
         lowButton?.isOn = lowOn
-        let every = (cfg["notify_every_mb"] as? NSNumber)?.intValue ?? 25
-        let apps = (cfg["lowdata_apps"] as? [String]) ?? []
-        let slowed = (cfg["lowdata_throttle"] as? [String]) ?? []
-        let pct = (cfg["throttle_pct"] as? NSNumber)?.intValue ?? 25
-        let cap = (cfg["burst_cap_mb"] as? NSNumber)?.intValue ?? 0
-        // Listed hardest control first, which is the order they surprise you in.
-        // The line used to name only the freezes, and a mode that now also
-        // throttles and caps cannot keep saying that: reading "freezing nothing"
-        // while an app crawls at a quarter speed is worse than no line at all.
-        var parts: [String] = []
-        if !apps.isEmpty { parts.append("freezing \(apps.joined(separator: ", "))") }
-        if cap > 0 { parts.append("freezing anything over \(cap) MB/min") }
-        if !slowed.isEmpty { parts.append("\(slowed.joined(separator: ", ")) at \(pct)%") }
-        if (cfg["lowdata_background"] as? Bool) ?? true {
-            parts.append("no background downloads")
+        lowButton?.label = lowOn ? "Low Data is on" : "Low Data is off"
+        let capOn = (config()["burst_cap_on"] as? Bool) ?? true
+        capButton?.isOn = capOn
+        capButton?.label = capLabel(config())
+        refreshHolding()
+    }
+
+    func capLabel(_ cfg: [String: Any]) -> String {
+        let on = (cfg["burst_cap_on"] as? Bool) ?? true
+        let mb = (cfg["burst_cap_mb"] as? NSNumber)?.intValue ?? 0
+        return on ? "Burst cap is on \u{00B7} \(mb) MB/min" : "Burst cap is off"
+    }
+
+    // The cap is armed by the metered network whether or not Low Data is on,
+    // so it needs a switch of its own or "Low Data is off" sits over "Armed:
+    // burst cap" with nothing to press. The size stays in config either way.
+    func capRow(_ cfg: [String: Any]) -> NSMenuItem {
+        let item = NSMenuItem()
+        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 30))
+        let b = ModeButton(frame: NSRect(x: 10, y: 3, width: 328, height: 24))
+        b.label = capLabel(cfg)
+        b.isOn = (cfg["burst_cap_on"] as? Bool) ?? true
+        b.toolTip = "Freezes any app that moves more than the cap inside one minute while Low Data is on or you are on the metered network; click to switch"
+        b.onClick = { [weak self] in
+            guard let self = self else { return }
+            let now = (config()["burst_cap_on"] as? Bool) ?? true
+            var next = config(); next["burst_cap_on"] = !now
+            b.isOn = !now
+            b.label = self.capLabel(next)
+            self.runNetmeter(["cap", now ? "off" : "on"]) { self.refreshModeUI() }
         }
-        if (cfg["update_prefs"] as? Bool) ?? true { parts.append("no update checks") }
-        parts.append("notifying every \(every) MB")
-        // Joined into one line this summary becomes the widest item in the
-        // menu and drags the whole window out to its length, so it wraps
-        // instead: parts pack onto lines capped near the per-app row width,
-        // breaking only at the separators. A plain title swallows newlines,
-        // so the wrapped text goes through attributedTitle, which also
-        // forfeits the automatic disabled dimming; color and font are set
-        // by hand to match what a disabled item renders on its own.
-        let lowPrefix = "\u{25D0} Low Data: "
-        var lowLines: [String] = []
-        var acc = lowPrefix
+        capButton = b
+        v.addSubview(b)
+        item.view = v
+        return item
+    }
+
+    // One full-width button under the Pause All pair. The label says which
+    // way it is, because the fill alone did not: a grey button with black
+    // text reads as "a button", not as "off".
+    func lowDataRow(on: Bool) -> NSMenuItem {
+        let item = NSMenuItem()
+        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 30))
+        let low = ModeButton(frame: NSRect(x: 10, y: 3, width: 328, height: 24))
+        low.label = on ? "Low Data is on" : "Low Data is off"
+        low.isOn = on
+        low.toolTip = "Tethering mode: throttles Cursor, freezes the background downloaders and update checks, notifies every 25 MB; click to switch"
+        low.onClick = { [weak self] in
+            guard let self = self else { return }
+            let now = (config()["lowdata"] as? Bool) ?? false
+            low.isOn = !now
+            low.label = now ? "Low Data is off" : "Low Data is on"
+            self.runNetmeter(["lowdata", now ? "off" : "on"]) { self.refreshModeUI() }
+        }
+        lowButton = low
+        v.addSubview(low)
+        item.view = v
+        return item
+    }
+
+    // A disabled status line that wraps at the separators instead of dragging
+    // the menu out to its own width. A plain title swallows newlines, so the
+    // text goes through attributedTitle, which forfeits the automatic disabled
+    // dimming; color and font are set by hand to match. U+2028 breaks the line
+    // without ending the paragraph, which is what lets headIndent reach the
+    // continuations: they hang under the text rather than under the glyph.
+    func setWrapped(_ item: NSMenuItem?, glyph: String, prefix: String,
+                    parts: [String], color: NSColor = .disabledControlTextColor) {
+        let head = glyph + " " + prefix
+        var lines: [String] = []
+        var acc = head
         for part in parts {
-            let joined = acc == lowPrefix ? acc + part : acc + " \u{00B7} " + part
-            if joined.count > 52 && acc != lowPrefix {
-                lowLines.append(acc)
+            let joined = acc == head ? acc + part : acc + " \u{00B7} " + part
+            if joined.count > 52 && acc != head {
+                lines.append(acc)
                 acc = part
             } else {
                 acc = joined
             }
         }
-        lowLines.append(acc)
-        let lowFont = NSFont.menuFont(ofSize: 13)
-        // U+2028 breaks the line without ending the paragraph, which is what
-        // lets headIndent reach the continuations: they hang under the text
-        // rather than under the \u{25D0} glyph.
-        let lowPara = NSMutableParagraphStyle()
-        lowPara.headIndent = ("\u{25D0} " as NSString)
-            .size(withAttributes: [.font: lowFont]).width
-        lowStatus?.attributedTitle = NSAttributedString(
-            string: lowLines.joined(separator: "\u{2028}"),
-            attributes: [.font: lowFont,
-                         .foregroundColor: NSColor.disabledControlTextColor,
-                         .paragraphStyle: lowPara])
-        lowStatus?.isHidden = !lowOn
+        lines.append(acc)
+        let font = NSFont.menuFont(ofSize: 13)
+        let para = NSMutableParagraphStyle()
+        para.headIndent = ((glyph + " ") as NSString)
+            .size(withAttributes: [.font: font]).width
+        item?.attributedTitle = NSAttributedString(
+            string: lines.joined(separator: "\u{2028}"),
+            attributes: [.font: font, .foregroundColor: color, .paragraphStyle: para])
+    }
 
-        // "Always Low Data on this network": the MAC comes from the daemon's
-        // last tick (now.json), the pin lookup from config.json so the row
-        // flips the instant a pin or unpin lands, not a tick later. A stale
-        // now.json (daemon dead) or no readable gateway hides the row, there
-        // is no network to pin.
-        var mac = ""
-        if let now = readJSON(home + "/.netmeter/now.json"),
-           let ts = now["ts"] as? Double,
-           Date().timeIntervalSince1970 - ts < 30 {
-            mac = (now["net_mac"] as? String) ?? ""
+    // "Holding: ..." and "Armed: ..." straight from the daemon's last tick.
+    // This is the line that answers whether netmeter is interfering right
+    // now, which nothing in the menu used to say: Low Data could read off
+    // while the burst cap, armed by the metered network, froze an app.
+    func refreshHolding() {
+        let now = readJSON(home + "/.netmeter/now.json")
+        let ts = (now?["ts"] as? Double) ?? 0
+        let fresh = Date().timeIntervalSince1970 - ts < 30
+        let holding = (now?["holding"] as? [String]) ?? []
+        let armed = (now?["armed"] as? [String]) ?? []
+        if !fresh {
+            setWrapped(holdLine, glyph: "\u{25CF}", prefix: "Holding: ",
+                       parts: ["unknown, the daemon is not reporting"],
+                       color: .systemOrange)
+            armedLine?.isHidden = true
+            return
         }
-        let profiles = (cfg["network_profiles"] as? [String: [String: Any]]) ?? [:]
-        netProfile = mac.isEmpty ? "" : ((profiles[mac]?["name"] as? String) ?? "")
-        if mac.isEmpty {
-            netLine?.isHidden = true
-        } else if netProfile.isEmpty {
-            netLine?.isHidden = false
-            netLine?.state = .off
-            netLine?.title = "\u{25D0} Always Low Data on this network\u{2026}"
+        if holding.isEmpty {
+            setWrapped(holdLine, glyph: "\u{25CB}", prefix: "Holding nothing", parts: [])
         } else {
-            // Pinned but manually switched off mid-stint reads as a lie
-            // without the suffix: the checkmark says always, the mode is off.
-            netLine?.isHidden = false
-            netLine?.state = .on
-            netLine?.title = "\u{25D0} Always Low Data here (\(netProfile))"
-                + (lowOn ? "" : " \u{00B7} off until rejoin")
+            setWrapped(holdLine, glyph: "\u{25CF}", prefix: "Holding: ", parts: holding,
+                       color: .labelColor)
         }
+        armedLine?.isHidden = armed.isEmpty
+        setWrapped(armedLine, glyph: "\u{25CB}", prefix: "Armed: ", parts: armed)
     }
 
     func addRecentSection(_ menu: NSMenu) {
@@ -1178,7 +1209,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let title = NSTextField(labelWithString: "")
         title.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
         title.textColor = .secondaryLabelColor
-        title.frame = NSRect(x: 42, y: 9, width: 118, height: 16)
+        title.frame = NSRect(x: 42, y: 9, width: 96, height: 16)
         v.addSubview(title)
         recentTitle = title
         let seg = NSSegmentedControl(labels: RECENT_WINDOWS.map { $0.1 },
@@ -1188,7 +1219,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         seg.appearance = NSAppearance(
             named: NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) ?? .aqua)
         seg.selectedSegment = RECENT_WINDOWS.firstIndex { $0.0 == recentWindow } ?? 2
-        seg.frame = NSRect(x: 164, y: 6, width: 174, height: 21)
+        // Five labels up to four characters each: 196 points, or the control
+        // truncates every one of them to its first digit and an ellipsis.
+        seg.segmentDistribution = .fillEqually
+        seg.frame = NSRect(x: 140, y: 6, width: 198, height: 21)
         v.addSubview(seg)
         header.view = v
         menu.addItem(header)
@@ -1304,22 +1338,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         runNetmeter(["display", "--recent-window", String(recentWindow)])
     }
 
-    // Low Data is the only mode button now. Solo retired on 2026-08-28 into
-    // Pause All, which lives under the app list because that is where its
-    // exceptions are made: one switch at a time, on the rows themselves.
-    func modesRow(lowOn: Bool) -> NSMenuItem {
-        let item = NSMenuItem()
-        let v = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 38))
-        let low = ModeButton(frame: NSRect(x: 10, y: 6, width: 328, height: 26))
-        low.label = "Low Data"
-        low.isOn = lowOn
-        low.onClick = { [weak self] in self?.toggleLowData() }
-        lowButton = low
-        v.addSubview(low)
-        item.view = v
-        return item
-    }
-
     // How many app rows each depth shows.
     func appsShown(_ view: String) -> Int {
         switch view {
@@ -1432,11 +1450,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         runNetmeter(["display", "--apps-view", view])
     }
 
-    // Pause All and Resume All, side by side under the list. The left button is
+    // Pause All and Unpause All, side by side at the top. The left button is
     // one control that escalates: press it once and everything drops to a
     // trickle, press it again and the trickle becomes a freeze. Two presses for
     // the destructive half is the whole point, because the single-press version
-    // froze the editor it was pressed from. Resume All is the other end of both.
+    // froze the editor it was pressed from. Unpause All is the other end of both.
     func pauseAllRow(on: Bool, hard: Bool) -> NSMenuItem {
         pauseAllOn = on
         pauseAllHard = hard
@@ -1449,7 +1467,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         pauseBtn.onClick = { [weak self] in
             guard let self = self else { return }
             // off -> holding -> frozen -> holding. Never off from here: that is
-            // what Resume All is for, and an escalating button that also
+            // what Unpause All is for, and an escalating button that also
             // reverses all the way is a button you cannot read.
             let arg: String
             if !self.pauseAllOn {
@@ -1473,8 +1491,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         v.addSubview(pauseBtn)
         let resumeBtn = ModeButton(frame: NSRect(x: 176, y: 3, width: 152, height: 24))
-        resumeBtn.label = "Resume All"
+        resumeBtn.label = "Unpause All"
         resumeBtn.momentary = true
+        resumeBtn.toolTip = "Let every app go: lifts Pause All, every freeze, every throttle and every cap freeze at once"
         resumeBtn.onClick = { [weak self] in
             guard let self = self else { return }
             self.setAllRows("run")
@@ -1552,47 +1571,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if a.runModal() == .alertSecondButtonReturn {
             NSWorkspace.shared.open(URL(string: "https://skolk.github.io/projects/netmeter/")!)
         }
-    }
-    @objc func toggleLowData() {
-        let on = (config()["lowdata"] as? Bool) ?? false
-        runNetmeter(["lowdata", on ? "off" : "on"]) { [weak self] in self?.refreshModeUI() }
-    }
-    // One row, two meanings: unpinned it pins the network you are on, pinned
-    // it forgets the pin. SSIDs are location-gated for CLI tools on this OS,
-    // so the pin asks for a name instead of reading one, same as tether-here.
-    @objc func pinToggle() {
-        if netProfile.isEmpty { pinNetwork() } else { unpinNetwork() }
-    }
-    func pinNetwork() {
-        let a = NSAlert()
-        a.messageText = "Always Low Data on this network"
-        a.informativeText = """
-        Pins the current Low Data settings (freeze list, throttles, burst \
-        cap) to this network and turns the mode on. Joining this network \
-        applies them by itself; leaving restores what they replaced. \
-        Flipping Low Data off while here sticks until you leave and rejoin.
-        """
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 230, height: 24))
-        field.placeholderString = "name this network (e.g. coworking)"
-        a.accessoryView = field
-        a.addButton(withTitle: "Pin")
-        a.addButton(withTitle: "Cancel")
-        a.window.initialFirstResponder = field
-        NSApp.activate(ignoringOtherApps: true)
-        guard a.runModal() == .alertFirstButtonReturn else { return }
-        let name = field.stringValue.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return }
-        // Order matters: lowdata on first, so the snapshot profile-here takes
-        // has the mode on and "always Low Data" is what the pin actually says.
-        runNetmeter(["lowdata", "on"]) { [weak self] in
-            self?.runNetmeter(["profile-here", name]) { self?.refreshModeUI() }
-        }
-    }
-    func unpinNetwork() {
-        // Forgetting the pin leaves the applied settings standing until the
-        // network is left, which is the CLI's rule too; the row's state flips
-        // now because refreshModeUI reads the pin from config, not the stint.
-        runNetmeter(["profile", "rm", netProfile]) { [weak self] in self?.refreshModeUI() }
     }
     // The segmented control only ever showed the side you had selected, so the
     // other number cost a click to see. Both live here now, each with how long
@@ -1793,6 +1771,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         var on: [String] = []
         if (cfg["lowdata"] as? Bool) ?? false { on.append("Low Data") }
         if (cfg["pause_all"] as? Bool) ?? false { on.append("Pause All") }
+        if (cfg["enforce"] as? Bool) == false { return "Monitor only was on anyway." }
         if on.isEmpty { return "Nothing is being enforced." }
         return "\(on.joined(separator: " and ")) \(on.count > 1 ? "are" : "is") "
                + "set but not enforced."

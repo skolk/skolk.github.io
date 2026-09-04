@@ -107,6 +107,15 @@ DEFAULT_CONFIG = {
     # Bumped when a migration has to run once over the state files. 2: solo
     # mode retired into Pause All (2026-08-28).
     "config_version": 2,
+    # enforce: the master switch under every hold. False is monitor only: the
+    # meter keeps counting and notifying, and nothing is ever frozen, throttled
+    # or capped, whatever the modes say, until it goes back to True.
+    "enforce": True,
+    # burst_cap_on: the switch in front of both caps, so the size stays put
+    # while the cap is off. Asked for 2026-09-04: Low Data read off while the
+    # cap, armed by the metered network, kept freezing apps, and there was no
+    # way to turn that off short of editing config.json.
+    "burst_cap_on": True,
     "lowdata": False, "lowdata_apps": [], "notify_every_mb": 25,
     # lowdata_throttle is the middle setting between "leave it alone" and the
     # all-or-nothing freeze of lowdata_apps: apps here stay usable, just slow.
@@ -786,6 +795,19 @@ def ps_ucomm():
     return rows
 
 
+def ps_tty_ucomm():
+    """(pid, tty, ucomm) for every process, in one `ps`. The tty is `??` for a
+    process no terminal owns, which is every process netmeter is built to hold."""
+    out = subprocess.run(["ps", "-axo", "pid=,tty=,ucomm="],
+                         capture_output=True, text=True).stdout
+    rows = []
+    for line in out.splitlines():
+        f = line.split(None, 2)
+        if len(f) == 3 and f[0].isdigit():
+            rows.append((int(f[0]), f[1], f[2].strip()))
+    return rows
+
+
 ERE_META = set(r".[]{}()\\*+?|^$")
 
 
@@ -870,13 +892,34 @@ def set_paused(name, val, reason="manual", pids=None):
 def protected(pids):
     """The subset of `pids` that must never be stopped, whatever asked. A last
     line under the label matching: one wrong regex should not be able to take
-    the window server down, and app_pids has been wrong before."""
-    names = dict(ps_ucomm())
-    out = set()
+    the window server down, and app_pids has been wrong before.
+
+    A process a terminal owns is on the list too, and this is the rule that
+    matters for Claude Code. SIGSTOP to a shell's foreground job is a Ctrl-Z
+    as far as the shell is concerned: it prints "suspended", takes the terminal
+    back and shows a prompt. The SIGCONT half of a duty cycle then continues a
+    process that is no longer in the foreground, and its next read of the
+    terminal stops it again (SIGTTIN). So a "throttled" terminal job is a dead
+    one after the first period, and the orphan sweep will not wake it because
+    it correctly refuses to touch a shell's jobs. Found 2026-09-04: Low Data
+    throttling "Claude Code" suspended a session ten seconds after it was
+    started, `lowdata off` could not bring it back, and the second session
+    opened in its place was what "it keeps pausing things" looked like. The
+    honest answer is that a process-level hold cannot throttle a terminal
+    job at all, so none is ever attempted."""
+    info = {pid: (tty, ucomm) for pid, tty, ucomm in ps_tty_ucomm()}
+    out, jobs = set(), set()
     for pid in pids:
-        ucomm = names.get(pid, "")
+        tty, ucomm = info.get(pid, ("??", ""))
         if ucomm in NEVER_FREEZE or friendly(ucomm) in NEVER_FREEZE:
             out.add(pid)
+        elif tty and tty != "??":
+            out.add(pid)
+            jobs.add(ucomm or str(pid))
+    if jobs:
+        _log_repeating("terminal", "left running, a terminal owns them and a "
+                       "stop there is a Ctrl-Z the shell keeps: "
+                       + ", ".join(sorted(jobs)))
     return out
 
 
@@ -940,6 +983,8 @@ def proc_info(pids):
 def mode_holds(cfg, name, reason):
     """Is the mode that froze this app still asking for it to be frozen?
     `cap` and `manual` are one-shot, so they never hold."""
+    if not cfg.get("enforce", True):
+        return False
     if reason == "lowdata":
         return bool(cfg["lowdata"]) and canonical(name) in {
             canonical(a) for a in cfg.get("lowdata_apps") or []}
@@ -1156,9 +1201,111 @@ def _log_repeating(key, msg):
     log(line)
 
 
+HOLD_WHY = {"manual": "by hand", "lowdata": "Low Data", "cap": "burst cap",
+            "all": "Pause All", "ramp": "ramp"}
+
+
+def holding_now(cfg=None, tether_on=None):
+    """Two lists: what netmeter is holding this second, and what is armed to
+    hold. This is the answer to "is netmeter interfering right now", which
+    used to take reading three state files and knowing that the burst cap is
+    armed by the metered network even with every mode off. The daemon writes
+    both into now.json every tick; the menu and `netmeter paused` print them."""
+    cfg = cfg or load_config()
+    holding = []
+    for name, e in sorted(read_paused().items()):
+        holding.append(f"{name} frozen ({HOLD_WHY.get(e['reason'], e['reason'])})")
+    for name in sorted(read_ramping()):
+        holding.append(f"{name} stopping")
+    for name, v in sorted(read_throttled().items()):
+        r = (v or {}).get("reason", "manual")
+        if r == "ramp":
+            continue
+        holding.append(f"{name} at {(v or {}).get('pct', 25)}% ({HOLD_WHY.get(r, r)})")
+    if not cfg.get("enforce", True):
+        return holding, ["monitor only: nothing is held"]
+    armed = []
+    if cfg.get("lowdata"):
+        armed.append("Low Data")
+    if cfg.get("pause_all"):
+        armed.append("Pause All" + (" (hard)" if cfg.get("pause_all_hard") else ""))
+    if tether_on is None:
+        now = read_json(NOW_PATH) or {}
+        tether_on = bool(now.get("tether_on")) and \
+            time.time() - float(now.get("ts") or 0) < 60
+    via = ("Low Data" if cfg.get("lowdata")
+           else (cfg.get("tether_name") or "the metered network"))
+    if not cfg.get("burst_cap_on", True):
+        return holding, armed
+    if (cfg.get("burst_cap_mb") or 0) and (cfg.get("lowdata") or tether_on):
+        armed.append(f"burst cap {cfg['burst_cap_mb']} MB/min, by {via}")
+    if (cfg.get("drain_cap_mb") or 0) and (cfg.get("lowdata") or tether_on):
+        armed.append(f"drain cap {cfg['drain_cap_mb']} MB, by {via}")
+    return holding, armed
+
+
+def cap_cmd(action):
+    """`netmeter cap on|off`: the burst cap (and the drain cap) as a switch.
+    Off, nothing is frozen for moving too much, on any network, whatever Low
+    Data says; the sizes stay in config for when it comes back."""
+    cfg = load_config()
+    if action in ("on", "off"):
+        cfg = update_config(burst_cap_on=(action == "on"))
+        log(f"burst cap: {action} (by hand)")
+    on = cfg.get("burst_cap_on", True)
+    size = cfg.get("burst_cap_mb") or 0
+    print(f"Burst cap {'on' if on else 'off'}"
+          + (f": {size} MB/min, armed by Low Data or the metered network" if on and size
+             else (": no size set (burst_cap_mb)" if on else
+                   ". Nothing is frozen for moving too much until: netmeter cap on")))
+
+
+def enforce_cmd(action):
+    """`netmeter enforce off` is monitor only: count everything, hold nothing.
+    The modes keep their positions in config so `enforce on` puts them back;
+    what changes is whether anything acts on them. Every hold standing at the
+    moment it goes off is released here, and the daemon's tick, the throttle
+    worker, reconcile and the caps all read the same flag and stand down."""
+    cfg = load_config()
+    if action == "off":
+        cfg = update_config(enforce=False)
+        log("monitor only: on (nothing is held from here)")
+        paused, throttled = read_paused(), read_throttled()
+        for path in (PAUSED_PATH, THROTTLED_PATH, RAMP_PATH):
+            with locked(path):
+                save_json(path, {})
+        for name, e in paused.items():
+            signal_app(name, signal.SIGCONT)
+            signal_pids(e.get("pids") or [], signal.SIGCONT)
+        for name in throttled:
+            signal_app(name, signal.SIGCONT)
+        background_lift()
+        update_prefs_restore()
+        sweep_orphans(cfg)
+        n = len(set(paused) | set(throttled))
+        print(f"Monitor only. Released {n} app(s). netmeter keeps counting and "
+              "notifying and holds nothing: no freezes, no throttles, no burst "
+              "cap, whatever Low Data or Pause All say. Back with: netmeter enforce on")
+    elif action == "on":
+        cfg = update_config(enforce=True)
+        log("monitor only: off (modes enforce again)")
+        if cfg.get("lowdata"):
+            lowdata_apply(cfg)
+        print("Enforcing again." + (" Low Data re-applied." if cfg.get("lowdata")
+                                    else "") + (" Pause All resumes on the next tick."
+                                                if cfg.get("pause_all") else ""))
+    else:
+        print("monitor only" if not cfg.get("enforce", True) else "enforcing")
+        holding, armed = holding_now(cfg)
+        print("  holding: " + (" · ".join(holding) if holding else "nothing"))
+        print("  armed: " + (" · ".join(armed) if armed else "nothing"))
+
+
 def show_paused(jobs=False):
     """What is frozen, why, and whether the freeze is real."""
     reconcile_paused()
+    holding, armed = holding_now()
+    print("  armed: " + (" · ".join(armed) if armed else "nothing"))
     paused = read_paused()
     if not paused:
         print("Nothing is paused.")
@@ -1189,7 +1336,8 @@ def show_paused(jobs=False):
     _, held = sweep_candidates()
     if held and not jobs:
         print(f"  ({len(held)} stopped terminal job(s) left alone; a shell owns "
-              f"those, not netmeter. See them with: netmeter paused --jobs)")
+              f"those, and netmeter never stops a terminal job. See them with: "
+              f"netmeter paused --jobs)")
     elif held:
         print(f"  {len(held)} stopped terminal job(s), left alone:")
         for pid, cmd in sorted(held.items()):
@@ -1199,6 +1347,11 @@ def show_paused(jobs=False):
 
 def pause(name, quiet=False, reason="manual"):
     cfg = load_config()
+    if not cfg.get("enforce", True):
+        if not quiet:
+            print(f"Monitor only is on, so {canonical(name)} is not held. "
+                  "Lift it with: netmeter enforce on")
+        return
     # The ramp needs a long-lived process to step it. With no daemon there is
     # nothing to do the stepping, so the freeze stays immediate rather than
     # being silently dropped.
@@ -1436,6 +1589,8 @@ def pause_all_apply(cfg, names):
     the data, alive enough that the app you are working in keeps working. Hard
     lands the freeze, which is what the mode used to do on its own until it did
     it to Cursor mid-session on 2026-08-28."""
+    if not cfg.get("enforce", True):
+        return []
     hard = bool(cfg.get("pause_all_hard"))
     allow = {canonical(a) for a in cfg.get("pause_all_allow") or []}
     already = read_paused()
@@ -1648,11 +1803,18 @@ def set_throttled(name, pct, reason="manual"):
     `lowdata off` can lift exactly what low data mode throttled."""
     with locked(THROTTLED_PATH):
         t = read_json(THROTTLED_PATH) or {}
+        before = (t.get(name) or {}).get("pct")
         if pct:
             t[name] = {"pct": int(pct), "reason": reason}
         else:
             t.pop(name, None)
         save_json(THROTTLED_PATH, t)
+    # Every hold says so in the log, so "was netmeter interfering at 14:45"
+    # has an answer that is not a guess.
+    if pct and before != int(pct):
+        log(f"throttle: {name} at {int(pct)}% ({reason})")
+    elif not pct and before:
+        log(f"throttle: {name} lifted")
 
 
 def unfreeze_throttled():
@@ -1716,7 +1878,7 @@ def drain_check(cfg, drained, minute):
     rather than one per minute. An app the user resumed deliberately is not
     re-frozen inside the same window; the next one may catch it again."""
     cap = (cfg.get("drain_cap_mb") or 0) * MB
-    if not cap:
+    if not cap or not cfg.get("enforce", True) or not cfg.get("burst_cap_on", True):
         return []
     window = max(2, int(cfg.get("drain_window_min") or 5))
     paused = read_paused()
@@ -1785,7 +1947,7 @@ def throttle_worker(stop):
         # share an app gets is the share it was set to.
         cfg = load_config()
         period = max(0.5, min(5.0, float(cfg.get("throttle_period") or 4.0)))
-        throttled = read_throttled()
+        throttled = read_throttled() if cfg.get("enforce", True) else {}
         if not throttled:
             release()
             pid_cache, cached_at = {}, 0.0
@@ -1911,7 +2073,7 @@ def background_freeze(cfg=None):
     the in-flight work here is the download being stopped. Returns what it froze
     this call, so the daemon can be quiet about the ones already down."""
     cfg = cfg or load_config()
-    if not cfg.get("lowdata_background", True):
+    if not cfg.get("lowdata_background", True) or not cfg.get("enforce", True):
         return []
     already = read_paused()
     frozen = []
@@ -1994,9 +2156,12 @@ def lowdata_apply(cfg):
     """The acting half of `lowdata on`: freeze the freeze list, throttle the
     throttle list. Split out so a network profile switching the mode on behaves
     exactly like typing the command. Returns the pct it throttled to."""
+    pct = max(1, min(95, int(cfg.get("throttle_pct") or 25)))
+    if not cfg.get("enforce", True):
+        log("low data: set, but monitor only is on, so nothing is held")
+        return pct
     for app in cfg["lowdata_apps"]:
         pause(app, quiet=True)
-    pct = max(1, min(95, int(cfg.get("throttle_pct") or 25)))
     for app in cfg.get("lowdata_throttle") or []:
         set_throttled(canonical(app), pct, "lowdata")
     background_freeze(cfg)
@@ -2018,7 +2183,12 @@ def lowdata(action):
     cfg = load_config()
     if action == "on":
         cfg = update_config(lowdata=True)
+        log("low data: on (by hand)")
         pct = lowdata_apply(cfg)
+        if not cfg.get("enforce", True):
+            print("Low data mode is set, but monitor only is on: nothing is "
+                  "held. Lift it with: netmeter enforce on")
+            return
         frozen = f" Frozen: {', '.join(cfg['lowdata_apps'])}." if cfg["lowdata_apps"] else ""
         slowed = (f" Throttled to {pct}%: {', '.join(cfg['lowdata_throttle'])}."
                   if cfg.get("lowdata_throttle") else "")
@@ -2035,6 +2205,7 @@ def lowdata(action):
                   "sudo softwareupdate --schedule off")
     elif action == "off":
         cfg = update_config(lowdata=False)
+        log("low data: off (by hand)")
         n = lowdata_lift(cfg)
         tail = f" {n} throttle(s) lifted." if n else ""
         print(f"Low data mode OFF. Apps unfrozen, background downloads and "
@@ -2127,8 +2298,10 @@ def profile_apply(mac, prof):
     allowed = cfg.get("pause_all_allow") or []
     tail = (f", pause all on ({len(allowed)} allowed)"
             if cfg.get("pause_all") else "")
-    notify(f"On {prof.get('name') or mac}: {kind}, "
+    msg = (f"On {prof.get('name') or mac}: {kind}, "
            f"low data {'on' if cfg['lowdata'] else 'off'}{tail}")
+    log(f"network: {msg}")
+    notify(msg)
     return True
 
 
@@ -2144,6 +2317,8 @@ def profile_restore(stint):
         cfg = update_config(**back)
     if cfg["lowdata"]:
         lowdata_apply(cfg)
+    log(f"network: left {stint.get('name') or stint.get('mac', '')}, "
+        f"settings restored, low data {'on' if cfg['lowdata'] else 'off'}")
     notify(f"Left {stint.get('name') or stint.get('mac', '')}: settings restored")
 
 
@@ -2450,7 +2625,7 @@ def wake_engage(cfg=None):
             cfg = load_config()
     except Exception as e:
         log(f"wake: profile check failed: {e}", exc=True)
-    if cfg.get("lowdata"):
+    if cfg.get("lowdata") and cfg.get("enforce", True):
         for app in cfg.get("lowdata_apps") or []:
             signal_app(app, signal.SIGSTOP)
         for name in background_freeze(cfg):
@@ -2548,6 +2723,8 @@ def run_daemon(interval, ticks=None):
             if cfg_now["lowdata"] or state.get("tether_on"):
                 win = max(2, int(cfg_now.get("drain_window_min") or 5))
                 for name, moved in drain_check(cfg_now, state["drained"], minute):
+                    log(f"cap: froze {name}, {fmt(moved)} over {win} min "
+                        f"(drain cap {cfg_now['drain_cap_mb']} MB)")
                     notify(f"Froze {name}: {fmt(moved)} over {win} min "
                            f"(drain cap {cfg_now['drain_cap_mb']} MB). "
                            f"Resume with: netmeter resume {name}")
@@ -2654,34 +2831,46 @@ def run_daemon(interval, ticks=None):
                 gw_mac or "", {}).get("name", ""),
             "tether_resets": tether_next_reset(
                 datetime.date.fromisoformat(tether["period_start"])).isoformat(),
+            # What is held and what is armed, as two lists of plain words, so
+            # the menu can say "holding nothing" or name what it is holding.
+            "holding": holding_now(cfg, tether_on)[0],
+            "armed": holding_now(cfg, tether_on)[1],
         })
+        # Monitor only: everything below this line is a hold, and none of it
+        # runs. The count above it is untouched.
+        enforce = bool(cfg.get("enforce", True))
         # Ramps first: an app that has reached the bottom of one gets frozen
         # this tick, before pause-all looks at what is still running.
-        for name, landing in ramp_step(cfg, tick_bytes):
+        for name, landing in (ramp_step(cfg, tick_bytes) if enforce else []):
             log(f"ramp finished: {landing} {name}")
-        if cfg.get("pause_all"):
+        if cfg.get("pause_all") and enforce:
             started = pause_all_apply(cfg, active)
             if started:
-                notify(f"Pause All is {'stopping' if cfg.get('pause_all_hard') else 'slowing'}"
-                       f" {', '.join(started)}")
+                what = 'stopping' if cfg.get('pause_all_hard') else 'slowing'
+                log(f"pause all: {what} {', '.join(started)}")
+                notify(f"Pause All is {what} {', '.join(started)}")
         # The burst cap is armed by the situation, not by the mode: a surprise
         # 100 MB costs the same whether or not Low Data happens to be on, and on
         # a metered network it is the only thing standing between a background
         # update and the bill. (Design item 4, 2026-08-24.)
         cap = cfg.get("burst_cap_mb") or 0
-        if cap and (cfg["lowdata"] or tether_on):
+        if enforce and cap and cfg.get("burst_cap_on", True) \
+                and (cfg["lowdata"] or tether_on):
             via = "low data" if cfg["lowdata"] else (cfg.get("tether_name")
                                                      or "metered network")
             for name, moved in burst_cap_check(state["bucket"], cap, state["capped"]):
+                log(f"cap: froze {name}, {fmt(moved)} in under a minute "
+                    f"(cap {cap} MB, armed by {via})")
                 notify(f"Froze {name}: {fmt(moved)} in under a minute "
                        f"(cap {cap} MB, armed by {via}). "
                        f"Resume with: netmeter resume {name}")
         if cfg["lowdata"]:
-            for app in cfg["lowdata_apps"]:
-                signal_app(app, signal.SIGSTOP)
-            # An updater that wakes up mid-stint has to go straight back down.
-            for name in background_freeze(cfg):
-                log(f"low data: stopped background downloader {name}")
+            if enforce:
+                for app in cfg["lowdata_apps"]:
+                    signal_app(app, signal.SIGSTOP)
+                # An updater that wakes up mid-stint has to go straight back down.
+                for name in background_freeze(cfg):
+                    log(f"low data: stopped background downloader {name}")
             step = cfg.get("notify_every_mb") or 0
             if step:
                 total_mb = (s_in + s_out) / MB
@@ -2840,6 +3029,12 @@ def main():
     thp.add_argument("--pct", type=int, help="percent of full speed (default 25)")
     lp = sub.add_parser("lowdata", help="low data mode on/off")
     lp.add_argument("action", nargs="?", choices=["on", "off"])
+    cpp = sub.add_parser("cap", help="the burst cap on|off; off holds nothing "
+                         "for moving too much, on any network")
+    cpp.add_argument("action", nargs="?", choices=["on", "off"])
+    enp = sub.add_parser("enforce", help="`enforce off` is monitor only: count "
+                         "everything, hold nothing; `enforce on` puts the modes back")
+    enp.add_argument("action", nargs="?", choices=["on", "off"])
     php = sub.add_parser("profile-here",
                          help="pin the current lowdata settings to this network")
     php.add_argument("name")
@@ -2925,6 +3120,10 @@ def main():
         throttle(args.app, 0 if args.state == "off" else args.pct)
     elif args.cmd == "lowdata":
         lowdata(args.action)
+    elif args.cmd == "cap":
+        cap_cmd(args.action)
+    elif args.cmd == "enforce":
+        enforce_cmd(args.action)
     elif args.cmd == "profile-here":
         profile_here(args.name)
     elif args.cmd == "profile":

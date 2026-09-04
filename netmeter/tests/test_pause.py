@@ -74,7 +74,8 @@ def reset():
     nm.daemon_running = lambda: False
     nm.update_config(pause_all=False, pause_all_hard=False, pause_all_allow=[],
                      lowdata=False, lowdata_apps=[], lowdata_background=True,
-                     drain_cap_mb=0, throttle_period=4.0, config_version=2)
+                     drain_cap_mb=0, throttle_period=4.0, config_version=2,
+                     enforce=True)
 
 
 # --- the matching bug: a label must sit on a path boundary ------------------
@@ -1040,5 +1041,103 @@ body = open(nm.LOG_PATH).read()
 check("the log records the message", "a thing went wrong" in body)
 check("the log records the traceback", "ValueError: boom" in body)
 check("nothing was notified by the harness", NOTES == [])
+
+# --- a terminal job is never stopped (2026-09-04) ---------------------------
+# SIGSTOP to a shell's foreground job is a Ctrl-Z as far as the shell is
+# concerned, and the SIGCONT half of a duty cycle continues a process that is
+# no longer in the foreground, so its next terminal read stops it again. Low
+# Data throttling "Claude Code" suspended a session ten seconds after launch.
+
+reset()
+open(nm.LOG_PATH, "w").close()
+nm._REPEATS.clear()
+real_ps = nm.ps_tty_ucomm
+nm.ps_tty_ucomm = lambda: [(900001, "ttys004", "claude"),
+                           (900002, "??", "Wisp Helper"),
+                           (900003, "??", "WindowServer")]
+try:
+    check("protected() keeps a process a terminal owns, and the system floor",
+          nm.protected([900001, 900002, 900003]) == {900001, 900003})
+    body = open(nm.LOG_PATH).read()
+    check("and says which, in the log",
+          "a terminal owns them" in body and "claude" in body)
+    # The real signal_pids, against a pid above the macOS maximum: the
+    # terminal job is filtered before os.kill, so nothing is sent.
+    check("the real SIGSTOP path sends nothing to a terminal job",
+          REAL_SIGNAL_PIDS([900001], signal.SIGSTOP) == [])
+finally:
+    nm.ps_tty_ucomm = real_ps
+
+# --- every hold says so in the log ------------------------------------------
+
+reset()
+open(nm.LOG_PATH, "w").close()
+nm.set_throttled("Wisp", 25, "lowdata")
+nm.set_throttled("Wisp", 25, "lowdata")
+check("a throttle logs once when it starts",
+      open(nm.LOG_PATH).read().count("throttle: Wisp at 25% (lowdata)") == 1)
+nm.set_throttled("Wisp", 0)
+check("and once when it lifts", "throttle: Wisp lifted" in open(nm.LOG_PATH).read())
+
+# --- monitor only: count everything, hold nothing ---------------------------
+
+reset()
+real_bf, real_bl = nm.background_freeze, nm.background_lift
+real_ua, real_ur = nm.update_prefs_apply, nm.update_prefs_restore
+nm.background_freeze = lambda cfg=None: []
+nm.background_lift = lambda: None
+nm.update_prefs_apply = lambda cfg=None: None
+nm.update_prefs_restore = lambda: None
+try:
+    PIDS["Wisp"] = [201]
+    nm.update_config(lowdata_throttle=["Wisp"], throttle_pct=25, lowdata=True,
+                     burst_cap_mb=0)
+    nm.lowdata_apply(nm.load_config())
+    check("enforcing, Low Data throttles its list", "Wisp" in nm.read_throttled())
+    nm.enforce_cmd("off")
+    cfg = nm.load_config()
+    check("enforce off releases the throttle", nm.read_throttled() == {})
+    check("and wakes what it held", ([201], signal.SIGCONT) in SENT)
+    check("and leaves Low Data set, unenforced",
+          cfg["lowdata"] is True and cfg["enforce"] is False)
+    SENT.clear()
+    nm.lowdata_apply(cfg)
+    check("Low Data applies nothing while monitor only is on",
+          nm.read_throttled() == {})
+    nm.pause("Wisp", quiet=True)
+    check("nor does a pause",
+          nm.read_paused() == {} and ([201], signal.SIGSTOP) not in SENT)
+    check("nor does Pause All", nm.pause_all_apply(cfg, ["Wisp"]) == [])
+    check("and reconcile stops holding", nm.mode_holds(cfg, "Wisp", "lowdata") is False)
+    holding, armed = nm.holding_now(cfg, tether_on=True)
+    check("holding_now says monitor only",
+          holding == [] and armed == ["monitor only: nothing is held"])
+    nm.enforce_cmd("on")
+    check("enforce on re-applies Low Data",
+          nm.read_throttled().get("Wisp", {}).get("pct") == 25)
+    holding, armed = nm.holding_now(nm.load_config(), tether_on=True)
+    check("holding_now names the throttle", holding == ["Wisp at 25% (Low Data)"])
+    check("and Low Data as armed", armed == ["Low Data"])
+    nm.update_config(lowdata=False, burst_cap_mb=50, tether_name="Pixi")
+    nm.set_throttled("Wisp", 0)
+    holding, armed = nm.holding_now(nm.load_config(), tether_on=True)
+    check("the burst cap reads as armed by the metered network with Low Data off",
+          holding == [] and armed == ["burst cap 50 MB/min, by Pixi"])
+    holding, armed = nm.holding_now(nm.load_config(), tether_on=False)
+    check("and as nothing off that network", armed == [])
+    nm.cap_cmd("off")
+    cfg = nm.load_config()
+    check("cap off keeps the size and drops the switch",
+          cfg["burst_cap_on"] is False and cfg["burst_cap_mb"] == 50)
+    check("and nothing reads as armed on the metered network",
+          nm.holding_now(cfg, tether_on=True)[1] == [])
+    nm.cap_cmd("on")
+    check("cap on arms it again",
+          nm.holding_now(nm.load_config(), tether_on=True)[1] == ["burst cap 50 MB/min, by Pixi"])
+finally:
+    nm.background_freeze, nm.background_lift = real_bf, real_bl
+    nm.update_prefs_apply, nm.update_prefs_restore = real_ua, real_ur
+    nm.update_config(enforce=True, lowdata=False, lowdata_throttle=[],
+                     burst_cap_mb=0, tether_name="", burst_cap_on=True)
 
 print(f"\n{PASS} checks passed.")
