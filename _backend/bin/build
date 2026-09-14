@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 # bin/build, guarded Jekyll build for skolk.github.io.
 #
-# Why this exists: this repo lives under ~/Documents, which macOS syncs to
+# Why this exists: the repo used to live under ~/Documents, which macOS syncs to
 # iCloud. iCloud evicts files (including the vendored gems under vendor/bundle/)
 # to "dataless" placeholders. The first read of an evicted file blocks in the
 # kernel at 0% CPU while macOS downloads it, which can hang `jekyll build`
 # indefinitely, with no output, no error, just a wedged process. (Diagnosed
 # 2026-06-17: the build was parked in read() loading a Rouge lexer file; the
 # 14MB vendor/ tree took over two minutes to read back from iCloud file-by-file.)
+#
+# As of 2026-07-25 the repo lives at ~/Code/skolk.github.io, outside iCloud, so
+# the root cause is gone. This wrapper stays as a cheap backstop: it costs
+# nothing on a healthy build (~2s) and still bounds any future stall.
 #
 # This wrapper runs `jekyll build` under a hard timeout, so the stall can never
 # leave the terminal wedged: it fails fast with a clear remedy instead.
@@ -22,11 +26,31 @@ BUILD_TIMEOUT="${BUILD_TIMEOUT:-180}"
 
 # Portable replacement for coreutils `timeout` (not installed on stock macOS):
 # run "$@", kill it after $1 seconds. Returns 124 if it had to be killed.
+#
+# Two subtleties, both learned the hard way (2026-07-25):
+#
+# 1. The watchdog must NOT inherit our stdout/stderr. A backgrounded process
+#    holds the write end of a pipe open, so `bin/build | tail` would block until
+#    the watchdog exited, i.e. the full timeout, even though the build finished
+#    in 2s. That made a perfectly healthy build look exactly like the iCloud
+#    hang this script exists to catch. Hence the >/dev/null 2>&1 on the subshell.
+#
+# 2. The watchdog polls for liveness instead of sleeping the whole interval, so
+#    it exits ~1s after the build finishes rather than lingering, and can never
+#    fire `kill -9` at a PID the OS has since recycled onto another process.
 run_with_timeout() {
   local secs="$1"; shift
   "$@" &
   local pid=$!
-  ( sleep "$secs"; kill -9 "$pid" 2>/dev/null ) &
+  (
+    local i=0
+    while [ "$i" -lt "$secs" ]; do
+      sleep 1
+      kill -0 "$pid" 2>/dev/null || exit 0   # build finished, stand down
+      i=$((i + 1))
+    done
+    kill -9 "$pid" 2>/dev/null
+  ) >/dev/null 2>&1 &
   local watcher=$!
   wait "$pid"; local rc=$?
   kill "$watcher" 2>/dev/null
@@ -40,10 +64,11 @@ run_with_timeout "$BUILD_TIMEOUT" bundle exec jekyll build "$@" </dev/null
 rc=$?
 if [ "$rc" -eq 124 ]; then
   echo "!! Build exceeded ${BUILD_TIMEOUT}s and was killed (terminal NOT left hanging)." >&2
-  echo "   A 0%-CPU stall with no output is almost always iCloud materializing" >&2
-  echo "   evicted files under ~/Documents. Pull them down, then rebuild:" >&2
-  echo "       brctl download \"$(pwd)\"" >&2
-  echo "   To prevent it for good, keep this repo out of iCloud (e.g. ~/Developer)." >&2
+  echo "   A 0%-CPU stall with no output is almost always a blocked read, not a" >&2
+  echo "   slow build. This repo now lives outside iCloud (~/Code), so that cause" >&2
+  echo "   should be gone; if this fires again, check what else is materializing:" >&2
+  echo "       brctl download \"$(pwd)\"   # if the repo ever moves back under iCloud" >&2
+  echo "   Also confirm gems resolve outside the repo: bundle show jekyll" >&2
   exit 124
 elif [ "$rc" -ne 0 ]; then
   echo "!! Build failed (exit $rc). See output above." >&2
