@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- The Cilento drive, July 2026. Styled to match islandlab.dev (tidal-green
+     night / water-blue day, EB Garamond + DM Mono). Map uses MapLibre GL +
+     CARTO raster tiles, same recipe as the Island Lab salish-sea map: no
+     token, no account. Coordinates are approximate, good for a pin, not for
+     navigation. Embedded in the July 2026 recap via iframe. -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Cilento drive · July 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  :root {
+    --bg:#0e1410; --surface:#141a16; --text:#d6cfc0; --muted:#8a8271;
+    --line:#233029; --accent:#4a7c68;
+    --k-town:#4a7c68; --k-tower:#c9a24b; --k-sensor:#5b86a8; --k-mark:#c07a45;
+  }
+  :root[data-theme="day"] {
+    --bg:#cfe1ea; --surface:#eef4f3; --text:#17323b; --muted:#4f6b75;
+    --line:#c3d6d9; --accent:#2f6f7a;
+    --k-town:#2f7a5c; --k-tower:#a8842e; --k-sensor:#3d6d8f; --k-mark:#b25b3a;
+  }
+  html, body { height:100%; }
+  body {
+    background:var(--bg); color:var(--text);
+    font-family:'EB Garamond',serif; display:flex; flex-direction:column;
+  }
+  header {
+    padding:0.8rem 1.1rem; display:flex; justify-content:space-between;
+    align-items:baseline; gap:1rem; border-bottom:1px solid var(--line);
+  }
+  .eyebrow { font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.25em;
+    text-transform:uppercase; color:var(--accent); }
+  h1 { font-size:1.15rem; font-weight:400; font-style:italic; }
+  .theme-toggle { font-family:'DM Mono',monospace; font-size:0.55rem; letter-spacing:0.18em;
+    text-transform:uppercase; color:var(--muted); background:transparent;
+    border:1px solid var(--line); padding:0.3rem 0.7rem; cursor:pointer; }
+  .theme-toggle:hover { color:var(--text); border-color:var(--accent); }
+  #map { flex:1; min-height:0; }
+  footer {
+    padding:0.55rem 1.1rem; border-top:1px solid var(--line);
+    display:flex; flex-wrap:wrap; gap:1rem; align-items:center;
+  }
+  .key { font-family:'DM Mono',monospace; font-size:0.55rem; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:0.4rem; }
+  .dot { width:10px; height:10px; border-radius:50%; display:inline-block;
+    border:1.5px solid rgba(255,255,255,0.85); }
+  .maplibregl-popup-content { font-family:'EB Garamond',serif; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="eyebrow">Pollica → Palinuro · July 2026</div>
+    <h1>The Cilento drive</h1>
+  </div>
+  <button class="theme-toggle" id="toggle" type="button">Day / Night</button>
+</header>
+<div id="map"></div>
+<footer>
+  <span class="key"><span class="dot" style="background:#4a7c68"></span>towns</span>
+  <span class="key"><span class="dot" style="background:#c9a24b"></span>watchtowers</span>
+  <span class="key"><span class="dot" style="background:#5b86a8"></span>sensor sites</span>
+  <span class="key"><span class="dot" style="background:#c07a45"></span>the storm at the cape</span>
+</footer>
+<script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
+<script>
+  const POINTS = [
+    { name:'Pollica', place:'The castle, up the hill', kind:'town', coords:[15.0566, 40.1899] },
+    { name:'Acciaroli', place:'The port, 3am net haul', kind:'town', coords:[15.0268, 40.1772] },
+    { name:'Pioppi', place:'Home of the Mediterranean diet', kind:'town', coords:[15.0553, 40.1745] },
+    { name:'Marina di Ascea', place:'Down the coast', kind:'town', coords:[15.1565, 40.1355] },
+    { name:'Pisciotta', place:'Olive terraces over the sea', kind:'town', coords:[15.2331, 40.1082] },
+    { name:'Palinuro', place:'Named for the helmsman of Aeneas', kind:'storm', coords:[15.2809, 40.0329] },
+    { name:'Watchtower', place:'Coastal tower near Acciaroli', kind:'tower', coords:[15.0405, 40.1682] },
+    { name:'Watchtower', place:'Coastal tower at Capo Palinuro', kind:'tower', coords:[15.2688, 40.0244] },
+    { name:'Sensor site', place:'Paddle board deployment', kind:'sensor', coords:[15.0225, 40.1745] },
+    { name:'Sensor site', place:'Paddle board deployment', kind:'sensor', coords:[15.2705, 40.0355] },
+  ];
+  const ROUTE = [
+    [15.0566, 40.1899], [15.0268, 40.1772], [15.0553, 40.1745],
+    [15.1565, 40.1355], [15.2331, 40.1082], [15.2809, 40.0329]
+  ];
+  const COLORS = { town:'#4a7c68', tower:'#c9a24b', sensor:'#5b86a8', storm:'#c07a45' };
+
+  function buildStyle(dark) {
+    const base = dark ? 'dark_all' : 'light_all';
+    return {
+      version: 8,
+      sources: {
+        carto: {
+          type: 'raster',
+          tiles: [
+            'https://a.basemaps.cartocdn.com/'+base+'/{z}/{x}/{y}.png',
+            'https://b.basemaps.cartocdn.com/'+base+'/{z}/{x}/{y}.png',
+            'https://c.basemaps.cartocdn.com/'+base+'/{z}/{x}/{y}.png'
+          ],
+          tileSize: 256,
+          attribution: '© OpenStreetMap contributors, © CARTO'
+        }
+      },
+      layers: [{ id:'carto', type:'raster', source:'carto' }]
+    };
+  }
+
+  function addRoute(map) {
+    map.addSource('route', { type:'geojson', data:{
+      type:'Feature', geometry:{ type:'LineString', coordinates:ROUTE }
+    }});
+    map.addLayer({ id:'route', type:'line', source:'route',
+      paint:{ 'line-color':'#4a7c68', 'line-width':2.5, 'line-dasharray':[2,2] } });
+  }
+
+  let map;
+  function isDark() { return document.documentElement.getAttribute('data-theme') !== 'day'; }
+
+  function initMap() {
+    map = new maplibregl.Map({
+      container:'map', style:buildStyle(isDark()),
+      center:[15.16, 40.11], zoom:10.1,
+    });
+    map.addControl(new maplibregl.NavigationControl({showCompass:false}), 'top-right');
+    map.on('load', () => addRoute(map));
+    POINTS.forEach(p => {
+      const node = document.createElement('div');
+      const size = p.kind === 'town' || p.kind === 'storm' ? 16 : 12;
+      node.style.cssText = 'width:'+size+'px;height:'+size+'px;border-radius:50%;cursor:pointer;'
+        + 'background:'+COLORS[p.kind]+';border:2px solid rgba(255,255,255,0.85);'
+        + 'box-shadow:0 0 0 2px rgba(0,0,0,0.35);';
+      node.title = p.name;
+      const popup = new maplibregl.Popup({offset:14, closeButton:false})
+        .setHTML('<div style="font-family:\'DM Mono\',monospace;font-size:0.52rem;letter-spacing:0.12em;'
+          + 'text-transform:uppercase;color:#4a7c68">'+p.place+'</div>'
+          + '<div style="font-family:\'EB Garamond\',serif;font-style:italic;font-size:1.02rem">'+p.name+'</div>');
+      new maplibregl.Marker({element:node}).setLngLat(p.coords).setPopup(popup).addTo(map);
+    });
+  }
+
+  document.getElementById('toggle').onclick = () => {
+    const day = isDark();
+    document.documentElement.setAttribute('data-theme', day ? 'day' : 'night');
+    map.setStyle(buildStyle(!day));
+    map.once('styledata', () => addRoute(map));
+  };
+
+  initMap();
+</script>
+</body>
+</html>
