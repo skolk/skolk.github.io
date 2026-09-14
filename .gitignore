@@ -37,3 +37,6 @@ _backend/archive/squarespace-2024-docx/media/
 
 # Raw Instagram media mirror (kept local, not published). Curated copies live in images/blog_posts/.
 images/blog_posts/instagram/
+
+# /clean skill scratch (last proposed layout), laptop-only
+.claude/clean/

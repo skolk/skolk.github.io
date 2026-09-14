@@ -2,16 +2,12 @@
 
 Personal site for Sean Kolk. Jekyll-based, deployed via GitHub Pages from the `master` branch of `skolk.github.io`.
 
-## Stack
-- Jekyll (Ruby), Kramdown markdown, Sass (compressed)
-- Hosted at https://skolk.github.io
-- Dependencies via Bundler: `Gemfile`, `Gemfile.lock`
+**End every work update with the link to the work.** When a message reports work produced or changed, close it with a direct pointer as the last line: the full file path for drafts and repo files, or the full live URL (`https://skolk.github.io/...`, `https://islandlab.dev/...`) once published.
+
+**Sean reviews everything rendered, not as raw markdown.** Whenever a draft, post, or page is produced or updated, make it viewable on the locally hosted site and give the `http://localhost:4000/...` URL (or the live URL if already published). Start the preview with `bundle exec jekyll serve --drafts --detach` (detached survives the session; plain backgrounded `serve` gets reaped). Detached mode does not watch for changes, so after any edit run `bundle exec jekyll build --drafts` to refresh what the server shows. Stop it with `pkill -f "jekyll serve"`.
 
 ## Common commands
-- `bundle install`: install Ruby deps
-- `bundle exec jekyll serve`: local dev server at http://localhost:4000
-- `bundle exec jekyll serve --drafts`: local dev including `_drafts/`
-- `bundle exec jekyll build`: write static site to `_site/`
+- `bundle exec jekyll serve --drafts`: local dev at http://localhost:4000 including `_drafts/`
 - `./_backend/bin/build`: guarded `jekyll build` with a hard timeout. Prefer over a bare `jekyll build`, it can't hang silently (see iCloud gotcha below).
 - `./_backend/build-push.sh`: build (via `bin/build`) + commit + push helper. Only pushes if the build succeeds.
 - `./_backend/bin/lint`: fast static checks (filenames, front matter, comma-categories, broken images, permalinks, tracked artifacts). No build required. Exits non-zero on failure.
@@ -85,8 +81,29 @@ Targets an article-a-week cadence at the 100r.co / craigmod.com bar (worth a str
 
 **Project-cycle integration:** when running `/project-cycle:run-project-cycle`, spawn the `editor` agent as an additional parallel agent (alongside sprint-tracker / prd-auditor / risk-auditor). It is the editorial + site-management lens: not just repo health, but whether the site is becoming worth reading for other people.
 
+## Dispatch: who runs the work
+
+The dispatcher and its sized workers come from the `project-cycle` plugin (v0.13.0, 2026-09-14), the same set Sean decided in `gdri` on 2026-09-09: the director stays in this session and thinks at the top of the range; the workers are small, named, and sized to a clock. Nothing is copied into `.claude/agents/` here, so a plugin refresh reaches this repo and nothing shadows it.
+
+| Agent | Model, effort | What it is for |
+|---|---|---|
+| `project-cycle:dispatch` | opus, xhigh | Turns one request into N briefs, each under ten minutes, each with a contract. Writes nothing. |
+| `project-cycle:scout` | haiku, low | Read-only lookup. Where a thing lives, what a name is bound to. |
+| `project-cycle:hand` | sonnet, medium | One file, or one block, against a contract the brief supplies in full. |
+| `project-cycle:builder` | opus, high | One build stream across more than one file, with judgment inside the brief. |
+| `project-cycle:verifier` | sonnet, medium | Checks a finished piece against its own brief and the repo's checks. |
+
+**For a request big enough to need more than one agent, call `dispatch` first.** It reads the request and the repo and hands back the split: the briefs, their agents, their contracts, their budgets and what depends on what. The director launches them in one message so they run at once, then integrates.
+
+**Every brief carries a Deliverable and a Budget, or an EXCEPTION.** The plugin's `agent-brief-gate.sh` runs PreToolUse on the Agent tool and denies a building brief with no `Deliverable:` line, no `Budget:` line, or a budget over ten minutes. This repo's own agents (`editor`, `context-tracker`, `risk-auditor`, `risk-test-runner`, `personal-filter`) are read-only by their `tools:` line and pass through.
+
+**The checks for this repo, which `dispatch` reads from `_backend/creative.json`:** `./_backend/bin/lint` (filenames, front matter, permalinks, image refs), `~/.claude/bin/prose-lint <file>` (em-dashes and banned phrasing in prose), `./_backend/bin/build` (where a page, layout, include or stylesheet changed), and the `copy-editor` agent where the piece is writing. Where none covers what a piece must be true of, the first brief in the split writes the check.
+
+`effortLevel: "xhigh"` is not set for this repo; the user-level `high` stands until Sean raises it.
+
 ## Gotchas
 - Don't commit `_site/`. It's gitignored now. If a tool re-stages it, drop it.
 - The site has both a curated `/projects` page and per-post auto-listing on it. Categories drive which posts appear, so keep them topical (`making`, `fabrication`, etc.), not generic (`log`).
 - `hack.css` dark mode adds literal markdown chrome (`##`, `===`) via pseudo-elements. `css/main.scss` overrides them under `body.dark-theme`.
-- **iCloud build hang:** this repo lives under `~/Documents`, which macOS syncs to iCloud. iCloud evicts files to dataless placeholders; the first read blocks in the kernel at 0% CPU while macOS re-downloads them, so a bare `jekyll build` can hang indefinitely with no output. A build that hangs at 0% CPU with no output is this, not a slow build. **Fixed on this machine (2026-06-17):** the culprit was the vendored gem tree, Bundler was installing into `vendor/bundle/` inside the synced repo. `.bundle/config` (gitignored) now sets `BUNDLE_PATH: /Users/seankolk/.bundle/skolk-github-io`, outside iCloud, and the in-repo `vendor/` was deleted; gems no longer evict and builds run in ~1.5s. A fresh clone resets to the in-repo default, re-point `.bundle/config` (`bundle install` then verify `bundle show jekyll` resolves outside `~/Documents`) to restore the fix. Backstop: `./_backend/bin/build` hard-times-out any residual stall (exit 124); `brctl download "$(pwd)"` pulls files local as a fallback.
+- **Pages goes off when the repo goes private:** making `skolk.github.io` private disables GitHub Pages, and flipping it back to public does **not** re-enable it. The live site then 404s while the repo looks perfectly healthy. Check with `gh api repos/skolk/skolk.github.io --jq .has_pages`; re-enable with `gh api -X POST repos/skolk/skolk.github.io/pages -f 'source[branch]=master' -f 'source[path]=/'`. (Hit 2026-07-25.)
+- **iCloud build hang (historical, resolved 2026-07-25 by moving the repo to `/Users/seankolk/Code/skolk.github.io`, outside iCloud):** gems live outside the repo via gitignored `.bundle/config` (`BUNDLE_PATH: /Users/seankolk/.bundle/skolk-github-io`); a fresh clone resets it, so re-run `bundle install` and verify `bundle show jekyll` resolves outside the repo. Backstop: `./_backend/bin/build` hard-times-out any stall (exit 124). A stale gitignored `vendor/` tree from the old setup is unused and safe to delete.

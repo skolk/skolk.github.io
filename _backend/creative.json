@@ -1,0 +1,75 @@
+{
+  "_comment": "Scaffolded by /project-cycle:init. Tells the creative lane where THIS project keeps its voice rules, its design kit, and its deterministic checks. Lives in _backend/ because this repo keeps every planning file out of Jekyll's reach. See docs/CREATIVE_HARNESS.md in the plugin for why the layers are ordered the way they are. Delete a block you do not have rather than pointing it at something that does not exist: the lane reports a missing target as a finding, not a crash.",
+  "voice": {
+    "doc": "_backend/SKOLK_VOICE.md",
+    "also_binding": [
+      "_backend/WRITING_RULES.md",
+      "CLAUDE.md#conventions"
+    ],
+    "_comment": "doc is the canonical voice reference. also_binding lists other files carrying binding writing rules, e.g. 'CLAUDE.md#house-rules'. Note that a voice doc quotes the violations it bans, so any linter run over it must be told to lint it explicitly rather than discovering it."
+  },
+  "design": {
+    "kit": null,
+    "tokens": null,
+    "reference_implementation": null,
+    "reference_artifact": null,
+    "_comment": "kit is the directory holding the visual system. tokens defines colors/type/spacing. reference_implementation is the built artifact that settles ambiguity when the kit README does not. reference_artifact is a known-good finished piece to measure candidates against side by side; it is not a target to match on every axis."
+  },
+  "surfaces": {
+    "prose": [],
+    "visual": [],
+    "_comment": "Globs for what a reader actually sees. Empty means the lane falls back to the working-tree diff, which is the right default for the day tier."
+  },
+  "layers": {
+    "assert": [
+      "site-lint",
+      "site-prose-lint",
+      "site-build"
+    ],
+    "compare": [],
+    "render": null,
+    "_comment": "Layer names from docs/CREATIVE_HARNESS.md, each listing check names from checks[] below. A layer does not run until the one before it passes. render is the single command that opens the artifact in a real browser; without it, every rendered assertion reports 'not checked' rather than passing silently."
+  },
+  "checks": [
+    {
+      "name": "site-lint",
+      "cmd": "./_backend/bin/lint",
+      "layer": "assert",
+      "applies_to": "prose",
+      "blocking": true,
+      "_comment": "The repo's own static checker: post filenames, front matter, type values, image refs, permalinks, tracked build artifacts, and the em-dash ban on published files. No build required."
+    },
+    {
+      "name": "site-prose-lint",
+      "cmd": "$HOME/.claude/bin/prose-lint _posts _pages",
+      "layer": "assert",
+      "applies_to": "prose",
+      "blocking": true,
+      "_comment": "The portable AI-tell and house-style checker (em-dash FAILs, negation-defined headings FAIL, the rest warns). Lives in ~/.claude/bin, outside the repo. In a brief, point it at the one file the piece touches. blocking reflects whether the whole of _posts and _pages passed on 2026-09-14."
+    },
+    {
+      "name": "site-build",
+      "cmd": "./_backend/bin/build",
+      "layer": "assert",
+      "applies_to": "visual",
+      "blocking": true,
+      "_comment": "Guarded jekyll build with a hard timeout (exit 124 on a stall). Run where a page, layout, include or stylesheet changed."
+    }
+  ],
+  "kinds": {
+    "_comment": "Per-kind bands for the compare layer. Each kind names the question it answers, its reader, its budgets and its gate. Give a kind ONLY the axes it actually constrains: an axis omitted is honest, an axis given an invented band is not. Label a profile 'untuned' until real artifacts exist to measure. Bands are [low, high]; null means unbounded on that side. Example, from a measured brief profile: 'brief': { 'question': 'the same argument, to someone who was not in the room and will forward it', 'core_units': [8, 10], 'visible_words_per_unit': [40, 50], 'units_with_image_pct': [80, null], 'units_with_source_pct': [100, 100], 'revealed_over_visible': [null, 2.0], 'gate': 'a citation on every claim unit, inline', 'tuned': true }.",
+    "default": {
+      "question": null,
+      "gate": null,
+      "tuned": false
+    }
+  },
+  "panel": {
+    "perspectives": [],
+    "_comment": "Layer 3 readers, spawned one per entry as `artifact-reader` and run in parallel without sharing findings. Choose readers who FAIL DIFFERENTLY: two readers who fail the same way are one reader. Each needs a name, what it looks for, what it fails on, and a veto, which is the single finding that fails the artifact on that perspective alone. A perspective with no veto is decoration. Island Lab's four, as a starting point: the originator (is the ask clear and sized), the auditor (is every number defensible to its source), the first reader (is it worth ninety seconds), the subject (would the people described recognise themselves, and did they consent)."
+  },
+  "drafting": {
+    "record_human_edits": false,
+    "_comment": "When true, a shipped artifact carries a header, explicitly not part of the artifact, recording what the human changed from the last draft and why each change improved it, plus where anything cut went instead. This delta between what was drafted and what was actually sent is the only direct measurement of where the voice is wrong, and without it an editor repeats the same tics forever."
+  }
+}
