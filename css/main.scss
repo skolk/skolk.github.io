@@ -31,6 +31,126 @@ $on-palm:          768px;
   "highlight"
 ;
 
+
+// ---------------------------------------------------------------------------
+// Day / dusk / night
+//
+// The palette is lifted from the Doors deck at /doors so the site and the toys
+// agree. Dusk is the default: cream on slate. Day is paper and ink, for reading
+// outdoors. Night goes red-light rather than merely dim, for below deck with
+// eyes already adjusted.
+//
+// The pre-paint script in _includes/head.html stamps html.day or html.night
+// before the body parses, so the page never flashes the wrong ground.
+// ---------------------------------------------------------------------------
+:root {
+  --ground:     #1B242B;
+  --ground-2:   #131A1F;
+  --text:       #EFE4CE;
+  --text-dim:   rgba(239, 228, 206, .55);
+  --text-faint: rgba(239, 228, 206, .32);
+  --hair:       rgba(239, 228, 206, .20);
+  --hair-soft:  rgba(239, 228, 206, .10);
+  --accent:     #B08D57;
+  --hot:        #D0961F;
+  --panel:      rgba(0, 0, 0, .28);
+  --shadow:     rgba(0, 0, 0, .40);
+  --wash: linear-gradient(180deg, #22303A 0%, #1B242B 45%, #131A1F 100%);
+}
+
+html.day {
+  color-scheme: light;
+  --ground:     #E3D7BF;
+  --ground-2:   #D6C8AC;
+  --text:       #1F1A12;
+  --text-dim:   rgba(31, 26, 18, .62);
+  --text-faint: rgba(31, 26, 18, .42);
+  --hair:       rgba(31, 26, 18, .26);
+  --hair-soft:  rgba(31, 26, 18, .11);
+  --accent:     #7A5A28;
+  --hot:        #8A5A0C;
+  --panel:      rgba(255, 255, 255, .44);
+  --shadow:     rgba(58, 44, 20, .24);
+  --wash: linear-gradient(180deg, #EDE3CE 0%, #E3D7BF 45%, #D6C8AC 100%);
+}
+
+html.night {
+  --ground:     #0D0605;
+  --ground-2:   #050202;
+  --text:       #C05C3D;
+  --text-dim:   rgba(192, 92, 61, .60);
+  --text-faint: rgba(192, 92, 61, .34);
+  --hair:       rgba(192, 92, 61, .24);
+  --hair-soft:  rgba(192, 92, 61, .12);
+  --accent:     #9E4A2C;
+  --hot:        #E07A3C;
+  --panel:      rgba(0, 0, 0, .45);
+  --shadow:     rgba(0, 0, 0, .70);
+  --wash: linear-gradient(180deg, #150807 0%, #0D0605 45%, #050202 100%);
+}
+
+html { background: var(--ground); }
+
+body {
+  background: var(--ground);
+  background-image:
+    repeating-linear-gradient(45deg,  rgba(255,255,255,.012) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,.05)        0 1px, transparent 1px 4px),
+    var(--wash);
+  background-attachment: fixed;
+  color: var(--text);
+}
+
+h1, h2, h3, h4, h5, h6 { color: var(--text); }
+
+a { color: var(--accent); }
+a:hover, a:focus { color: var(--hot); }
+
+hr { border: 0; border-top: 1px solid var(--hair); }
+
+blockquote {
+  border-left: 2px solid var(--hair);
+  color: var(--text-dim);
+  padding-left: 1em;
+  margin-left: 0;
+}
+
+code, pre, kbd, samp {
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 6px;
+}
+pre { padding: 12px 14px; border: 1px solid var(--hair-soft); }
+code { padding: 1px 5px; }
+pre code { background: transparent; padding: 0; border: 0; }
+
+table { border-color: var(--hair); }
+th, td { border-color: var(--hair); }
+th { color: var(--accent); }
+
+// hack.css decorates headings with literal markdown syntax via pseudo-elements
+// ("## " before an h2, "=====" under an h1, "*" around em). We keep the type
+// and drop the chrome. Applied at every theme now rather than only in dark,
+// since the dark stylesheet that used to inject it is no longer loaded.
+h1::before, h1::after,
+h2::before, h2::after,
+h3::before, h3::after,
+h4::before, h4::after,
+h5::before, h5::after,
+h6::before, h6::after,
+em::before, em::after,
+strong::before, strong::after,
+blockquote::before, blockquote::after,
+hr::before, hr::after {
+  content: none !important;
+  display: none !important;
+}
+em { font-style: italic; }
+strong { font-weight: bold; }
+
+// the github corner ships hardcoded fills, so it needs a nudge per theme
+.github-corner svg { fill: var(--text) !important; color: var(--ground) !important; }
+
 div.container {
   max-width: 70rem;
 }
@@ -85,7 +205,8 @@ li.pitem {
   line-height: 2em;
   width: 100%;
   height: 300px;
-  background:#fff;
+  background: var(--ground-2);
+  border-radius: 12px;
   text-align:center;
 }
 
@@ -96,7 +217,7 @@ div.poverlay {
   left: 5%;
   width: 35%;
   opacity: 0.70;
-  background-color: aliceblue;
+  background-color: var(--panel);
 }
 
 h2.pheading {
@@ -115,21 +236,22 @@ h2.home-section-heading {
 .menu-item {
   display: block;
   padding: 8px 0;
-  color: #333;
+  color: var(--text);
   text-decoration: none;
   border-bottom: 1px solid transparent;
 }
 
 .menu-item:hover,
 .menu-item.active {
-  border-bottom: 1px solid #333;
+  color: var(--hot);
+  border-bottom: 1px solid var(--accent);
 }
 
 .explorations-header {
   margin-top: 20px;
   margin-bottom: 10px;
   font-weight: bold;
-  color: #666;
+  color: var(--accent);
   font-size: 12px;
   text-transform: uppercase;
 }
@@ -138,89 +260,26 @@ h2.home-section-heading {
 .theme-toggle {
   margin-top: 40px;
   padding-top: 20px;
-  border-top: 1px solid #ddd;
-  font-size: 14px;
-  color: #666;
-  cursor: pointer;
+  border-top: 1px solid var(--hair);
+  font-size: 13px;
+  color: var(--text-dim);
   user-select: none;
   font-family: inherit;
   text-align: center;
 }
 
 .theme-option {
-  transition: all 0.2s ease;
+  cursor: pointer;
+  transition: color 0.2s ease;
 }
 
+.theme-option:hover { color: var(--text); }
+
 .theme-option.active {
-  color: #333;
+  color: var(--hot);
 }
 
 .theme-separator {
-  margin: 0 8px;
-  color: #999;
-}
-
-.theme-toggle:hover {
-  color: #333;
-}
-
-// Dark mode navigation styles
-body.dark-theme {
-  .menu-item {
-    color: #fff;
-  }
-  
-  .menu-item:hover,
-  .menu-item.active {
-    border-bottom: 1px solid #fff;
-  }
-  
-  .explorations-header {
-    color: #999;
-  }
-  
-  .theme-toggle {
-    border-top-color: #555;
-    color: #999;
-  }
-  
-  .theme-option.active {
-    color: #fff;
-  }
-  
-  .theme-separator {
-    color: #666;
-  }
-  
-  .theme-toggle:hover {
-    color: #fff;
-  }
-  
-  // Fix dark mode heading display
-  .t-hackcss-navigation-heading {
-    color: #fff;
-  }
-
-  // hack.css dark theme decorates headings with literal markdown syntax
-  // (e.g. "## " before h2, "==========" under h1, "*" around <em>, etc.).
-  // Strip those so we keep the dark color scheme without the markdown chrome
-  // leaking through.
-  h1::before, h1::after,
-  h2::before, h2::after,
-  h3::before, h3::after,
-  h4::before, h4::after,
-  h5::before, h5::after,
-  h6::before, h6::after,
-  em::before, em::after,
-  strong::before, strong::after,
-  blockquote::before, blockquote::after,
-  hr::before, hr::after {
-    content: none !important;
-    display: none !important;
-  }
-
-  // hack.css uses monospace-aligned <em> with width set assuming the
-  // pseudo-elements take up space — restore normal italic styling here.
-  em { font-style: italic; }
-  strong { font-weight: bold; }
+  margin: 0 6px;
+  color: var(--text-faint);
 }

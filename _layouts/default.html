@@ -25,64 +25,47 @@
     <!-- Prism.js -->
     <script src="https://npmcdn.com/prismjs@1.5.1/prism.js"></script>
     
-    <!-- Night Mode Script -->
+    <!-- Day / dusk / night. The pre-paint script in head.html already picked
+         and applied one; this only wires the switch and keeps the label honest. -->
     <script>
-      // Check for saved theme preference or default to 'light'
-      const currentTheme = localStorage.getItem('theme') || 'light';
-      const body = document.getElementById('theme-body');
-      const liteText = document.getElementById('lite-text');
-      const darkText = document.getElementById('dark-text');
-      
-      // Apply saved theme on page load
-      if (currentTheme === 'dark') {
-        enableDarkMode();
-      }
-      
-      function toggleNightMode() {
-        if (body.classList.contains('dark-theme')) {
-          enableLightMode();
-        } else {
-          enableDarkMode();
+      (function(){
+        var KEY = 'skolk.theme';
+        var BAR = {day:'#E3D7BF', dusk:'#1B242B', night:'#0D0605'};
+        var root = document.documentElement;
+        var opts = document.querySelectorAll('.theme-option');
+        var meta = document.getElementById('theme-color-meta');
+
+        function current(){
+          if (root.classList.contains('day')) return 'day';
+          if (root.classList.contains('night')) return 'night';
+          return 'dusk';
         }
-      }
-      
-      function enableDarkMode() {
-        // Update body classes
-        body.classList.remove('standard');
-        body.classList.add('hack', 'dark', 'dark-theme');
-        
-        // Update stylesheets
-        document.getElementById('theme-standard').disabled = true;
-        document.getElementById('theme-dark').disabled = false;
-        
-        // Update toggle text with brackets
-        liteText.classList.remove('active');
-        liteText.innerHTML = 'lite';
-        darkText.classList.add('active');
-        darkText.innerHTML = '[dark]';
-        
-        // Save preference
-        localStorage.setItem('theme', 'dark');
-      }
-      
-      function enableLightMode() {
-        // Update body classes
-        body.classList.remove('hack', 'dark', 'dark-theme');
-        body.classList.add('standard');
-        
-        // Update stylesheets
-        document.getElementById('theme-standard').disabled = false;
-        document.getElementById('theme-dark').disabled = true;
-        
-        // Update toggle text with brackets
-        liteText.classList.add('active');
-        liteText.innerHTML = '[lite]';
-        darkText.classList.remove('active');
-        darkText.innerHTML = 'dark';
-        
-        // Save preference
-        localStorage.setItem('theme', 'light');
-      }
+
+        function apply(t, save){
+          root.classList.remove('day', 'night');
+          if (t !== 'dusk') root.classList.add(t);
+          opts.forEach(function(el){
+            var on = el.dataset.theme === t;
+            el.classList.toggle('active', on);
+            el.textContent = on ? '[' + el.dataset.theme + ']' : el.dataset.theme;
+          });
+          if (meta) meta.setAttribute('content', BAR[t]);
+          if (save) { try { localStorage.setItem(KEY, t); } catch(e){} }
+        }
+
+        opts.forEach(function(el){
+          el.addEventListener('click', function(){ apply(el.dataset.theme, true); });
+        });
+
+        apply(current(), false);
+
+        /* follow the system until the reader picks for themselves */
+        matchMedia('(prefers-color-scheme: light)').addEventListener('change', function(e){
+          var saved = null;
+          try { saved = localStorage.getItem(KEY); } catch(err){}
+          if (!saved) apply(e.matches ? 'day' : 'dusk', false);
+        });
+      })();
     </script>
   </body>
 

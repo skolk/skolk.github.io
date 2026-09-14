@@ -2,6 +2,21 @@
       <meta charset="utf-8">
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="theme-color" content="#1B242B" id="theme-color-meta">
+
+      <!-- Day / dusk / night. Runs before the body parses so the page never
+           paints the wrong ground. A saved choice wins, otherwise follow the
+           system. Same palette and same storage idiom as /doors. -->
+      <script>
+      (function(){
+        var BAR = {day:"#E3D7BF", dusk:"#1B242B", night:"#0D0605"}, t = null;
+        try { t = localStorage.getItem("skolk.theme"); } catch(e){}
+        if (!BAR[t]) t = matchMedia("(prefers-color-scheme: light)").matches ? "day" : "dusk";
+        if (t !== "dusk") document.documentElement.classList.add(t);
+        var m = document.getElementById("theme-color-meta");
+        if (m) m.setAttribute("content", BAR[t]);
+      })();
+      </script>
     
       <!-- Favicon -->
       <link rel="icon" href="{{ "/images/favicon.png" | prepend: site.baseurl }}">
@@ -18,9 +33,9 @@
       <!-- hack.css base -->
       <link rel="stylesheet" href="https://npmcdn.com/hack/dist/hack.css" />
       
-      <!-- Theme CSS - will be toggled by JavaScript -->
+      <!-- hack.css standard is the type and spacing only, it carries almost no
+           colour. Colour comes from the three palettes in main.scss. -->
       <link rel="stylesheet" href="https://npmcdn.com/hack/dist/standard.css" id="theme-standard" />
-      <link rel="stylesheet" href="https://npmcdn.com/hack/dist/dark.css" id="theme-dark" disabled />
     
       <!-- Prism.js -->
       <link rel="stylesheet" href="https://npmcdn.com/prismjs@1.5.1/themes/prism.css" />
@@ -28,49 +43,12 @@
       <!-- Custom style -->
       <link rel="stylesheet" href="{{ "/css/main.css" | prepend: site.baseurl }}" />
     
-      <!-- Night mode styles -->
       <style>
-        .night-mode-toggle {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background: transparent;
-          border: 1px solid #333;
-          color: #333;
-          padding: 8px 12px;
-          cursor: pointer;
-          font-family: inherit;
-          font-size: 14px;
-          z-index: 1000;
-          transition: all 0.3s ease;
-        }
-        
-        .night-mode-toggle:hover {
-          background: #333;
-          color: #fff;
-        }
-        
-        /* Dark mode styles */
-        body.dark-theme .night-mode-toggle {
-          border-color: #fff;
-          color: #fff;
-        }
-        
-        body.dark-theme .night-mode-toggle:hover {
-          background: #fff;
-          color: #333;
-        }
-        
-        /* Smooth transitions for theme switching */
-        body {
-          transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        
-        a {
-          transition: color 0.3s ease;
-        }
+        /* the only cross-theme transition worth keeping */
+        body { transition: background-color .3s ease, color .3s ease; }
+        a { transition: color .3s ease; }
       </style>
-    
+
       <!-- Feed -->
       <link rel="alternate" type="application/rss+xml" title="{{ site.title }}"
             href="{{ "/feed.xml" | prepend: site.baseurl }}" />
