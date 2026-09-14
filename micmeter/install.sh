@@ -49,7 +49,14 @@ cat > "$HOME/Library/LaunchAgents/com.seankolk.micmeterbar.plist" <<EOF
         <string>$APP/Contents/MacOS/micmeter-bar</string>
     </array>
     <key>RunAtLoad</key><true/>
-    <key>KeepAlive</key><true/>
+    <!-- Restart on a crash, but not on a clean exit: an unconditional
+         KeepAlive relaunches the app the instant Quit terminates it, so the
+         menu's Quit item does nothing you can see. SuccessfulExit false lets
+         Quit stick until the next login. -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key><false/>
+    </dict>
     <key>StandardErrorPath</key><string>$HOME/.micmeter/bar.log</string>
 </dict>
 </plist>
