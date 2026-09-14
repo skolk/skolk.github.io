@@ -36,7 +36,7 @@ Keep `Next action` free of `|` characters (it's a table cell).
 | Palinuro | idea | 3 | ? | 3 | 1 | The helmsman who was the price of passage, watchtowers, a storm, two people calibrating sensors; needs the watchtower-storm photo |
 | What to Step Into | idea | 2 | ? | 3 | 0 | When to step in, let it run, deconstruct, construct; small mental model with a decision diagram |
 | What Gets Left | idea | 2 | ? | 4 | 0 | Regenerative versus extractive presence, from the Blue Era fishermen-politician arguments; wait for Pollica protocol results |
-| The banjo player | idea | 2 | ? | 2 | 2 | Churches into music halls, ballads folded into modern music; need the name; Adventure Report material too |
+| The banjo player | idea | 2 | ? | 2 | 2 | Annie Bartholomew (anniebalaska.com); churches into music halls, ballads folded into modern music; Adventure Report material too |
 | Pollica full report | trip-report | 3 | ? | 5 | 1 | Expand from July recap and month notes: coastal mapping, sensors, governance history with Future Food Institute |
 | PNW Climate Week short write-up | idea | 2 | ? | 3 | 2 | Short post: trivia night, future of food event with Nice Industries, Maritime Blue and Sound Experience threads |
 | Ulva and the Islandness gathering | trip-report | 2 | ? | 4 | 1 | Archaeology, foraging, finding your trip; carried from June and July recaps |
@@ -44,6 +44,15 @@ Keep `Next action` free of `|` characters (it's a table cell).
 | Boston 2026 trip log | trip-report | 2 | ? | 3 | 1 | A few days going deep on agentic AI; write while fresh |
 | Barra and the Hebrides | trip-report | 2 | ? | 3 | 1 | Viking and French farmers, island versus inland; carried from June recap |
 | Dudu Kouaté in Bristol | idea | 2 | ? | 2 | 1 | The percussion set and a smaller kind of life; carried from June recap |
+| Banjo practice room write-up | edit | 4 | ? | 2 | 0 | Draft in _drafts/Banjo-Practice-Room.md; add your voice per WALK_AND_TALK_TOOLS.md item 3 |
+| Salish Migration Map write-up | edit | 4 | ? | 3 | 1 | Draft in _drafts/Salish-Migration-Map.md; add your voice per WALK_AND_TALK_TOOLS.md item 4 |
+| netmeter, the story post | idea | 3 | ? | 3 | 0 | The page is the manual; write the story per WALK_AND_TALK_TOOLS.md item 1 |
+| micmeter, the story post | idea | 3 | ? | 2 | 0 | WALK_AND_TALK_TOOLS.md item 2 |
+| Contact page short update | idea | 3 | ? | 2 | 0 | WALK_AND_TALK_TOOLS.md item 5 |
+| Cilento map paragraph | idea | 3 | ? | 2 | 1 | Fold into the Pollica full report; WALK_AND_TALK_TOOLS.md item 6 |
+| What a lender asks | idea | 3 | ? | 4 | 1 | Equipment finance versus project finance; from the August recap; no client names |
+| Community mesh networks | idea | 2 | ? | 3 | 0 | AWMN, guifi.net, Freifunk, Funkfeuer; what a coastal community can own |
+| Useful, not agreeable | idea | 2 | ? | 3 | 0 | The Crates line; telling a friend what is stopping their project from getting funded |
 
 ## Parked ideas
 
@@ -58,3 +67,9 @@ Append when you publish, newest at the bottom. Cadence is also computed from git
 
 - 2026-06-20 — Halfway House: embedded 15 build photos with alt text (improvement)
 - 2026-06-20 — Fixed 4 broken recap links (edit)
+- 2026-07-05 — Community Economic Simulator, The Facilitator (project)
+- 2026-08-02 — Experiments Solve Complexity (article)
+- 2026-08-24 — Seventy-Eight Cards (project)
+- 2026-08-25 — Wrong Without an Error (project)
+- 2026-09-06 — July and August 2026 recaps drafted, plus banjo and Salish map write-ups (drafts, needs review)
+- 2026-08-02 — Experiments Solve Complexity (article, from the Kate debate)
