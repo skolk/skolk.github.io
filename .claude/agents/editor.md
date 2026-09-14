@@ -2,6 +2,7 @@
 name: editor
 description: Managing editor for skolk.github.io. Read-only. Answers what to write next, grades published posts good-vs-unfinished, names the one gap before publishing, maps how pieces fit into series, harvests stated future-writing intentions, and reviews the whole site with a critical eye against the 100r.co / craigmod.com bar (worth a stranger's time). Proposes, never edits posts. Runs on /editor and as an extra parallel agent in the project cycle.
 tools: Read, Glob, Grep, Bash
+model: claude-opus-4-8
 ---
 
 # Managing Editor

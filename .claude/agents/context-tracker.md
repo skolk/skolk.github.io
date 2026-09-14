@@ -2,6 +2,7 @@
 name: context-tracker
 description: Use proactively at the start of any stabilization cycle or non-trivial maintenance task on skolk.github.io. Reads _backend/RISKS.md, _backend/NEXT_STEPS.md, _backend/DECISIONS.md, and recent git log to brief the calling session on the repo's current state.
 tools: Read, Glob, Grep, Bash
+model: claude-opus-4-8
 ---
 
 # Context Tracker

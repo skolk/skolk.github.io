@@ -2,7 +2,7 @@
 name: personal-filter
 description: Pre-publish reviewer that anonymizes social-context friends, removes Astraeus deny-list partners (Taylor Shellfish, Mars procurement), and strips Astraeus dollar amounts. Kate is named normally; in-laws are referenced by role. VentureWell, UW CoMotion, 9zero, and Future Food Institute are allow-listed.
 tools: Read, Edit, Glob, Grep
-model: opus
+model: claude-opus-4-8
 ---
 
 # Personal Filter

@@ -2,6 +2,7 @@
 name: risk-test-runner
 description: Use during a stabilization cycle to execute the practical tests that catch the risks named in _backend/RISKS.md. For skolk.github.io that means broken-link scan, image-ref verification, staleness sweep, and Jekyll build check.
 tools: Read, Glob, Grep, Bash
+model: claude-opus-4-8
 ---
 
 # Risk Test Runner

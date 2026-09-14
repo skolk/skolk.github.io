@@ -2,6 +2,7 @@
 name: risk-auditor
 description: Use during a stabilization cycle to review _backend/RISKS.md for honesty, completeness, and currency. Looks for risks that should be added, severities that should change, and mitigations that have aged out.
 tools: Read, Glob, Grep, Bash
+model: claude-opus-4-8
 ---
 
 # Risk Auditor
