@@ -8,9 +8,9 @@
 <link rel="icon" href="data:,">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f4f1ea">
-<title>Divergence v0.6</title>
+<title>Divergence v0.7</title>
 <!--
-  Divergence, v0.6
+  Divergence, v0.7
   Island Lab. A conference demo: local sensor against public reference,
   same water, same hour. Single file, no network, phone first.
   Data is a frozen snapshot written by projects/divergence/export_divergence.py.
@@ -200,11 +200,11 @@
       <div class="legend"><span><i class="l-prim"></i>fit</span><span><i class="l-gap" style="border-left:0;background:var(--band)"></i>&plusmn;1 residual SD</span><span><i style="width:18px;height:0;border-top:1px dashed var(--rule)"></i>1 : 1</span></div>
       <svg class="chart" id="twin" viewBox="0 0 390 300" aria-label="Twin fit"></svg>
       <p class="note" id="twinnote"></p>
-      <p class="sentence">When a number carries this much uncertainty and still drives a permit decision, the uncertainty is a governance question, not a statistics question.</p>
+      <p class="sentence">The model is useful and the model is uncertain. Governance starts where the uncertainty is larger than the decision it drives.</p>
     </section>
     <section class="screen" id="s3" aria-label="Provenance">
       <p class="kicker">3 of 3 &middot; Provenance</p>
-      <h2 class="q">Who made this, and who can check it?</h2>
+      <h2 class="q">Whose seeing counts?</h2>
       <div class="prov" id="prov"></div>
       <p class="close">Whoever holds the measurement stack holds the right to be believed.</p>
       <p class="mark">Island Lab</p>
@@ -309,6 +309,8 @@ function renderDivergence(S) {
   const site = S.site;
   const primName = S.primKind === 'local' ? 'the node' : 'the NOAA station';
   const refName = S.primKind === 'local' ? 'the Copernicus analysis' : 'the modeled reference';
+  const kmMatch = /([\d.]+) km/.exec((site.provenance.reference || {}).station_or_product || '');
+  const refKm = kmMatch ? kmMatch[1] : 'some';
   const H = headline(S);
   if (!H) {
     $('head').textContent = 'No record';
@@ -332,8 +334,8 @@ function renderDivergence(S) {
     ' read ' + (colder ? 'colder' : 'warmer') + ' than ' + refName + ' on ' +
     (colder ? H.below : H.n - H.below) + ' of ' + H.n + ' readings, by ' + fmt1(Math.abs(H.mean)) +
     ' °C on average. ' + (S.primKind === 'local'
-      ? 'The public number is the one that would go into a permit.'
-      : 'Both numbers are public. Only one of them was in the water.');
+      ? 'The model sees a 4 km cell averaged over a day. The person sees the water they were standing in. Both are called the same thing.'
+      : 'The model sees a grid point ' + refKm + ' km away. The station sees the water it stands in. Both are called the same thing.');
 
   // legend
   const L = [];
