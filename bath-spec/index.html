@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Spec a bathroom remodel in five minutes, in build order, with a client presentation and a contractor review.">
+<title>Five-Minute Bath Spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: numbered steps on the left (measure, existing, layout, floor up, fixtures, budget); on the right one board with three views: the working plan, a client presentation, and a contractor review sheet. Palette taken from glazed green tile, slate floor and white grout. */
+:root{
+  --paper:#eef1ec; --sheet:#ffffff; --ink:#18241d; --muted:#5b6a60; --line:#c9d4c8; --rule:#e2e9e0;
+  --accent:#3d6e33; --accent-ink:#ffffff; --accent-soft:#e0ecd8; --forest:#1f4a35;
+  --ok:#2c7539; --warn:#9b5c14; --bad:#b0352a;
+  --display:'Archivo','Arial Narrow',system-ui,sans-serif;
+  --body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#111713; --sheet:#171f1a; --ink:#e3ebe4; --muted:#95a698; --line:#34443a; --rule:#25332a;
+  --accent:#8fbf74; --accent-ink:#0f1a10; --accent-soft:#24331f; --forest:#9cc684;
+  --ok:#73c582; --warn:#e0a45c; --bad:#ef8174; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#111713; --sheet:#171f1a; --ink:#e3ebe4; --muted:#95a698; --line:#34443a; --rule:#25332a;
+  --accent:#8fbf74; --accent-ink:#0f1a10; --accent-soft:#24331f; --forest:#9cc684;
+  --ok:#73c582; --warn:#e0a45c; --bad:#ef8174; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--paper);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.brand{font-family:var(--display);font-stretch:72%;font-weight:800;text-transform:uppercase;letter-spacing:.05em;font-size:20px;line-height:1}
+.brand small{display:block;font-stretch:100%;font-weight:500;font-size:11px;letter-spacing:.1em;color:var(--muted);margin-top:3px}
+.clock{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px}
+.clock .bar{width:110px;height:6px;background:var(--rule);border-radius:3px;overflow:hidden}
+.clock .fill{height:100%;width:0;background:var(--accent);transition:width .4s}
+.clock.over .fill{background:var(--warn)}
+.clock .lbl{color:var(--muted);font-size:12px}
+.top .sum{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
+.top .actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:7px 12px;border-radius:3px;cursor:pointer;font-weight:600;font-size:14px}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink)}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.small{padding:4px 9px;font-size:13px}
+.btn[disabled]{opacity:.4;cursor:default}
+
+.wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;padding-block:16px 40px;padding-inline:16px;max-width:1500px;margin:0 auto}
+@media (min-width:1000px){
+  .wrap{grid-template-columns:minmax(340px,410px) minmax(0,1fr)}
+  .board{position:sticky;top:76px;max-height:calc(100vh - 92px);overflow:auto}
+}
+
+/* steps */
+.steps{display:flex;flex-wrap:wrap;gap:4px;margin:0;padding:0;list-style:none}
+.steps button{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--sheet);border-radius:3px;padding:5px 8px;font-size:13px;cursor:pointer}
+.steps button .n{font-family:var(--mono);font-size:11px;width:18px;height:18px;border-radius:50%;border:1px solid currentColor;display:inline-grid;place-items:center}
+.steps button[aria-current="step"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.steps button.done .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.steps button[disabled]{opacity:.4;cursor:not-allowed}
+.form{display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel{display:flex;flex-direction:column;gap:14px}
+.panel>h2{margin:0;font-family:var(--display);font-stretch:75%;font-weight:800;font-size:26px;line-height:1.05;text-wrap:balance}
+.panel>p.lead{margin:0;color:var(--muted);font-size:14px;max-width:60ch}
+.example{border:1px dashed var(--accent);background:var(--accent-soft);padding:10px 12px;border-radius:3px;font-size:14px}
+.grp{display:flex;flex-direction:column;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.grp h3{margin:0;font-family:var(--display);font-stretch:75%;font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.08em;display:flex;gap:8px;align-items:baseline}
+.grp h3 .layer{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);letter-spacing:0;text-transform:none}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>label,.field>.lab{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.row .field{flex:1 1 90px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13.5px;padding:6px 10px;border:1px solid var(--line);background:var(--sheet);border-radius:3px;cursor:pointer;line-height:1.2}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip.tog::before{content:"";display:inline-block;width:9px;height:9px;border:1.5px solid currentColor;border-radius:2px;margin-right:6px;vertical-align:0}
+.chip.tog[aria-pressed="true"]::before{background:currentColor;box-shadow:inset 0 0 0 1.5px var(--accent)}
+.chip .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line)}
+.chip.look{display:flex;align-items:center;gap:8px;font-weight:600}
+.chip.look svg{width:34px;height:22px;flex:none;border:1px solid var(--line);border-radius:2px}
+.presets .chip{font-weight:600}
+input[type=text],input[type=number],textarea{width:100%;border:1px solid var(--line);background:var(--sheet);border-radius:3px;padding:7px 9px;font-family:var(--mono);font-size:14px}
+textarea{font-family:var(--body);min-height:70px;resize:vertical}
+.hint{font-size:12.5px;color:var(--muted)}
+.hint.err{color:var(--bad)}
+.readout{border:1px solid var(--line);background:var(--sheet);border-radius:3px;padding:10px 12px;font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+.readout b{font-weight:600}
+.devlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.devlist li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:baseline;border-left:3px solid var(--accent);padding:4px 0 4px 8px;background:var(--sheet)}
+.devlist .cost{font-family:var(--mono);font-size:12.5px;color:var(--muted);padding-right:8px}
+.stepnav{display:flex;gap:8px;justify-content:space-between;padding-top:4px}
+
+/* build-up stack */
+.stack{display:flex;flex-direction:column-reverse;gap:1px;font-size:12px}
+.stack .ly{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:8px;align-items:center}
+.stack .bar{background:var(--line);border-radius:1px}
+.stack .ly.tile .bar{background:var(--accent)}
+.stack .ly.ref .bar{background:var(--ink);opacity:.5}
+.stack .t{font-family:var(--mono);color:var(--muted)}
+
+/* board */
+.board{background:var(--sheet);border:1px solid var(--ink);min-width:0}
+.tabs{display:flex;border-bottom:1px solid var(--ink);position:sticky;top:0;background:var(--sheet);z-index:2}
+.tabs button{flex:1;border:0;border-right:1px solid var(--line);background:transparent;padding:10px 8px;font-family:var(--display);font-stretch:80%;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:13px;cursor:pointer;color:var(--muted)}
+.tabs button:last-child{border-right:0}
+.tabs button[aria-selected="true"]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--accent)}
+.view{min-width:0}
+.planwrap{padding:16px;display:flex;flex-direction:column;gap:12px}
+.plan svg{width:100%;height:auto;display:block;max-height:62vh}
+.plan .wall{fill:none;stroke:var(--ink)}
+.plan .fx{fill:var(--sheet);stroke:var(--ink)}
+.plan .wet{fill:var(--accent-soft);stroke:var(--ink)}
+.plan .thin{fill:none;stroke:var(--ink)}
+.plan .gap{stroke:var(--sheet)}
+.plan .win{fill:var(--sheet);stroke:var(--ink)}
+.plan .swing{fill:none;stroke:var(--muted);stroke-dasharray:3 2}
+.plan .clr{fill:none;stroke:var(--accent);stroke-dasharray:3 2}
+.plan .ghost{fill:none;stroke:var(--muted);stroke-dasharray:4 3}
+.plan .arrow{stroke:var(--accent);fill:none}
+.plan .arrowhead{fill:var(--accent)}
+.plan .prob .body{stroke:var(--bad)}
+.plan .probfill{fill:var(--bad);opacity:.16}
+.plan .drag{cursor:grab;touch-action:none}
+.plan .drag:focus{outline:none}
+.plan .drag:focus-visible .body,.plan .sel .body{stroke:var(--accent);stroke-width:2}
+.plan text{fill:var(--ink);font-family:var(--mono)}
+.plan text.dim{fill:var(--muted)}
+.plan text.lbl{font-family:var(--body);font-weight:600}
+.planinfo{font-size:13.5px;color:var(--muted)}
+.planinfo .side{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-right:8px;color:var(--ink)}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;font-size:13.5px}
+.checks li{display:grid;grid-template-columns:46px minmax(0,1fr);gap:8px;align-items:start}
+.pill{font-family:var(--mono);font-size:11px;text-transform:uppercase;text-align:center;padding:1px 0;border-radius:2px;border:1px solid currentColor}
+.pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}.pill.bad{color:var(--bad)}
+
+/* contractor sheet */
+.tb{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;border-bottom:1px solid var(--ink)}
+.tb>div{padding:8px 12px;border-right:1px solid var(--line);min-width:0}
+.tb>div:last-child{border-right:0}
+.tb .k,.klab{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+.klab{display:block;margin-bottom:6px}
+.tb .v{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tb .v.big{font-family:var(--display);font-stretch:85%;font-weight:700;font-size:20px}
+@media (max-width:640px){.tb{grid-template-columns:1fr 1fr}.tb>div:nth-child(2){border-right:0}.tb>div:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.stats>div{padding:10px 12px;border-right:1px solid var(--rule);min-width:0}
+.stats>div:last-child{border-right:0}
+.stats .n{font-family:var(--display);font-stretch:80%;font-weight:700;font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stats .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+@media (max-width:700px){.stats{grid-template-columns:1fr 1fr}.stats>div{border-bottom:1px solid var(--rule)}}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sec>h3{margin:0 0 10px;font-family:var(--display);font-stretch:75%;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.1em;display:flex;gap:10px;align-items:baseline}
+.sec>h3 .no{font-family:var(--mono);font-weight:400;color:var(--muted);font-size:12px;letter-spacing:0}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:640px){.pair{grid-template-columns:minmax(0,1fr)}}
+.pair figure{margin:0;min-width:0}
+.pair figcaption{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin-bottom:6px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600;padding:4px 8px 6px;border-bottom:1px solid var(--ink)}
+td{padding:6px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.total td{border-bottom:0;border-top:1px solid var(--ink);font-weight:700}
+tr.grouphead td{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600;padding-top:12px}
+.tag{font-family:var(--mono);font-size:11.5px;border:1px solid var(--ink);padding:0 4px;border-radius:2px;white-space:nowrap}
+td small{display:block;color:var(--muted);font-size:12px}
+ol.build{margin:0;padding:0;list-style:none;counter-reset:b;display:flex;flex-direction:column}
+ol.build>li{counter-increment:b;display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;padding:8px 0;border-bottom:1px solid var(--rule);font-size:13.5px}
+ol.build>li::before{content:counter(b);font-family:var(--mono);font-size:12px;width:22px;height:22px;border:1px solid var(--ink);border-radius:50%;display:grid;place-items:center}
+ol.build b{display:block}
+ol.build ul{margin:4px 0 0;padding-left:16px;color:var(--muted)}
+ul.plain{margin:0;padding-left:18px;font-size:13.5px;display:flex;flex-direction:column;gap:4px}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.fallback{padding:12px 16px;border-bottom:1px solid var(--line);background:var(--accent-soft)}
+.fallback textarea{font-family:var(--mono);font-size:12px;min-height:180px}
+.empty{padding:30px 16px;color:var(--muted)}
+
+/* presentation */
+.pres{padding:28px clamp(16px,4vw,44px) 36px;display:flex;flex-direction:column;gap:26px}
+.pres .eyebrow{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.04em;margin:0}
+.pres h1{font-family:var(--display);font-stretch:68%;font-weight:800;font-size:clamp(40px,6vw,72px);line-height:.92;margin:6px 0 0;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance;color:var(--forest)}
+.pres .lede{font-size:18px;line-height:1.5;max-width:58ch;margin:0}
+.pres h2{font-family:var(--display);font-stretch:75%;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 12px;color:var(--muted)}
+.mboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px}
+.mcard{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mcard svg{width:100%;height:auto;aspect-ratio:1;display:block;border:1px solid var(--line);max-width:100%}
+.mcard .t{font-weight:700;font-size:14px}
+.mcard .d{font-size:12.5px;color:var(--muted)}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px}
+.feat h4{margin:0 0 6px;font-size:14px}
+.feat ul{margin:0;padding-left:16px;font-size:14px;display:flex;flex-direction:column;gap:3px}
+.price{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;border-top:1px solid var(--ink);padding-top:16px}
+.price .big{font-family:var(--display);font-stretch:75%;font-weight:800;font-size:clamp(30px,4vw,44px);font-variant-numeric:tabular-nums;line-height:1}
+.price .s{color:var(--muted);font-size:13.5px;max-width:42ch}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:3px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Five-Minute Bath Spec<small>House &amp; ADU bathrooms · US</small></div>
+  <div class="clock" id="clock" title="Five-minute target">
+    <span id="clockTxt">0:00</span><div class="bar"><div class="fill" id="clockFill"></div></div><span class="lbl" id="clockLbl">of 5:00</span>
+  </div>
+  <div class="sum" id="topSum"></div>
+  <div class="actions">
+    <button class="btn" id="copySpec" type="button">Copy contractor spec</button>
+    <button class="btn ghost" id="copyList" type="button">Copy shopping list</button>
+    <button class="btn ghost" id="newSpec" type="button">New spec</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <form class="form" id="form" autocomplete="off">
+    <ol class="steps" id="steps"></ol>
+    <div class="example" id="exampleNote">This is an example: a 5×8 hall bath where the tub becomes a walk-in shower, in the Garden green look. Pick a starting room or change anything. The clock starts on your first tap.</div>
+
+    <!-- 1 MEASURE -->
+    <div class="panel" data-step="1">
+      <h2>Measure the room</h2>
+      <p class="lead">Size, door, and window first. Everything after this works around them.</p>
+      <section class="grp">
+        <h3>Start from</h3>
+        <div class="chips presets" id="presets"></div>
+      </section>
+      <section class="grp">
+        <div class="field"><label for="f-name">Project name</label><input type="text" id="f-name" data-field="name"></div>
+        <div class="field"><span class="lab">Job</span><div class="chips" data-key="scope" data-opts="refresh:Refresh (walls stay)|gut:Full gut remodel|new:New room"></div></div>
+        <div class="row">
+          <div class="field"><label for="f-L">Length (left to right)</label><input type="text" id="f-L" data-field="L" inputmode="decimal"></div>
+          <div class="field"><label for="f-W">Width</label><input type="text" id="f-W" data-field="W" inputmode="decimal"></div>
+          <div class="field"><label for="f-H">Ceiling</label><input type="text" id="f-H" data-field="H" inputmode="decimal"></div>
+        </div>
+        <div class="hint" id="dimHint">Feet or feet-inches: 8, 8', 7'6", 90in</div>
+        <div class="row">
+          <div class="field"><span class="lab">Floor structure</span><div class="chips" data-key="floorType" data-opts="framed:Wood framed|slab:Concrete slab"></div></div>
+          <div class="field"><span class="lab">Floor outside the door</span><div class="chips" data-key="hall" data-opts="hardwood:Hardwood|vinyl:Vinyl plank|tile:Tile|carpet:Carpet"></div></div>
+        </div>
+      </section>
+      <section class="grp">
+        <h3>Door</h3>
+        <div class="field"><span class="lab">Wall</span><div class="chips" data-key="door.wall" data-opts="T:Top|R:Right|B:Bottom|L:Left"></div></div>
+        <div class="row">
+          <div class="field"><span class="lab">Width</span><div class="chips" data-key="door.w" data-num="1" data-opts="28:28&quot;|30:30&quot;|32:32&quot;|36:36&quot;"></div></div>
+          <div class="field"><label for="f-doff">From corner (in)</label><input type="number" id="f-doff" data-field="door.off" data-num="1" min="0"></div>
+        </div>
+        <div class="field"><span class="lab">Swings</span><div class="chips"><span class="chips" data-key="door.swing" data-opts="in:Into the bath|out:Out|pocket:Pocket"></span><button type="button" class="chip tog" data-toggle="door.flip">Hinge other side</button></div></div>
+        <div class="hint">Or drag the door along the walls on the plan.</div>
+      </section>
+      <section class="grp">
+        <h3>Window</h3>
+        <div class="chips"><button type="button" class="chip tog" data-toggle="win.on">There's a window</button></div>
+        <div data-if="win" class="field"><span class="lab">Wall</span><div class="chips" data-key="win.wall" data-opts="T:Top|R:Right|B:Bottom|L:Left"></div></div>
+        <div data-if="win" class="row">
+          <div class="field"><label for="f-woff">From corner (in)</label><input type="number" id="f-woff" data-field="win.off" data-num="1" min="0"></div>
+          <div class="field"><label for="f-ww">Width (in)</label><input type="number" id="f-ww" data-field="win.w" data-num="1" min="12"></div>
+          <div class="field"><label for="f-wsill">Sill height (in)</label><input type="number" id="f-wsill" data-field="win.sill" data-num="1" min="0"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 2 EXISTING -->
+    <div class="panel" data-step="2" hidden>
+      <h2>What's there now</h2>
+      <p class="lead">Place the fixtures where they sit today. The drains and supplies are already there, so the layout step counts every move away from them.</p>
+      <section class="grp">
+        <h3>Bathing now</h3>
+        <div class="chips" data-key="ex.bath.type" data-opts="none:None|tub:Tub + shower|shower:Shower stall"></div>
+        <div data-if="exBath" class="field"><div class="chips" id="exSize"></div>
+          <div class="row">
+            <div class="field"><label for="f-exw">Long side (in)</label><input type="number" id="f-exw" data-field="ex.bath.w" data-num="1"></div>
+            <div class="field"><label for="f-exd">Short side (in)</label><input type="number" id="f-exd" data-field="ex.bath.d" data-num="1"></div>
+          </div>
+        </div>
+      </section>
+      <section class="grp">
+        <h3>Vanity &amp; toilet now</h3>
+        <div class="field"><span class="lab">Vanity width</span><div class="chips" data-key="ex.vanW" data-num="1" data-opts="18:18&quot;|24:24&quot;|30:30&quot;|36:36&quot;|48:48&quot;|60:60&quot;|72:72&quot;"></div></div>
+        <div class="field"><span class="lab">Toilet rough-in (measured)</span><div class="chips" data-key="ex.roughIn" data-num="1" data-opts="10:10&quot;|12:12&quot;|14:14&quot;"></div><div class="hint">Finished wall to the center of the flange bolts, without the baseboard.</div></div>
+      </section>
+      <section class="grp">
+        <h3>Behind the walls</h3>
+        <div class="chips" id="condChips"></div>
+      </section>
+      <div class="row"><button type="button" class="btn ghost small" data-act="arrange-ex">Auto-arrange</button></div>
+      <div class="hint">Drag fixtures on the plan to where they are. Arrow keys nudge a selected fixture 1" (Shift for 6"); W moves it to the next wall.</div>
+    </div>
+
+    <!-- 3 LAYOUT -->
+    <div class="panel" data-step="3" hidden>
+      <h2>What we can put in</h2>
+      <p class="lead" id="layoutLead"></p>
+      <div class="row"><button type="button" class="btn ghost small" data-act="reset-pr" data-if="remodel">Reset to existing</button><button type="button" class="btn ghost small" data-act="arrange-pr">Auto-arrange</button></div>
+      <section class="grp">
+        <h3>Bathing</h3>
+        <div class="chips" data-key="pr.bath.type" data-opts="none:None|tub:Tub + shower|shower:Walk-in shower|curbless:Curbless shower"></div>
+        <div data-if="prBath" class="field"><div class="chips" id="prSize"></div>
+          <div class="row">
+            <div class="field"><label for="f-prw">Long side (in)</label><input type="number" id="f-prw" data-field="pr.bath.w" data-num="1"></div>
+            <div class="field"><label for="f-prd">Short side (in)</label><input type="number" id="f-prd" data-field="pr.bath.d" data-num="1"></div>
+          </div>
+        </div>
+        <div class="chips"><button type="button" class="chip tog" data-toggle="pr.ftub">Add a freestanding tub</button></div>
+      </section>
+      <section class="grp">
+        <h3>Vanity &amp; toilet</h3>
+        <div class="field"><span class="lab">Vanity width</span><div class="chips" data-key="pr.vanW" data-num="1" data-opts="18:18&quot;|24:24&quot;|30:30&quot;|36:36&quot;|48:48&quot;|60:60&quot;|72:72&quot;"></div></div>
+        <div class="field" data-if="prDouble"><span class="lab">Sinks</span><div class="chips" data-key="pr.sinks" data-num="1" data-opts="1:One|2:Two"></div></div>
+        <div class="field"><span class="lab">Toilet</span><div class="chips" data-key="pr.toilet" data-opts="standard:Standard height|comfort:Comfort height|wallhung:Wall-hung|smart:Bidet toilet"></div></div>
+        <div class="field"><span class="lab">Bowl</span><div class="chips" data-key="pr.bowl" data-opts="elongated:Elongated|round:Round (saves 2&quot;)"></div></div>
+      </section>
+      <section class="grp" data-if="remodel">
+        <h3>Door</h3>
+        <div class="chips" data-key="pr.door" data-opts="same:Keep as is|pocket:Pocket door|out:Swing out"></div>
+      </section>
+      <section class="grp">
+        <h3 id="devHead">Changes from existing</h3>
+        <ul class="devlist" id="devList"></ul>
+      </section>
+    </div>
+
+    <!-- 4 FLOOR UP -->
+    <div class="panel" data-step="4" hidden>
+      <h2>Tile, from the floor up</h2>
+      <p class="lead">In the order it gets built. Start from a look, then adjust any layer. The readouts show where cuts land and how high the new floor sits against the hallway.</p>
+      <section class="grp">
+        <h3>Start from a look</h3>
+        <div class="chips" id="lookChips"></div>
+      </section>
+      <section class="grp">
+        <h3><span class="layer">layer 1</span>Subfloor</h3>
+        <div class="hint" id="subHint"></div>
+        <div class="chips"><button type="button" class="chip tog" data-toggle="heat">Heated floor</button></div>
+      </section>
+      <section class="grp">
+        <h3><span class="layer">layer 2</span>Floor tile</h3>
+        <div class="field"><span class="lab">Size</span><div class="chips" data-key="floorTile" data-opts="2x2:2×2 mosaic|3x6:3×6|12x12:12×12|12x24:12×24|24x24:24×24|6x36:6×36 plank"></div></div>
+        <div class="field"><span class="lab">Pattern</span><div class="chips" data-key="pattern" data-opts="straight:Straight|offset:Offset|herringbone:Herringbone|diagonal:Diagonal"></div></div>
+        <div class="field"><span class="lab">Tone</span><div class="chips" data-key="floorTone" data-tones="1"></div></div>
+        <div class="field"><span class="lab">Start the layout</span><div class="chips" data-key="layoutStart" data-opts="center:Centered (equal cuts)|door:Full tiles at the door"></div></div>
+        <div class="readout" id="floorRead"></div>
+      </section>
+      <section class="grp" data-if="prBath">
+        <h3><span class="layer">layer 3</span><span id="panHead">Shower pan</span></h3>
+        <div data-if="prPan" class="field"><span class="lab">Shower floor tile</span><div class="chips" data-key="shFloorTile" data-opts="2x2:2×2 mosaic|3x6:3×6|12x24:12×24 (linear drain)"></div></div>
+        <div data-if="prPan" class="field"><span class="lab">Shower floor tone</span><div class="chips" data-key="shFloorTone" data-tones="1"></div></div>
+        <div class="hint" id="panHint"></div>
+      </section>
+      <section class="grp" data-if="prBath">
+        <h3><span class="layer">layer 4</span>Waterproofing</h3>
+        <div class="chips" data-key="wp" data-opts="liquid:Liquid on cement board|sheet:Sheet membrane|foam:Foam board system"></div>
+      </section>
+      <section class="grp" data-if="prBath">
+        <h3><span class="layer">layer 5</span>Shower walls</h3>
+        <div class="field"><span class="lab">Tile</span><div class="chips" data-key="shWallTile" data-opts="3x6:3×6 subway|3x12:3×12|12x24:12×24|24x24:24×24|2x2:2×2 mosaic"></div></div>
+        <div class="field"><span class="lab">Tone</span><div class="chips" data-key="wallTone" data-tones="1"></div></div>
+        <div class="field"><span class="lab">Height</span><div class="chips" data-key="shWallHeight" data-opts="std:To 7'-6&quot;|ceiling:To ceiling"></div></div>
+        <div class="chips"><button type="button" class="chip tog" data-toggle="accentWall">Triangle feature wall</button><button type="button" class="chip tog" data-toggle="niche">Niche</button><button type="button" class="chip tog" data-toggle="bench">Bench</button></div>
+        <div class="readout" id="wallRead"></div>
+      </section>
+      <section class="grp">
+        <h3><span class="layer">layer 6</span>Other walls</h3>
+        <div class="chips" data-key="walls" data-opts="paint:Paint|wainscot:42&quot; wainscot tile|full:Full-height tile"></div>
+      </section>
+    </div>
+
+    <!-- 5 FIXTURES -->
+    <div class="panel" data-step="5" hidden>
+      <h2>Fixtures, light &amp; air</h2>
+      <p class="lead">Trim, glass, cabinetry, and power. None of these change the layout.</p>
+      <section class="grp" data-if="prBath">
+        <h3>Shower</h3>
+        <div class="chips">
+          <button type="button" class="chip tog" data-toggle="thermo">Thermostatic valve</button>
+          <button type="button" class="chip tog" data-toggle="handheld">Handheld on bar</button>
+          <button type="button" class="chip tog" data-toggle="rain">Rain head</button>
+          <button type="button" class="chip tog" data-toggle="blocking">Grab-bar blocking</button>
+        </div>
+        <div class="field"><span class="lab">Enclosure</span><div class="chips" data-key="enclosure" data-opts="curtain:Curtain|panel:Fixed glass panel|framed:Framed door|frameless:Frameless door|none:Open"></div></div>
+      </section>
+      <section class="grp">
+        <h3>Vanity</h3>
+        <div class="field"><span class="lab">Cabinet</span><div class="chips" data-key="vanWood" data-woods="1"></div></div>
+        <div class="row">
+          <div class="field"><span class="lab">Mount</span><div class="chips" data-key="vanMount" data-opts="floor:Floor|floating:Floating"></div></div>
+          <div class="field"><span class="lab">Over the sink</span><div class="chips" data-key="mirror" data-opts="mirror:Mirror|cabinet:Recessed cabinet"></div></div>
+        </div>
+        <div class="field"><span class="lab">Top</span><div class="chips" data-key="top" data-opts="quartz:White quartz|stone:Natural stone|solid:Solid surface|integrated:Integrated sink top"></div></div>
+        <div class="field"><span class="lab">Metal finish</span><div class="chips" data-key="finish" data-metals="1"></div></div>
+      </section>
+      <section class="grp">
+        <h3>Power &amp; air</h3>
+        <div class="chips">
+          <button type="button" class="chip tog" data-toggle="humid">Humidity-sensing fan</button>
+          <button type="button" class="chip tog" data-toggle="towelWarmer">Towel warmer</button>
+        </div>
+        <div class="field"><span class="lab">Vanity light</span><div class="chips" data-key="vanityLight" data-opts="sconces:Sconces each side|bar:Bar over mirror"></div></div>
+      </section>
+    </div>
+
+    <!-- 6 BUDGET -->
+    <div class="panel" data-step="6" hidden>
+      <h2>Budget</h2>
+      <p class="lead">Planning numbers for the conversation, before bids.</p>
+      <section class="grp">
+        <div class="field"><span class="lab">Grade</span><div class="chips" data-key="tier" data-opts="builder:Builder|mid:Mid|high:High end"></div></div>
+        <div class="field"><span class="lab">Labor market</span><div class="chips" data-key="region" data-num="1" data-opts="0.85:Low cost|1:Average|1.3:High-cost metro|1.6:Very high (SF, NYC, Seattle core)"></div></div>
+        <div class="field"><label for="f-notes">Notes for the builder</label><textarea id="f-notes" data-field="notes" placeholder="Keep the existing door, grout color TBD, owner supplies the vanity"></textarea></div>
+      </section>
+    </div>
+
+    <div class="stepnav">
+      <button type="button" class="btn ghost" id="backBtn">Back</button>
+      <button type="button" class="btn" id="nextBtn">Next</button>
+    </div>
+  </form>
+
+  <article class="board" id="board">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-view="plan" id="tab-plan">Plan</button>
+      <button type="button" role="tab" data-view="pres" id="tab-pres">Presentation</button>
+      <button type="button" role="tab" data-view="con" id="tab-con">Contractor review</button>
+    </div>
+    <div class="view" id="view-plan" role="tabpanel">
+      <div class="planwrap">
+        <div class="plan"><svg id="planSvg" role="application" aria-label="Floor plan editor"></svg></div>
+        <div class="planinfo" id="planInfo"></div>
+        <ul class="checks" id="planChecks"></ul>
+      </div>
+    </div>
+    <div class="view" id="view-pres" role="tabpanel" hidden></div>
+    <div class="view" id="view-con" role="tabpanel" hidden></div>
+  </article>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+const STORE='bathspec.v2', LIMIT=300;
+const clone=o=>JSON.parse(JSON.stringify(o));
+
+// ---------- reference data ----------
+const TILES={
+  '2x2':{label:'2×2 mosaic',dims:[2,2],grout:35,thin:100,labor:22,big:false,th:.25},
+  '3x6':{label:'3×6 subway',dims:[3,6],grout:60,thin:90,labor:20,big:false,th:.3125},
+  '3x12':{label:'3×12 ceramic',dims:[3,12],grout:75,thin:85,labor:18,big:false,th:.3125},
+  '12x12':{label:'12×12 stone or porcelain',dims:[12,12],grout:120,thin:70,labor:17,big:false,th:.375},
+  '12x24':{label:'12×24 porcelain',dims:[12,24],grout:160,thin:50,labor:16,big:true,th:.375},
+  '24x24':{label:'24×24 porcelain',dims:[24,24],grout:200,thin:45,labor:18,big:true,th:.375},
+  '6x36':{label:'6×36 porcelain plank',dims:[6,36],grout:150,thin:50,labor:16,big:true,th:.375},
+  'tri':{label:'6" triangle, handmade glaze',dims:[6,6],grout:45,thin:90,labor:30,big:false,th:.375}
+};
+const PATTERN={straight:[.10,1,'straight lay'],offset:[.10,1.05,'offset'],herringbone:[.20,1.3,'herringbone'],diagonal:[.15,1.15,'diagonal']};
+// name, base color, optional handmade variation, hidden from pickers
+const TONES={
+  glaze:['Green glaze, handmade','#86b06a',['#79a85f','#8fbb73','#6c9a55','#9cc684','#84b26a','#a6cf8e']],
+  forest:['Forest green','#1f4a35',['#1f4a35','#24533c','#1b412f']],
+  slate:['Slate','#3a4550',['#36414b','#3e4a55','#333d47','#414d58']],
+  white:['White','#efede8'],cream:['Cream','#efe8d8'],warm:['Warm gray','#bcb4a8'],sand:['Sand','#d8c5a4'],
+  blue:['Blue glaze','#5b7890',['#56738b','#61809a','#4f6b82']],terra:['Terracotta','#b56a4b',['#b0654a','#bc7353','#a85f44']],charcoal:['Charcoal','#47494b'],
+  mix:['Green, forest and white','#9cc684',null,true]
+};
+const METALS={'Polished chrome':'#c8cdd2','Brushed nickel':'#b3ada2','Matte black':'#2a2a2c','Brushed brass':'#b8924a','Polished nickel':'#d3cfc4'};
+const WOODS={walnut:['Walnut slab-front','#6b4528'],oak:['White oak','#c49a6c'],white:['Painted white','#f1efe9'],sage:['Painted sage','#7d9471']};
+const HALL={hardwood:['hardwood',.75],vinyl:['vinyl plank',.25],tile:['tile',.625],carpet:['carpet',.5]};
+const CONDS={galv:['Galvanized supply','Repipe the bathroom in PEX or copper',1800],castiron:['Cast-iron drain','Inspect; replace the bathroom section if cracked',1500],nofan:['No exhaust fan','New fan with a duct to the exterior',700],subfloor:['Soft subfloor','Replace damaged subfloor; sister joists if needed',1200],mold:['Water damage or mold','Remediate and dry out before close-up',1500],wiring:['Old wiring, no GFCI','New 20 A circuit and GFCI protection',900]};
+const WALLS={T:'top',R:'right',B:'bottom',L:'left'};
+const SIZES={tub:[[60,30],[60,32],[66,32],[72,36]],shower:[[36,36],[48,36],[60,32],[60,36],[72,36]],curbless:[[60,30],[60,36],[72,42]]};
+const SIZE_DEFAULT={tub:[60,30],shower:[48,36],curbless:[60,36]};
+const BATHNAME={tub:'tub/shower',shower:'walk-in shower',curbless:'curbless shower',none:'no tub or shower'};
+const LOOKS={
+  garden:['Garden green','Handmade green subway, triangle feature wall, slate floor, walnut',{floorTile:'12x12',pattern:'straight',floorTone:'slate',shWallTile:'3x6',wallTone:'glaze',shFloorTile:'2x2',shFloorTone:'glaze',accentWall:true,finish:'Brushed nickel',vanWood:'walnut',top:'quartz',enclosure:'frameless',niche:true,vanityLight:'sconces'}],
+  white:['Quiet white','White mosaic floor, white 3×12, chrome',{floorTile:'2x2',pattern:'straight',floorTone:'white',shWallTile:'3x12',wallTone:'white',shFloorTile:'2x2',shFloorTone:'white',accentWall:false,finish:'Polished chrome',vanWood:'white',top:'quartz',enclosure:'panel'}],
+  stone:['Warm stone','Sand 12×24 throughout, white oak, brass',{floorTile:'12x24',pattern:'offset',floorTone:'sand',shWallTile:'12x24',wallTone:'sand',shFloorTile:'2x2',shFloorTone:'sand',accentWall:false,finish:'Brushed brass',vanWood:'oak',top:'stone',enclosure:'frameless'}],
+  moody:['Forest and charcoal','Charcoal floor, forest green walls, matte black',{floorTile:'24x24',pattern:'straight',floorTone:'charcoal',shWallTile:'3x12',wallTone:'forest',shFloorTile:'2x2',shFloorTone:'charcoal',accentWall:false,finish:'Matte black',vanWood:'walnut',top:'quartz',enclosure:'frameless'}]
+};
+const LOOK_KEYS=new Set(Object.values(LOOKS).flatMap(l=>Object.keys(l[2])));
+
+const BASE={
+  name:'Hall bath',scope:'gut',floorType:'framed',hall:'hardwood',L:"8'",W:"5'",H:"8'",
+  door:{wall:'B',off:62,w:32,swing:'in',flip:false},
+  win:{on:false,wall:'T',off:30,w:30,sill:48},
+  ex:{bath:{type:'tub',w:60,d:30},vanW:24,sinks:1,ftub:false,roughIn:12,cond:{nofan:false},pos:{bath:{wall:'L',off:0},toilet:{wall:'T',off:38},vanity:{wall:'T',off:72}}},
+  pr:{bath:{type:'shower',w:60,d:32},vanW:30,sinks:1,ftub:false,toilet:'comfort',bowl:'elongated',door:'same',pos:{bath:{wall:'L',off:0},toilet:{wall:'T',off:40},vanity:{wall:'T',off:66}}},
+  prInit:true,look:'garden',
+  floorTile:'12x12',pattern:'straight',floorTone:'slate',layoutStart:'center',heat:true,
+  shFloorTile:'2x2',shFloorTone:'glaze',wp:'liquid',shWallTile:'3x6',wallTone:'glaze',shWallHeight:'std',accentWall:true,niche:true,bench:false,walls:'paint',
+  thermo:false,handheld:true,rain:false,blocking:false,enclosure:'frameless',vanWood:'walnut',vanMount:'floor',top:'quartz',mirror:'mirror',
+  finish:'Brushed nickel',humid:true,vanityLight:'sconces',towelWarmer:false,tier:'mid',region:1,notes:'',
+  step:1,view:'plan',sel:null
+};
+const PRESETS=[
+  ['hall','5×8 hall bath',{}],
+  ['powder','Powder room',{name:'Powder room',scope:'refresh',L:"6'",W:"5'",door:{wall:'B',off:36,w:30,swing:'in',flip:false},
+    ex:{bath:{type:'none',w:60,d:30},vanW:24,sinks:1,ftub:false,roughIn:12,cond:{},pos:{toilet:{wall:'L',off:20},vanity:{wall:'R',off:6}}},
+    pr:{bath:{type:'none',w:60,d:30},vanW:24,sinks:1,ftub:false,toilet:'standard',bowl:'round',door:'same',pos:{toilet:{wall:'L',off:20},vanity:{wall:'R',off:6}}},
+    heat:false,walls:'wainscot'}],
+  ['primary','Primary bath',{name:'Primary bath',L:"11'",W:"9'",H:"9'",door:{wall:'B',off:90,w:32,swing:'in',flip:false},win:{on:true,wall:'T',off:36,w:36,sill:54},
+    ex:{bath:{type:'tub',w:60,d:32},vanW:60,sinks:2,ftub:false,roughIn:12,cond:{},pos:{bath:{wall:'L',off:0},toilet:{wall:'R',off:44},vanity:{wall:'T',off:40}}},
+    pr:{bath:{type:'shower',w:60,d:36},vanW:72,sinks:2,ftub:true,toilet:'comfort',bowl:'elongated',door:'same',pos:{bath:{wall:'L',off:0},toilet:{wall:'R',off:44},vanity:{wall:'B',off:6},ftub:{wall:'T',off:44}}},
+    shWallHeight:'ceiling',wp:'sheet',thermo:true,rain:true,bench:true,vanMount:'floating',tier:'high'}],
+  ['new','New room',{name:'New bathroom',scope:'new',L:"9'",W:"6'",door:{wall:'B',off:70,w:32,swing:'in',flip:false},
+    pr:{bath:{type:'shower',w:60,d:36},vanW:36,sinks:1,ftub:false,toilet:'comfort',bowl:'elongated',door:'same',pos:null},prInit:false,heat:false}]
+];
+
+let S=load(), fallbackOpen=false, uid=0;
+
+function load(){
+  try{const r=JSON.parse(localStorage.getItem(STORE)||'null'); if(r&&r.v===2) return Object.assign(clone(BASE),r.s,{t0:r.t0??null,t1:r.t1??null,example:!!r.example});}catch(e){}
+  return Object.assign(clone(BASE),{t0:null,t1:null,example:true});
+}
+function save(){try{const {t0,t1,example,...s}=S; localStorage.setItem(STORE,JSON.stringify({v:2,s,t0,t1,example}));}catch(e){}}
+const getP=(o,p)=>p.split('.').reduce((a,k)=>a==null?a:a[k],o);
+function setP(o,p,v){const ks=p.split('.');let a=o;for(let i=0;i<ks.length-1;i++){if(a[ks[i]]==null)a[ks[i]]={};a=a[ks[i]];}a[ks[ks.length-1]]=v;}
+
+// ---------- format ----------
+function parseLen(v){
+  const s=String(v??'').trim().toLowerCase().replace(/[’′]/g,"'").replace(/[”″]|''/g,'"');
+  if(!s) return NaN;
+  let m=s.match(/^(\d+(?:\.\d+)?)\s*(?:'|ft|feet)\s*-?\s*(?:(\d+(?:\.\d+)?)\s*(?:"|in)?)?$/);
+  if(m) return +m[1]+(m[2]?+m[2]/12:0);
+  m=s.match(/^(\d+(?:\.\d+)?)\s*(?:"|in|inches)$/); if(m) return +m[1]/12;
+  m=s.match(/^(\d+)\s+(\d+(?:\.\d+)?)$/); if(m) return +m[1]+ +m[2]/12;
+  if(/^\d+(?:\.\d+)?$/.test(s)) return +s;
+  return NaN;
+}
+const ftin=ft=>{const t=Math.round(ft*12);return `${Math.floor(t/12)}'-${t%12}"`;};
+function inch(x){x=Math.max(0,x);let w=Math.floor(x),f=Math.round((x-w)*8);if(f===8){w++;f=0;}const fr=['','1/8','1/4','3/8','1/2','5/8','3/4','7/8'][f];return (w?w:'')+(w&&fr?' ':'')+(fr||(w?'':'0'))+'"';}
+const sf=n=>`${Math.round(n)} sq ft`;
+const usd=n=>'$'+Math.round(n).toLocaleString('en-US');
+const k=n=>n>=10000?'$'+(Math.round(n/500)/2).toFixed(1).replace(/\.0$/,'')+'k':usd(Math.round(n/50)*50);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const mmss=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const ceil=Math.ceil;
+const remodel=()=>S.scope!=='new';
+const toneName=t=>(TONES[t]||TONES.white)[0];
+
+// ---------- geometry ----------
+function room(){
+  const L=parseLen(S.L),W=parseLen(S.W),H=parseLen(S.H)||8;
+  const ok=L>=3&&W>=3&&L<=40&&W<=40&&H>=6.5&&H<=16;
+  return {L,W,H,ok,Lin:Math.round(L*12),Win:Math.round(W*12)};
+}
+const wallLen=(r,w)=>w==='T'||w==='B'?r.Lin:r.Win;
+function rectFor(r,wall,off,w,d){
+  switch(wall){case 'T':return {x:off,y:0,w,h:d};case 'B':return {x:off,y:r.Win-d,w,h:d};case 'L':return {x:0,y:off,w:d,h:w};default:return {x:r.Lin-d,y:off,w:d,h:w};}
+}
+function frontZone(r,wall,off,w,d,ww,dd){const o=off+w/2-ww/2;
+  switch(wall){case 'T':return {x:o,y:d,w:ww,h:dd};case 'B':return {x:o,y:r.Win-d-dd,w:ww,h:dd};case 'L':return {x:d,y:o,w:dd,h:ww};default:return {x:r.Lin-d-dd,y:o,w:dd,h:ww};}}
+function inter(a,b){const x=Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x),y=Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y);return x>.5&&y>.5;}
+const inside=(r,a)=>a.x>=-.5&&a.y>=-.5&&a.x+a.w<=r.Lin+.5&&a.y+a.h<=r.Win+.5;
+const center=a=>({x:a.x+a.w/2,y:a.y+a.h/2});
+function xf(r,wall,off,w){
+  switch(wall){case 'T':return `translate(${off} 0)`;case 'B':return `translate(${off+w} ${r.Win}) rotate(180)`;case 'L':return `translate(0 ${off+w}) rotate(-90)`;default:return `translate(${r.Lin} ${off}) rotate(90)`;}
+}
+
+function fixtures(side,posOverride){
+  const r=room(),X=S[side],pos=posOverride||X.pos||{},out=[];
+  const mk=(id,kind,name,w,d,tag,extra)=>{const p=pos[id];if(!p)return;const len=wallLen(r,p.wall);const off=Math.max(0,Math.min(p.off,len-w));out.push(Object.assign({id,kind,name,w,d,tag,pos:{wall:p.wall,off},rect:rectFor(r,p.wall,off,w,d)},extra||{}));};
+  if(X.bath.type!=='none') mk('bath',X.bath.type,X.bath.type==='tub'?'tub':'shower',+X.bath.w||60,+X.bath.d||30,X.bath.type==='tub'?'P-6':'P-7');
+  if(X.ftub) mk('ftub','ftub','freestanding tub',66,36,'P-9');
+  mk('toilet','toilet','toilet',20,side==='pr'&&S.pr.bowl==='round'?28:30,'P-1');
+  mk('vanity','vanity','vanity',+X.vanW,21,'P-2',{sinks:X.vanW>=60&&+X.sinks===2?2:1});
+  return out;
+}
+function doorStyle(side){return side==='pr'&&remodel()&&S.pr.door!=='same'?S.pr.door:S.door.swing;}
+function doorGeom(side){
+  const r=room(),d=S.door,len=wallLen(r,d.wall),off=Math.max(0,Math.min(d.off,len-d.w)),style=doorStyle(side);
+  return {wall:d.wall,off,w:d.w,style,flip:d.flip,clear:rectFor(r,d.wall,off,d.w,24),swing:style==='in'?rectFor(r,d.wall,off,d.w,d.w):null};
+}
+function winGeom(){if(!S.win.on)return null;const r=room(),w=S.win,len=wallLen(r,w.wall),off=Math.max(0,Math.min(w.off,len-w.w));return {wall:w.wall,off,w:w.w,sill:w.sill,rect:rectFor(r,w.wall,off,w.w,3)};}
+
+// fit check for one side: messages plus the ids that fail
+function evaluate(side,posOverride,only){
+  const r=room(),out=[],bad=new Set(),warn=new Set();
+  if(!r.ok) return {list:out,bad,warn};
+  const F=fixtures(side,posOverride).filter(f=>!only||only.includes(f.id));
+  const push=(lvl,msg,id)=>{out.push([lvl,msg]);if(id){if(lvl==='bad')bad.add(id);if(lvl==='warn')warn.add(id);}};
+  const dg=doorGeom(side),wg=winGeom();
+  F.forEach(f=>{if(!inside(r,f.rect)) push('bad',`The ${f.w}" ${f.name} is longer than the ${WALLS[f.pos.wall]} wall.`,f.id);});
+  for(let i=0;i<F.length;i++)for(let j=i+1;j<F.length;j++) if(inter(F[i].rect,F[j].rect)) push('bad',`${cap(F[i].name)} overlaps the ${F[j].name}.`,F[i].id);
+  F.forEach(f=>{
+    if(inter(f.rect,dg.clear)) push('bad',`The ${f.name} blocks the doorway.`,f.id);
+    else if(dg.swing&&inter(f.rect,dg.swing)) push('warn',`The door swings into the ${f.name}. A pocket door or out-swing fixes it.`,f.id);
+  });
+  const others=f=>F.filter(g=>g!==f);
+  const across=f=>(f.pos.wall==='T'||f.pos.wall==='B'?r.Win:r.Lin)-f.d;
+  F.forEach(f=>{
+    if(f.kind==='toilet'){
+      const len=wallLen(r,f.pos.wall),c=f.pos.off+f.w/2,edge=Math.min(c,len-c);let issue=false;
+      if(edge<15){push('bad',`Toilet centerline is ${Math.round(edge)}" from the corner; code needs 15" (IRC R307.1).`,f.id);issue=true;}
+      const sz=rectFor(r,f.pos.wall,c-15,30,f.d);
+      others(f).forEach(g=>{if(inter(sz,g.rect)){push('bad',`Toilet needs 15" from its centerline to the ${g.name} (IRC R307.1).`,f.id);issue=true;}});
+      const a=across(f),fz=frontZone(r,f.pos.wall,f.pos.off,f.w,f.d,30,21),fz30=frontZone(r,f.pos.wall,f.pos.off,f.w,f.d,30,30);
+      if(a<21){push('bad',`Only ${Math.max(0,Math.round(a))}" in front of the toilet; code needs 21" (IRC R307.1).`,f.id);issue=true;}
+      else{const blk=others(f).find(g=>inter(fz,g.rect));
+        if(blk){push('bad',`The ${blk.name} sits inside the toilet's 21" front clearance.`,f.id);issue=true;}
+        else if(a<30||others(f).some(g=>inter(fz30,g.rect))){push('warn','Toilet front clearance is legal but under the comfortable 30".',f.id);issue=true;}}
+      if(!issue) push('ok',`Toilet clears 15" each side and ${Math.min(Math.round(a),48)}${a>48?'+':''}" in front.`);
+    }
+    if(f.kind==='vanity'){
+      const a=across(f),fz=frontZone(r,f.pos.wall,f.pos.off,f.w,f.d,f.w,21),blk=others(f).find(g=>inter(fz,g.rect));
+      if(a<21||blk) push('bad',`Less than 21" in front of the vanity${blk?`: the ${blk.name} is in the way`:''}.`,f.id);
+      else if(a<30) push('warn',`${Math.round(a)}" in front of the vanity: tight for drawers, 30" is better.`,f.id);
+      else push('ok',`${f.w}" vanity has ${Math.min(Math.round(a),48)}${a>48?'+':''}" in front.`);
+    }
+    if(f.kind==='shower'||f.kind==='curbless'||f.kind==='tub'){
+      const need=f.kind==='tub'?24:22,depth=f.kind==='tub'?21:22,fz=frontZone(r,f.pos.wall,f.pos.off,f.w,f.d,f.w,depth);
+      if(across(f)<depth) push('bad',`Not enough room in front of the ${f.name} to step in.`,f.id);
+      else{
+        const horiz=f.pos.wall==='T'||f.pos.wall==='B',lo=horiz?fz.x:fz.y,hi=lo+f.w,blocks=[];
+        others(f).forEach(g=>{if(inter(fz,g.rect)){const a=horiz?g.rect.x:g.rect.y,b=a+(horiz?g.rect.w:g.rect.h);blocks.push([Math.max(lo,a),Math.min(hi,b)]);}});
+        blocks.sort((a,b)=>a[0]-b[0]);let cur=lo,best=0;blocks.forEach(b=>{best=Math.max(best,b[0]-cur);cur=Math.max(cur,b[1]);});best=Math.max(best,hi-cur);
+        if(best<need) push('warn',`Only ${Math.round(best)}" clear to get into the ${f.name}; plan for ${need}"${f.kind==='tub'?'':' (IRC P2708.1)'}.`,f.id);
+      }
+      if(f.kind!=='tub'){
+        if(f.w<30||f.d<30) push('bad','Shower is under the 30" minimum in one direction (IRC P2708.1).',f.id);
+        else if(f.w*f.d<900) push('bad',`Shower floor is ${f.w*f.d} sq in; code needs 900 (IRC P2708.1).`,f.id);
+        else push('ok',`Shower ${f.w}×${f.d}" meets the 30" and 900 sq in minimums.`);
+        if(f.kind==='curbless'&&side==='pr') push(f.w>=60&&f.d>=30?'ok':'warn',f.w>=60&&f.d>=30?'Roll-in size: 30×60" or larger works for a wheelchair.':'A roll-in shower needs at least 30×60".');
+      }
+    }
+    if(wg&&inter(f.rect,wg.rect)){
+      if(f.kind==='shower'||f.kind==='curbless'||f.kind==='tub') push('warn',`Window inside the ${f.name}: tempered glass (IRC R308.4.5), a tiled sill sloped to drain, vinyl or fiberglass frame.`,f.id);
+      if(f.kind==='vanity') push('warn','Vanity under the window leaves no wall for a mirror.',f.id);
+    }
+  });
+  if(side==='pr'&&S.rain&&r.H<8) push('warn','A ceiling rain head under an 8\' ceiling sits low; use an arm-mounted head.');
+  return {list:out,bad,warn};
+}
+
+function score(side,pos,only){
+  const e=evaluate(side,pos,only);let s=e.bad.size*1000+e.list.filter(x=>x[0]==='bad').length*200+e.warn.size*50;
+  const F=fixtures(side,pos),get=id=>F.find(f=>f.id===id),b=get('bath'),t=get('toilet'),v=get('vanity');
+  if(t&&b){const a=center(t.rect),c=center(b.rect);s+=Math.hypot(a.x-c.x,a.y-c.y)/8;}
+  if(v&&t&&v.pos.wall===t.pos.wall) s-=6;
+  if(v){const dc=center(doorGeom(side).clear),vc=center(v.rect);s+=Math.hypot(dc.x-vc.x,dc.y-vc.y)/30;}
+  return s;
+}
+function bestSpot(side,pos,id,w){
+  const r=room();let best=null,bs=Infinity;const only=Object.keys(pos).concat(id);
+  const tryAt=(wall,off)=>{const s=score(side,Object.assign({},pos,{[id]:{wall,off}}),only);if(s<bs){bs=s;best={wall,off};}};
+  ['T','R','B','L'].forEach(wall=>{const len=wallLen(r,wall);for(let off=0;off<=Math.max(0,len-w);off+=2)tryAt(wall,off);tryAt(wall,Math.max(0,len-w));});
+  return best;
+}
+function sizeOf(side,id){const X=S[side];return id==='bath'?+X.bath.w:id==='ftub'?66:id==='toilet'?20:+X.vanW;}
+function autoArrange(side){
+  const r=room();if(!r.ok)return;const X=S[side];let best=null;
+  const ids=['ftub','toilet','vanity'].filter(id=>id!=='ftub'||X.ftub);
+  const cands=X.bath.type==='none'?[null]:['T','R','B','L'].flatMap(w=>[{wall:w,off:0},{wall:w,off:Math.max(0,wallLen(r,w)-X.bath.w)}]);
+  cands.forEach(bp=>{const pos={};if(bp)pos.bath=bp;ids.forEach(id=>{pos[id]=bestSpot(side,pos,id,sizeOf(side,id));});const s=score(side,pos);if(!best||s<best.s)best={s,pos};});
+  X.pos=best.pos;
+}
+function placeOne(side,id){const X=S[side];X.pos=X.pos||{};const others=Object.assign({},X.pos);delete others[id];X.pos[id]=bestSpot(side,others,id,sizeOf(side,id));}
+function initProposed(){
+  if(S.prInit) return;
+  if(remodel()){S.pr.bath=clone(S.ex.bath);S.pr.vanW=S.ex.vanW;S.pr.sinks=S.ex.sinks;S.pr.ftub=S.ex.ftub;S.pr.pos=clone(S.ex.pos);}
+  else autoArrange('pr');
+  S.prInit=true;
+}
+
+// ---------- changes from existing ----------
+function locText(f){const c=f.pos.off+f.w/2,from=f.pos.wall==='T'||f.pos.wall==='B'?'left':'top';return `${cap(WALLS[f.pos.wall])} wall, CL ${inch(c)} from ${from} corner`;}
+function deviations(){
+  if(!remodel()) return [];
+  const slab=S.floorType==='slab',out=[],E=fixtures('ex'),P=fixtures('pr'),g=(A,id)=>A.find(f=>f.id===id);
+  const eb=S.ex.bath,pb=S.pr.bath;
+  const dist=(a,b)=>{const ca=center(a.rect),cb=center(b.rect);return Math.hypot(ca.x-cb.x,ca.y-cb.y);};
+  const moveTxt=(a,b)=>a.pos.wall!==b.pos.wall?`moves to the ${WALLS[b.pos.wall]} wall`:`moves ${Math.round(dist(a,b))}" along the ${WALLS[b.pos.wall]} wall`;
+  if(eb.type!==pb.type){
+    if(eb.type==='none') out.push({what:`Add a ${BATHNAME[pb.type]}`,from:'none',to:`${pb.w}×${pb.d}"`,trade:'Plumbing, framing, tile',cost:slab?4500:2800,plain:`A new ${pb.w}×${pb.d}" ${BATHNAME[pb.type]} goes in.`});
+    else if(pb.type==='none') out.push({what:`Remove the ${BATHNAME[eb.type]}`,from:`${eb.w}×${eb.d}"`,to:'none',trade:'Plumbing, framing',cost:900,plain:`The ${BATHNAME[eb.type]} comes out.`});
+    else out.push({what:`${cap(BATHNAME[eb.type])} becomes a ${BATHNAME[pb.type]}`,from:`${eb.w}×${eb.d}"`,to:`${pb.w}×${pb.d}"`,trade:'Plumbing, tile',cost:(pb.type==='curbless'?(slab?2500:1800):0)+(slab?1500:800),
+      note:pb.type==='curbless'?(slab?'Cut the slab to recess the shower floor':'Recess the subfloor 1.5 to 2"'):(eb.type==='tub'?'Re-center the drain for the shower pan; raise the valve and head':'Drain moves to the tub end'),
+      plain:eb.type==='tub'?`The tub comes out for a ${pb.w}×${pb.d}" ${BATHNAME[pb.type]}.`:`The ${BATHNAME[eb.type]} becomes a ${pb.w}×${pb.d}" ${BATHNAME[pb.type]}.`});
+  } else if(eb.type!=='none'&&(+eb.w!==+pb.w||+eb.d!==+pb.d)) out.push({what:`${cap(BATHNAME[pb.type])} resized`,from:`${eb.w}×${eb.d}"`,to:`${pb.w}×${pb.d}"`,trade:'Framing, tile',cost:600,plain:`The ${BATHNAME[pb.type]} grows to ${pb.w}×${pb.d}".`});
+  const ebf=g(E,'bath'),pbf=g(P,'bath');
+  if(ebf&&pbf&&dist(ebf,pbf)>8) out.push({what:`Bathing area ${moveTxt(ebf,pbf)}`,from:`${cap(WALLS[ebf.pos.wall])} wall`,to:`${cap(WALLS[pbf.pos.wall])} wall`,trade:'Plumbing',cost:slab?3500:1800,note:'New drain, trap, and valve wall',plain:`The ${pbf.name} moves to the ${WALLS[pbf.pos.wall]} wall.`});
+  const et=g(E,'toilet'),pt=g(P,'toilet');
+  if(et&&pt&&dist(et,pt)>2) out.push({what:`Toilet ${moveTxt(et,pt)}`,from:locText(et),to:locText(pt),trade:'Plumbing',cost:slab?2200:800,note:slab?'Cut and patch the slab for the 3" drain':'Re-route the 3" closet bend; check joist direction',plain:`The toilet ${moveTxt(et,pt)}.`});
+  if(S.pr.toilet==='wallhung') out.push({what:'Wall-hung toilet',from:'floor-mount',to:'in-wall carrier',trade:'Framing, plumbing',cost:1200,note:'2×6 wet wall for the carrier',plain:'A wall-hung toilet frees up floor.'});
+  const ev=g(E,'vanity'),pv=g(P,'vanity');
+  if(ev&&pv){
+    if(+S.ex.vanW!==+S.pr.vanW) out.push({what:`Vanity ${S.ex.vanW}" to ${S.pr.vanW}"`,from:`${S.ex.vanW}"`,to:`${S.pr.vanW}"`,trade:'Cabinet',cost:0,plain:`The vanity ${+S.pr.vanW>+S.ex.vanW?'grows':'shrinks'} from ${S.ex.vanW}" to ${S.pr.vanW}".`});
+    const same=ev.pos.wall===pv.pos.wall;
+    if(dist(ev,pv)>6) out.push({what:`Sink ${moveTxt(ev,pv)}`,from:locText(ev),to:locText(pv),trade:'Plumbing',cost:same?450:1200,note:same?'Shift the drain and supplies in the same wall':'New drain and vent on another wall',plain:same?'':`The vanity moves to the ${WALLS[pv.pos.wall]} wall.`});
+    const es=S.ex.vanW>=60&&+S.ex.sinks===2?2:1;
+    if(pv.sinks>es) out.push({what:'Second sink',from:'1 sink',to:'2 sinks',trade:'Plumbing',cost:700,note:'Add a drain and supplies',plain:'A second sink goes in.'});
+  }
+  if(S.pr.ftub&&!S.ex.ftub) out.push({what:'Add a freestanding tub',from:'none',to:'60×30" tub',trade:'Plumbing, framing',cost:slab?3500:2000,note:'Drain and floor-mount supplies; check the joists for about 700 lb filled',plain:'A freestanding tub goes in.'});
+  if(S.pr.door==='pocket') out.push({what:'Pocket door',from:'swing door',to:'pocket',trade:'Framing',cost:1500,note:`Needs ${S.door.w}" of clear wall beside the opening, with no pipes or wires in it`,plain:'A pocket door replaces the swing door.'});
+  if(S.pr.door==='out') out.push({what:'Door swings out',from:'in-swing',to:'out-swing',trade:'Carpentry',cost:350,plain:'The door is re-hung to swing out.'});
+  return out;
+}
+
+// ---------- the model ----------
+function compute(){
+  const r=room(); if(!r.ok) return {err:true};
+  const s=S,X=S.pr,ti={builder:0,mid:1,high:2}[s.tier]??1,p=a=>a[ti],R=+s.region||1;
+  const {L,W,H}=r,floor=L*W;
+  const bt=X.bath.type,hasShower=bt!=='none',combo=bt==='tub',pan=bt==='shower'||bt==='curbless',curbless=bt==='curbless',freeTub=!!X.ftub;
+  const shW=+X.bath.w||0,shD=+X.bath.d||0,shWf=shW/12,shDf=shD/12;
+  const sinks=(X.vanW>=60&&+X.sinks===2)?2:1;
+  const top=s.shWallHeight==='ceiling'?H:Math.min(H,7.5),bottom=combo?1.25:0;
+  const shRun=hasShower?shWf+2*shDf:0,shWallAll=hasShower?shRun*(top-bottom):0,shFloor=pan?shWf*shDf:0,tubArea=combo?shWf*shDf:0;
+  const accentArea=hasShower&&s.accentWall?shWf*(top-bottom):0,shWall=shWallAll-accentArea;
+  const mainFloor=Math.max(0,floor-shFloor-tubArea);
+  const doorW=s.door.w/12,doorH=80/12;
+  const perimRun=Math.max(0,2*(L+W)-(hasShower?shWf+shDf:0));
+  const winA=s.win.on?s.win.w*36/144:0;
+  const wallsGross=Math.max(0,perimRun*H-doorW*doorH-winA);
+  let wallTile=0,wainRun=0;
+  if(s.walls==='wainscot'){wainRun=Math.max(0,perimRun-doorW);wallTile=wainRun*3.5;}
+  if(s.walls==='full') wallTile=wallsGross;
+  const abovePaint=hasShower?shRun*(H-top):0;
+  const paintArea=Math.max(0,wallsGross-wallTile)+abovePaint+floor;
+  const gallons=Math.max(1,ceil(paintArea*2/350));
+  const surf=[],pw=PATTERN[s.pattern]||PATTERN.straight;
+  const add=(tag,name,tileKey,area,waste,detail,tone,swPat)=>{if(area<=.5)return;const t=TILES[tileKey];surf.push({tag,name,tileKey,tile:t,area,waste,order:ceil(area*(1+waste)),detail,tone,swPat});};
+  add('T-1','Floor',s.floorTile,mainFloor,pw[0]+(TILES[s.floorTile].big?.05:0),`${TILES[s.floorTile].label}, ${pw[2]}`,s.floorTone,s.pattern);
+  if(hasShower) add('T-2','Shower walls',s.shWallTile,shWall,.10+(TILES[s.shWallTile].big?.05:0),`${TILES[s.shWallTile].label}, running bond, ${combo?'tub deck':'floor'} to ${s.shWallHeight==='ceiling'?'ceiling':`7'-6"`}`,s.wallTone,'offset');
+  if(accentArea) add('T-5','Feature wall','tri',accentArea,.18,`6" triangles in three colors on the ${shW}" back wall, laid to a drawing`,'mix','tri');
+  if(pan) add('T-3','Shower floor',s.shFloorTile,shFloor,.15,`${TILES[s.shFloorTile].label}, ${s.shFloorTile==='12x24'||curbless?'single slope to linear drain':'four-way slope to center drain'}`,s.shFloorTone,'straight');
+  if(wallTile>0) add('T-4',s.walls==='full'?'Room walls':'Wainscot',hasShower?s.shWallTile:'3x12',wallTile,.10,s.walls==='full'?'full height, same tile as T-2':`42" high with cap${hasShower?', same tile as T-2':', 3×12 ceramic'}`,s.wallTone,'offset');
+  const tileTotal=surf.reduce((a,x)=>a+x.order,0);
+  const membrane=hasShower?ceil((shWallAll+shFloor+(curbless?mainFloor:0)+(s.niche?4:0))*1.1):0;
+  const backerSheets=hasShower?(s.wp==='foam'?ceil(shWallAll*1.1/32):ceil(shWallAll*1.1/15)):0;
+  const uncouple=ceil(mainFloor*1.1),uncoupleRolls=ceil(uncouple/54);
+  const thinset=ceil(surf.reduce((a,x)=>a+x.order/x.tile.thin,0)+uncouple/90+(hasShower&&s.wp!=='liquid'?membrane/90:0));
+  const grout=surf.map(x=>({tag:x.tag,bags:Math.max(1,ceil(x.order/x.tile.grout))}));
+  let trimFt=wainRun+(s.niche&&hasShower?5:0);if(hasShower) trimFt+=2*(top-bottom)+(s.shWallHeight==='ceiling'?0:shRun);
+  const trimPcs=ceil(trimFt/8.2);
+  const heatClear=mainFloor-(X.vanW/12*21/12)-(20*28/144)-(freeTub?(60*30/144):0);
+  const heatMat=s.heat?Math.max(10,Math.floor(heatClear*.9/5)*5):0,heatW=heatMat*12;
+  const fixturesForFan=1+(hasShower?1:0)+(freeTub?1:0);
+  const cfmNeed=floor<=100?Math.max(50,floor*H/8):50*fixturesForFan;
+  const cfm=[50,80,110,150].find(x=>x>=cfmNeed)||ceil(cfmNeed/10)*10;
+  const cans=Math.max(1,Math.round(floor/35))+(hasShower?1:0);
+  const gfci=sinks+(X.toilet==='smart'?1:0);
+  const devs=deviations();
+  const P=fixtures('pr'),loc=id=>{const f=P.find(x=>x.id===id);return f?locText(f):'';};
+
+  const fx=[];
+  const toiletTxt={standard:'Standard-height (15")',comfort:'Comfort-height (17 to 19")',wallhung:'Wall-hung, in-wall carrier (2×6 wet wall)',smart:'Integrated bidet toilet'}[X.toilet];
+  const tStays=remodel()&&!devs.some(d=>d.what.startsWith('Toilet moves'));
+  fx.push(['P-1','Toilet',`${toiletTxt}, ${X.bowl} bowl, 1.28 gpf WaterSense`,(X.toilet==='wallhung'?'Carrier sets the bowl height.':tStays&&+S.ex.roughIn!==12?`Existing rough-in is ${S.ex.roughIn}": order a ${S.ex.roughIn}" rough-in toilet or use an offset flange.`:'12" rough-in.')+(X.toilet==='smart'?' GFCI receptacle behind the toilet.':''),loc('toilet')]);
+  const topTxt={quartz:'white quartz top',stone:'natural stone top (seal yearly)',solid:'solid-surface top',integrated:'integrated sink top'}[s.top];
+  fx.push(['P-2','Vanity',`${X.vanW}" ${WOODS[s.vanWood][0].toLowerCase()} ${s.vanMount==='floating'?'wall-hung (floating)':'floor-standing'} vanity, ${topTxt}, ${sinks===2?'two':'one'} ${s.top==='integrated'?'integral':'undermount'} sink${sinks===2?'s':''}`,s.vanMount==='floating'?'Block the wall for the cabinet; top at 34".':'Counter height 34 to 36".',loc('vanity')]);
+  fx.push(['P-3','Lav faucet',`${sinks===2?'2 × ':''}${X.vanW>=36?'8" widespread':'single-hole'} faucet, 1.2 gpm WaterSense, ${s.finish.toLowerCase()}`,'Match the top drilling to the faucet.','']);
+  fx.push(['P-4',s.mirror==='cabinet'?'Medicine cabinet':'Mirror',s.mirror==='cabinet'?`Recessed medicine cabinet, ${Math.min(X.vanW>=48?36:X.vanW-6,36)}" wide max`:(sinks===2?'Two framed mirrors, one per sink':`Framed mirror up to ${Math.max(18,X.vanW-6)}" wide`),s.mirror==='cabinet'?'Needs a 14.5" stud bay with no vent or supply in it.':'Bottom edge about 5" above the backsplash.','']);
+  if(hasShower){
+    const bits=[`${s.thermo?'Thermostatic':'Pressure-balance'} valve (ASSE 1016), 1.8 gpm head`];
+    if(s.handheld) bits.push('handheld on 24" slide bar');
+    if(s.rain) bits.push('ceiling rain head on its own diverter');
+    if(s.niche) bits.push('tiled niche 12×24 between studs, off the spray wall');
+    if(s.bench) bits.push(curbless?'fold-down bench, 17 to 19" high':'built-in bench, 17 to 19" high');
+    if(s.blocking) bits.push('2× blocking for grab bars at 33 to 36" AFF');
+    fx.push(['P-5','Shower trim',bits.join('; '),`Valve centerline 48" AFF${combo?', tub spout 4" above the rim':''}.`,'']);
+  }
+  if(combo) fx.push(['P-6','Tub',`${shW}×${shD}" alcove tub, ${ti===2?'cast iron':ti===1?'enameled steel or acrylic':'acrylic'}`,'Set the tub before backer board; flange behind the board.',loc('bath')]);
+  if(pan) fx.push(['P-7','Shower pan',curbless?`Curbless: recess the ${S.floorType==='slab'?'slab':'subfloor'} 1.5 to 2", ${Math.max(24,shW-4)}" linear drain at the back wall`:(s.shFloorTile==='12x24'?`Single-slope pan, ${Math.max(24,shW-4)}" linear drain, 2 to 4" curb`:'Pre-sloped foam tray or mortar bed, center drain, 2 to 4" curb'),'Slope 1/4" per foot to the drain; flood test 24 h.',loc('bath')]);
+  if(hasShower) fx.push(['P-8','Enclosure',{curtain:'Curtain on a fixed or curved rod',panel:'Fixed 3/8" glass panel, 24" min walk-in opening',framed:'Framed hinged or sliding door',frameless:'Frameless 3/8" hinged door and return panel, 22" clear min',none:'Open, no glass'}[s.enclosure],s.enclosure==='frameless'||s.enclosure==='panel'?`Template the glass after tile is set; ${s.finish.toLowerCase()} hinges and pull.`:'','']);
+  if(freeTub) fx.push(['P-9','Freestanding tub','About 60×30", floor-mount filler with handheld','Stub supplies and drain through the floor before tile.',loc('ftub')]);
+
+  const lines=[],L_=(label,amt,note,group)=>{if(amt>0)lines.push([label,amt*R,note||'',group||'base']);};
+  const gut=s.scope==='gut',neu=s.scope==='new';
+  L_('Demo and disposal',s.scope==='refresh'?900:gut?2200+25*floor:0);
+  L_('Plumbing rough-in',s.scope==='refresh'?600:neu?5500:2600);
+  L_('Plumbing trim-out',300*(2+sinks-1+(hasShower?1:0)+(freeTub?1:0)));
+  L_('Electrical',(s.scope==='refresh'?500:1600)+cans*200+(s.heat?600:0)+(s.towelWarmer?400:0)+(X.toilet==='smart'?300:0));
+  L_('Fan, ducted outside',p([150,300,550])+250);
+  L_('Drywall and paint',(s.scope==='refresh'?0:(wallsGross-wallTile+floor)*6)+paintArea*3);
+  L_('Waterproofing and backer',membrane*p([5,6,8])+(pan?1200:0));
+  L_('Tile labor',surf.reduce((a,x)=>a+x.area*x.tile.labor*(x.tag==='T-1'?pw[1]:1),0)+(s.niche&&hasShower?350:0)+(s.bench&&hasShower&&!curbless?650:0));
+  L_('Tile',surf.reduce((a,x)=>a+x.order*p([4,10,24])*(x.tileKey==='tri'||(TONES[x.tone]&&TONES[x.tone][2])?1.6:1),0),surf.some(x=>x.tone==='glaze'||x.tileKey==='tri')?'handmade glaze priced at 1.6×':'');
+  L_('Setting materials and trim',tileTotal*2+uncouple*2.5+trimPcs*35);
+  L_('Toilet',{standard:p([250,450,900]),comfort:p([250,450,900]),wallhung:p([1200,1800,3000]),smart:p([1500,3000,6000])}[X.toilet]);
+  L_('Vanity and top',X.vanW*p([12,28,60])*(s.vanMount==='floating'?1.15:1)*(s.vanWood==='walnut'?1.2:1));
+  L_('Faucets',sinks*p([120,280,650]));
+  L_(s.mirror==='cabinet'?'Medicine cabinet':'Mirror',(s.mirror==='cabinet'?p([250,600,1400]):p([100,250,600]))*(s.mirror==='mirror'&&sinks===2?2:1));
+  if(hasShower) L_('Shower valve and trim',p([250,550,1300])+(s.thermo?p([300,500,900]):0)+(s.handheld?p([80,200,450]):0)+(s.rain?p([150,350,800])+250:0));
+  if(combo) L_('Alcove tub',p([450,1000,2500]));
+  if(freeTub) L_('Freestanding tub and filler',p([1300,2800,6000])+p([450,1000,2200]));
+  if(hasShower) L_('Glass or curtain',{curtain:p([80,150,300]),panel:p([700,1100,1800]),framed:p([600,900,1300]),frameless:p([1400,2200,3500]),none:0}[s.enclosure]);
+  L_('Lighting fixtures',cans*p([40,90,200])+sinks*p([120,300,800]));
+  if(s.heat) L_('Heated floor mat and thermostat',heatMat*18+250);
+  if(s.towelWarmer) L_('Towel warmer',p([200,500,1200]));
+  L_('Accessories (bars, hooks, paper holder)',p([100,250,600]));
+  devs.forEach(d=>L_(d.what,d.cost,d.note,'dev'));
+  if(remodel()) Object.keys(CONDS).forEach(c=>{if(S.ex.cond[c]) L_(CONDS[c][0],CONDS[c][2],CONDS[c][1],'cond');});
+  const sub=lines.reduce((a,x)=>a+x[1],0),contingency=sub*.10,total=sub+contingency;
+
+  const todo=['Pick tile SKUs and grout colors for each T- tag; buy each tile from one lot.'];
+  if(surf.some(x=>x.tone==='glaze'||x.tileKey==='tri')) todo.push('Handmade glaze varies by batch: order 15% over, blend from several boxes as you set, and confirm the lead time.');
+  if(accentArea) todo.push('Draw the triangle layout full size and count tiles by color before ordering.');
+  if(s.mirror==='cabinet') todo.push('Open or scan the wall to confirm the medicine cabinet bay is clear.');
+  if(devs.some(d=>d.trade.includes('Plumbing'))) todo.push(`Have the plumber confirm each moved drain can hold 1/4" per foot slope${S.floorType==='slab'?' and price the slab cuts':''}.`);
+  if(curbless) todo.push(S.floorType==='slab'?'Confirm slab thickness and any post-tension cables before cutting.':'Confirm joist direction and depth for the subfloor recess.');
+  if(freeTub||s.heat) todo.push('Check floor deflection: L/360 for tile, L/720 for natural stone.');
+  if(s.heat) todo.push(heatW>1440?`Heated floor draws about ${heatW} W: run it at 240 V.`:'Test the heat mat resistance before, during, and after tile.');
+  if(s.enclosure==='frameless'||s.enclosure==='panel') todo.push('Book the glass template for after tile; lead time is usually 2 to 3 weeks.');
+  todo.push('Pull the permit if plumbing, electrical, or the fan is new or moved.');
+
+  return {r,L,W,H,floor,bt,hasShower,combo,pan,curbless,freeTub,shW,shD,sinks,top,bottom,surf,tileTotal,paintArea,gallons,membrane,backerSheets,uncouple,uncoupleRolls,thinset,grout,trimFt,trimPcs,heatMat,heatW,cfm,cfmNeed,cans,gfci,fx,lines,sub,contingency,total,low:total*.85,high:total*1.2,todo,devs,ti,accentArea};
+}
+
+// ---------- tile layout: where cuts land ----------
+function cutPair(len,mod){const n=Math.floor(len/mod),rem=len-n*mod;let e=rem/2,full=n;if(e<mod/3&&n>=1){e=(rem+mod)/2;full=n-1;}return {full,e};}
+function floorCuts(r){
+  const t=TILES[S.floorTile];
+  if(S.floorTile==='2x2') return ['Mosaic on 12×12 sheets: cuts land in the grid, no layout issue.'];
+  if(S.pattern==='herringbone'||S.pattern==='diagonal') return [`${cap(S.pattern)}: snap a centerline on the doorway and work out from it. Every edge is an angled cut.`];
+  const j=1/8,[a,b]=t.dims;
+  return [[r.Lin,'length',b],[r.Win,'width',a]].map(([len,lab,d])=>{const mod=d+j;
+    if(S.layoutStart==='door'){const n=Math.floor(len/mod),rem=len-n*mod;return `Along the ${ftin(len/12)} ${lab}: ${n} full ${d}" tiles from the door side, one ${inch(rem)} cut at the far wall${rem>.25&&rem<d/3?'. That is a sliver: center the layout instead':''}.`;}
+    const c=cutPair(len,mod);return `Along the ${ftin(len/12)} ${lab}: ${c.full} full ${d}" tiles, ${inch(c.e)} cuts at both walls.`;});
+}
+function wallRows(m){
+  if(!m.hasShower) return '';
+  const t=TILES[S.shWallTile],tile=S.shWallTile==='2x2'?12:t.dims[0],rowH=tile+1/16,span=(m.top-m.bottom)*12,n=Math.floor(span/rowH),rem=span-n*rowH,base=m.combo?'tub deck':'floor';
+  let s;
+  if(rem<.4) s=`${n} rows of ${tile}" from the ${base} land on a full tile at the top.`;
+  else if(rem<tile/3) s=S.shWallHeight==='ceiling'?`${n} rows leaves a ${inch(rem)} sliver at the ceiling: cut the first and last rows to ${inch((rem+rowH)/2)} each.`:`${n} rows leaves a ${inch(rem)} sliver: stop the tile ${inch(n*rowH)} above the ${base} instead (${ftin((m.bottom*12+n*rowH)/12)} AFF).`;
+  else s=`${n} full rows of ${tile}" from the ${base}, then a ${inch(rem)} cut row at the top.`;
+  if(S.accentWall) s+=' The triangle wall meets the subway at the inside corners: finish both in the same row line.';
+  return s;
+}
+function buildUp(){
+  const t=TILES[S.floorTile],slab=S.floorType==='slab',L=[];
+  L.push([slab?'Concrete slab':'Plywood subfloor',0,'ref']);
+  if(!slab) L.push(['Thinset',.125]);
+  L.push([S.heat?(slab?'Heat membrane with cable':'Heat-ready uncoupling membrane with cable'):(slab?'Crack-isolation membrane':'Uncoupling membrane'),S.heat?.25:(slab?.0625:.125)]);
+  L.push([t.big?'Large-format mortar':'Thinset',t.big?.1875:.125]);
+  L.push([`Tile, ${t.label}`,t.th,'tile']);
+  const total=L.reduce((a,x)=>a+x[1],0),hall=HALL[S.hall],delta=total-hall[1];
+  let note;
+  if(Math.abs(delta)<=.25) note=`About level with the ${hall[0]} in the hall (${delta>=0?'+':'-'}${inch(Math.abs(delta))}). A slim flush transition works.`;
+  else if(delta>0&&delta<=.5) note=`Sits ${inch(delta)} above the ${hall[0]}. Use a beveled threshold (1/2" max for accessibility).`;
+  else if(delta>.5) note=`Sits ${inch(delta)} above the ${hall[0]}. Plan a stone threshold and trim the door bottom.`;
+  else note=`Sits ${inch(-delta)} below the ${hall[0]}. Shim the subfloor or use a reducer at the door.`;
+  if(S.pr.bath.type==='curbless'&&delta>.125) note+=' For curbless, keep the bath floor level with the hall.';
+  return {L,total,note};
+}
+function stackHTML(b){
+  return `<div class="stack">${b.L.map(([n,t,c])=>`<div class="ly ${c||''}"><span class="t">${c==='ref'?'base':inch(t)}</span><div class="bar" style="height:${c==='ref'?6:Math.max(3,t*40)}px"></div><span>${esc(n)}</span></div>`).join('')}</div><div><b>${inch(b.total)} over the subfloor.</b> ${esc(b.note)}</div>`;
+}
+
+// ---------- plan drawing ----------
+function planInner(o){
+  const r=room(),{Lin,Win}=r,id=++uid;
+  const fs=Math.max(Lin,Win*1.4)/(o.small?20:30),pad=fs*3.2,wt=Math.max(3,Math.max(Lin,Win)/60);
+  const ev=o.clean?{bad:new Set()}:evaluate(o.side);
+  const F=fixtures(o.side),h=[];
+  h.push(`<defs><marker id="arr${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path class="arrowhead" d="M0 0L10 5L0 10z"/></marker></defs>`);
+  if(o.ghost&&remodel()){
+    const E=fixtures('ex');
+    E.forEach(e=>h.push(`<rect class="ghost" x="${e.rect.x}" y="${e.rect.y}" width="${e.rect.w}" height="${e.rect.h}" stroke-width=".8"/>`));
+    E.forEach(e=>{const pf=F.find(f=>f.id===e.id);if(!pf)return;const a=center(e.rect),b=center(pf.rect);if(Math.hypot(a.x-b.x,a.y-b.y)>4)h.push(`<line class="arrow" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke-width="1.2" marker-end="url(#arr${id})"/>`);});
+  }
+  if(!o.clean) F.forEach(f=>{
+    if(f.kind==='toilet'){const z=frontZone(r,f.pos.wall,f.pos.off,f.w,f.d,30,21);h.push(`<rect class="clr" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" stroke-width=".6"/>`);}
+    if(f.kind==='vanity'){const z=frontZone(r,f.pos.wall,f.pos.off,f.w,f.d,f.w,21);h.push(`<rect class="clr" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" stroke-width=".6"/>`);}});
+  F.forEach(f=>{
+    const prob=ev.bad.has(f.id),sel=o.interactive&&S.sel===f.id;
+    const cls=`${o.interactive?'drag ':''}${prob?'prob ':''}${sel?'sel':''}`;
+    const attrs=o.interactive?` data-drag="${f.id}" tabindex="0" role="button" aria-label="${cap(f.name)}, ${esc(locText(f))}"`:'';
+    const w=f.w,d=f.d,g=[];
+    if(prob) g.push(`<rect class="probfill" x="0" y="0" width="${w}" height="${d}"/>`);
+    if(f.kind==='tub') g.push(`<rect class="fx body" x="0" y="0" width="${w}" height="${d}" stroke-width="1"/><rect class="wet" x="3" y="3" width="${w-6}" height="${d-6}" rx="${Math.min(w,d)/4}" stroke-width=".6"/><circle class="thin" cx="9" cy="${d/2}" r="1.6" stroke-width=".6"/>`);
+    else if(f.kind==='shower'||f.kind==='curbless'){
+      g.push(`<rect class="wet body" x="0" y="0" width="${w}" height="${d}" stroke-width="1"/><line class="thin" x1="0" y1="0" x2="${w}" y2="${d}" stroke-width=".35"/><line class="thin" x1="${w}" y1="0" x2="0" y2="${d}" stroke-width=".35"/>`);
+      const linear=f.kind==='curbless'||(o.side==='pr'&&S.shFloorTile==='12x24');
+      g.push(linear?`<line class="thin" x1="4" y1="4" x2="${w-4}" y2="4" stroke-width="1.8"/>`:`<circle class="fx" cx="${w/2}" cy="${d/2}" r="2.2" stroke-width=".6"/>`);
+    }
+    else if(f.kind==='ftub') g.push(`<rect class="body" x="0" y="0" width="${w}" height="${d}" fill="transparent" stroke="transparent"/><rect class="wet" x="3" y="3" width="60" height="30" rx="15" stroke-width="1"/>`);
+    else if(f.kind==='toilet') g.push(`<rect class="fx body" x="0" y="0" width="${w}" height="8" rx="1" stroke-width=".9"/><ellipse class="fx body" cx="${w/2}" cy="${8+(d-8)/2}" rx="8" ry="${(d-8)/2-.5}" stroke-width=".9"/>`);
+    else if(f.kind==='vanity'){g.push(`<rect class="fx body" x="0" y="0" width="${w}" height="${d}" stroke-width="1"/>`);for(let i=0;i<f.sinks;i++)g.push(`<ellipse class="fx" cx="${w*(i+.5)/f.sinks}" cy="${d/2+1}" rx="${Math.min(8,w/f.sinks/2-2)}" ry="6" stroke-width=".6"/>`);}
+    const c=center(f.rect),label=o.clean?{tub:'Tub',shower:'Shower',curbless:'Shower',ftub:'Tub',toilet:'WC',vanity:'Vanity'}[f.kind]:f.tag;
+    h.push(`<g class="${cls}"${attrs}><g transform="${xf(r,f.pos.wall,f.pos.off,w)}">${g.join('')}</g><text class="${o.clean?'lbl':''}" x="${c.x}" y="${c.y+fs*.35}" font-size="${fs*.8}" text-anchor="middle" pointer-events="none">${label}</text></g>`);
+  });
+  h.push(`<rect class="wall" x="0" y="0" width="${Lin}" height="${Win}" stroke-width="${wt}"/>`);
+  const wg=winGeom();
+  if(wg){const a=o.interactive&&o.editDoor?` data-drag="window" class="drag" tabindex="0" role="button" aria-label="Window"`:'';
+    h.push(`<g${a}><g transform="${xf(r,wg.wall,wg.off,wg.w)}"><line class="gap" x1="0" y1="0" x2="${wg.w}" y2="0" stroke-width="${wt+1}"/><rect class="win body" x="0" y="${-wt/2}" width="${wg.w}" height="${wt}" stroke-width=".6"/><line class="thin" x1="0" y1="0" x2="${wg.w}" y2="0" stroke-width=".6"/></g></g>`);}
+  const dg=doorGeom(o.side),dw=dg.w,hx=dg.flip?dw:0,ox=dg.flip?0:dw;
+  const da=o.interactive&&o.editDoor?` data-drag="door" class="drag" tabindex="0" role="button" aria-label="Door"`:'';
+  let dd=`<line class="gap" x1="0" y1="0" x2="${dw}" y2="0" stroke-width="${wt+1}"/>`;
+  if(dg.style==='in') dd+=`<line class="thin body" x1="${hx}" y1="0" x2="${hx}" y2="${dw}" stroke-width="1.2"/><path class="swing" d="M ${hx} ${dw} A ${dw} ${dw} 0 0 ${dg.flip?1:0} ${ox} 0" stroke-width=".7"/>`;
+  else if(dg.style==='out') dd+=`<line class="thin body" x1="${hx}" y1="0" x2="${hx}" y2="${-dw}" stroke-width="1.2"/><path class="swing" d="M ${hx} ${-dw} A ${dw} ${dw} 0 0 ${dg.flip?0:1} ${ox} 0" stroke-width=".7"/>`;
+  else dd+=`<line class="thin body" x1="${dg.flip?dw:-dw}" y1="0" x2="${dg.flip?2*dw:0}" y2="0" stroke-width="1.6" stroke-dasharray="3 2"/>`;
+  dd+=`<rect x="0" y="-6" width="${dw}" height="${dg.style==='in'?dw+6:12}" fill="transparent"/>`;
+  h.push(`<g${da}><g transform="${xf(r,dg.wall,dg.off,dw)}">${dd}</g></g>`);
+  const dy=-pad*.55,dx=-pad*.55;
+  h.push(`<line class="thin" x1="0" y1="${dy}" x2="${Lin}" y2="${dy}" stroke-width=".5"/><line class="thin" x1="0" y1="${dy-2}" x2="0" y2="${dy+2}" stroke-width=".5"/><line class="thin" x1="${Lin}" y1="${dy-2}" x2="${Lin}" y2="${dy+2}" stroke-width=".5"/>`);
+  h.push(`<text class="dim" x="${Lin/2}" y="${dy-fs*.35}" font-size="${fs}" text-anchor="middle">${ftin(r.L)}</text>`);
+  h.push(`<line class="thin" x1="${dx}" y1="0" x2="${dx}" y2="${Win}" stroke-width=".5"/><text class="dim" x="${dx-fs*.35}" y="${Win/2}" font-size="${fs}" text-anchor="middle" transform="rotate(-90 ${dx-fs*.35} ${Win/2})">${ftin(r.W)}</text>`);
+  return {vb:`${-pad} ${-pad} ${Lin+pad*2} ${Win+pad*2}`,inner:h.join('')};
+}
+function planStatic(o){const p=planInner(o);return `<svg viewBox="${p.vb}" role="img" aria-label="${o.side==='ex'?'Existing':'Proposed'} floor plan">${p.inner}</svg>`;}
+
+// ---------- material swatches (a 36" square of the real tile at scale) ----------
+function hsh(a,b){let h=Math.imul(a+1,73856093)^Math.imul(b+7,19349663);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0);}
+function swatch(tileKey,pattern,toneKey){
+  const Z=36,id='sw'+(++uid),r=[];
+  if(tileKey==='tri'){
+    const cols=['#f3f1e8','#9cc684','#6c9a55','#1f4a35','#c4dcae','#f3f1e8'],s=6;
+    for(let y=0;y<Z;y+=s)for(let x=0;x<Z;x+=s){const a=cols[hsh(x,y)%cols.length],b=cols[hsh(y+3,x+11)%cols.length],flip=(x/s+y/s)%2;
+      r.push(flip?`<polygon points="${x},${y} ${x+s},${y} ${x},${y+s}" fill="${a}"/><polygon points="${x+s},${y} ${x+s},${y+s} ${x},${y+s}" fill="${b}"/>`:`<polygon points="${x},${y} ${x+s},${y} ${x+s},${y+s}" fill="${a}"/><polygon points="${x},${y} ${x+s},${y+s} ${x},${y+s}" fill="${b}"/>`);}
+    return `<svg viewBox="0 0 ${Z} ${Z}" aria-hidden="true"><rect width="${Z}" height="${Z}" fill="#f3f1e8"/><g stroke="#f7f6f0" stroke-width=".25">${r.join('')}</g></svg>`;
+  }
+  const T=TONES[toneKey]||TONES.white,tone=T[1],vars=T[2];
+  const grout=toneKey==='glaze'||toneKey==='forest'?'#f3f1e8':['blue','terra','charcoal','slate'].includes(toneKey)?'#2b2d2e':'#cfccc6';
+  const t=TILES[tileKey],[a0,b0]=t.dims;let n=0;
+  const rect=(x,y,w,h)=>{n++;const c=vars?vars[hsh(n,Math.round(x+y*3))%vars.length]:null;r.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}"${c?` fill="${c}"`:''}/>`);};
+  let tf='';
+  if(pattern==='herringbone'&&a0!==b0){const a=a0,b=b0;for(let s=-12;s<=12;s++)for(let k=-24;k<=24;k++){const ox=s*b+k*a,oy=-s*b+k*a;if(ox<-80||ox>120||oy<-80||oy>120)continue;rect(ox,oy,b,a);rect(ox+b,oy+a-b,a,b);}tf='rotate(45 18 18)';}
+  else{const w=b0,h=a0,off=pattern==='offset'?(t.big?w/3:w/2):0;
+    for(let row=-30;row*h<Z+40;row++){const shift=!off?0:t.big?(((row%3)+3)%3)*off:(row%2?off:0);for(let x=-w*2-shift;x<Z+40;x+=w)rect(x,row*h,w,h);}
+    if(pattern==='diagonal') tf='rotate(45 18 18)';}
+  return `<svg viewBox="0 0 ${Z} ${Z}" aria-hidden="true"><defs><clipPath id="${id}"><rect width="${Z}" height="${Z}"/></clipPath></defs><g clip-path="url(#${id})"><rect width="${Z}" height="${Z}" fill="${grout}"/><g transform="${tf}" fill="${tone}" stroke="${grout}" stroke-width="${tileKey==='2x2'?.18:.25}">${r.join('')}</g></g></svg>`;
+}
+function metalSwatch(){const c=METALS[S.finish]||'#bbb';return `<svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" fill="${c}"/><rect width="36" height="12" fill="#ffffff" opacity=".18"/><rect y="26" width="36" height="10" fill="#000000" opacity=".12"/></svg>`;}
+function woodSwatch(){const [,c]=WOODS[S.vanWood]||WOODS.walnut,painted=S.vanWood==='white'||S.vanWood==='sage',l=[];
+  if(!painted)for(let i=0;i<22;i++){const x=(hsh(i,3)%360)/10;l.push(`<path d="M${x} 0 C ${x+1.5} 12, ${x-1.5} 24, ${x+.8} 36" stroke="#000" stroke-opacity="${.06+(hsh(i,9)%10)/120}" stroke-width="${.2+(hsh(i,5)%5)/10}" fill="none"/>`);}
+  return `<svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" fill="${c}"/>${l.join('')}<rect x="0" y="17.6" width="36" height=".5" fill="#000" opacity=".25"/></svg>`;}
+function lookIcon(key){const L=LOOKS[key][2];return `<svg viewBox="0 0 34 22" aria-hidden="true"><rect width="12" height="22" fill="${TONES[L.wallTone][1]}"/><rect x="12" width="11" height="22" fill="${TONES[L.floorTone][1]}"/><rect x="23" width="11" height="22" fill="${WOODS[L.vanWood][1]}"/>${L.accentWall?'<polygon points="0,22 6,14 12,22" fill="#1f4a35"/>':''}</svg>`;}
+
+// ---------- views ----------
+function renderPlanView(){
+  const r=room(),svg=document.getElementById('planSvg');
+  if(!r.ok){svg.setAttribute('viewBox','0 0 10 10');svg.innerHTML='';document.getElementById('planInfo').textContent='Enter the room length and width to draw the plan.';document.getElementById('planChecks').innerHTML='';return;}
+  const side=editSide(),p=planInner({side,ghost:side==='pr',interactive:true,editDoor:S.step<=2});
+  svg.setAttribute('viewBox',p.vb);svg.innerHTML=p.inner;
+  const sel=fixtures(side).find(f=>f.id===S.sel);
+  const info=sel?`<b>${cap(sel.name)}</b>: ${esc(locText(sel))}, ${inch(wallLen(r,sel.pos.wall)-sel.pos.off-sel.w/2)} from the other corner.`:
+    S.step===1?'Drag the door or window along the walls. The fixtures shown are what is there now.':
+    side==='ex'?'Drag each fixture to where it sits today.':
+    remodel()?'Drag fixtures to try a layout. Dashed outlines are what is there now; arrows show what moves.':'Drag fixtures to try a layout.';
+  document.getElementById('planInfo').innerHTML=`<span class="side">${side==='ex'?'Existing':'Proposed'}</span>${info}`;
+  document.getElementById('planChecks').innerHTML=evaluate(side).list.map(c=>`<li><span class="pill ${c[0]}">${c[0]==='ok'?'ok':c[0]==='warn'?'check':'fail'}</span><span>${esc(c[1])}</span></li>`).join('');
+}
+
+function presText(m){
+  const X=S.pr,s=[];
+  if(remodel()){const ch=m.devs.map(d=>d.plain).filter(Boolean);
+    s.push(...(ch.length?ch:['Same layout, all new finishes.']));
+    if(!m.devs.some(d=>d.what.startsWith('Toilet moves'))) s.push('The toilet stays where it is.');}
+  else s.push(`A new ${ftin(m.L)} by ${ftin(m.W)} bathroom with ${X.bath.type==='none'?'':`a ${X.bath.w}×${X.bath.d}" ${BATHNAME[X.bath.type]}, `}a ${X.vanW}" vanity, and a ${X.toilet==='smart'?'bidet toilet':'toilet'}.`);
+  const parts=[`${toneName(S.floorTone).toLowerCase()} ${TILES[S.floorTile].label} on the floor${S.heat?', heated':''}`];
+  if(m.hasShower) parts.push(`${toneName(S.wallTone).toLowerCase()} ${TILES[S.shWallTile].label} in the shower${S.accentWall?' with a triangle feature wall':''}`);
+  parts.push(`a ${WOODS[S.vanWood][0].toLowerCase()} vanity`,`${S.finish.toLowerCase()} throughout`);
+  s.push(cap(parts.join(', '))+'.');
+  return s;
+}
+function renderPres(m){
+  const el=document.getElementById('view-pres');
+  if(m.err){el.innerHTML='<div class="empty">Enter the room size in step 1.</div>';return;}
+  const X=S.pr,feat=[],bath=[];
+  if(m.hasShower){bath.push(m.combo?`${m.shW}×${m.shD}" tub with shower`:`${m.shW}×${m.shD}" ${m.curbless?'curbless':'walk-in'} shower`);if(S.accentWall)bath.push('Triangle feature wall in green, forest and white');if(S.thermo)bath.push('Thermostatic valve: set the temperature once');if(S.handheld)bath.push('Handheld shower on a slide bar');if(S.rain)bath.push('Ceiling rain head');if(S.bench)bath.push('Shower bench');if(S.niche)bath.push('Tiled niche for bottles');if(S.enclosure!=='curtain'&&S.enclosure!=='none')bath.push({panel:'Fixed glass panel',framed:'Framed glass door',frameless:'Frameless glass door'}[S.enclosure]);}
+  if(m.freeTub)bath.push('Freestanding soaking tub');
+  if(bath.length) feat.push(['Bathing',bath]);
+  feat.push(['Vanity',[`${X.vanW}" ${WOODS[S.vanWood][0].toLowerCase()} vanity, ${m.sinks===2?'two sinks':'one sink'}`,{quartz:'White quartz top',stone:'Natural stone top',solid:'Solid-surface top',integrated:'Integrated sink top'}[S.top],S.mirror==='cabinet'?'Recessed medicine cabinet':'Framed mirror',S.vanityLight==='sconces'?'Sconces at face height':'Light bar over the mirror']]);
+  const comfort=[`${{standard:'Standard',comfort:'Comfort-height',wallhung:'Wall-hung',smart:'Bidet'}[X.toilet]} toilet`];if(S.heat)comfort.push('Heated floor on a thermostat');if(S.humid)comfort.push('Quiet fan that turns on with humidity');if(S.towelWarmer)comfort.push('Towel warmer');comfort.push(`${m.cans} dimmable recessed lights`);
+  feat.push(['Comfort',comfort]);
+  const order={'T-2':0,'T-5':1,'T-3':2,'T-1':3,'T-4':4};
+  const cards=m.surf.slice().sort((a,b)=>order[a.tag]-order[b.tag]).map(x=>[swatch(x.tileKey,x.swPat,x.tone),x.name,x.tileKey==='tri'?'6" handmade triangles, three greens and white':`${x.tile.label}, ${toneName(x.tone).toLowerCase()}`]);
+  cards.push([woodSwatch(),'Vanity',WOODS[S.vanWood][0]]);
+  cards.push([metalSwatch(),'Fixtures',S.finish]);
+  el.innerHTML=`<div class="pres">
+    <div><p class="eyebrow">${esc({refresh:'Bathroom refresh',gut:'Bathroom remodel',new:'New bathroom'}[S.scope])} · ${ftin(m.L)} × ${ftin(m.W)}${S.look?` · ${esc(LOOKS[S.look][0])}`:''}</p><h1>${esc(S.name||'Bathroom')}</h1></div>
+    <p class="lede">${presText(m).map(esc).join(' ')}</p>
+    <section><h2>Materials</h2><div class="mboard">${cards.map(c=>`<div class="mcard">${c[0]}<div class="t">${esc(c[1])}</div><div class="d">${esc(c[2])}</div></div>`).join('')}</div></section>
+    ${remodel()?`<div class="pair plan"><figure><figcaption>Now</figcaption>${planStatic({side:'ex',clean:true})}</figure><figure><figcaption>Proposed</figcaption>${planStatic({side:'pr',clean:true})}</figure></div>`:`<div class="plan">${planStatic({side:'pr',clean:true})}</div>`}
+    <section><h2>What's in it</h2><div class="feat">${feat.map(f=>`<div><h4>${f[0]}</h4><ul>${f[1].map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</div></section>
+    <div class="price"><span class="big">${k(m.low)} to ${k(m.high)}</span><span class="s">Planning range at ${{builder:'builder',mid:'mid',high:'high-end'}[S.tier]} grade, before contractor bids.</span><button type="button" class="btn ghost small" id="copyPres" style="margin-left:auto">Copy summary</button></div>
+  </div>`;
+}
+
+function renderCon(m){
+  const el=document.getElementById('view-con');
+  if(m.err){el.innerHTML='<div class="empty">Enter the room size in step 1.</div>';return;}
+  const ev=evaluate('pr'),bad=ev.list.filter(c=>c[0]==='bad').length,warn=ev.list.filter(c=>c[0]==='warn').length;
+  const today=new Date().toISOString().slice(0,10),bu=buildUp(),h=[];
+  if(fallbackOpen) h.push(`<div class="fallback"><p class="hint" style="margin:0 0 6px">Copying is blocked here. The text below is selected: press Cmd+C or Ctrl+C.</p><textarea id="fbText" readonly></textarea></div>`);
+  h.push(`<div class="tb"><div><div class="k">Project</div><div class="v big">${esc(S.name||'Bathroom')}</div></div><div><div class="k">Sheet</div><div class="v">A-501 Bath</div></div><div><div class="k">Date</div><div class="v">${today}</div></div><div><div class="k">Spec time</div><div class="v" id="sheetTime">${S.t0?mmss(elapsed()):'not started'}</div></div></div>`);
+  h.push(`<div class="stats"><div><div class="n">${Math.round(m.floor)}</div><div class="k">sq ft floor</div></div><div><div class="n">${remodel()?m.devs.length:'New'}</div><div class="k">${remodel()?'changes from existing':'room'}</div></div><div><div class="n">${m.tileTotal}</div><div class="k">sq ft tile</div></div><div><div class="n">${k(m.low)}–${k(m.high)}</div><div class="k">planning budget</div></div><div><div class="n" style="color:var(${bad?'--bad':warn?'--warn':'--ok'})">${bad?bad+' fail':warn?warn+' to check':'Fits'}</div><div class="k">fit check</div></div></div>`);
+  let n=0;const sec=(t,body)=>h.push(`<div class="sec"><h3><span class="no">${String(++n).padStart(2,'0')}</span>${t}</h3>${body}</div>`);
+  sec(remodel()?'Existing and proposed':'Proposed plan',remodel()?`<div class="pair plan"><figure><figcaption>Existing</figcaption>${planStatic({side:'ex'})}</figure><figure><figcaption>Proposed (dashed: existing, arrows: moves)</figcaption>${planStatic({side:'pr',ghost:true})}</figure></div>`:`<div class="plan">${planStatic({side:'pr'})}</div>`);
+  if(remodel()){
+    const cond=Object.keys(CONDS).filter(c=>S.ex.cond[c]);
+    const wa=[S.floorType==='slab'?'Concrete slab: every drain move means cutting concrete.':'Wood-framed floor: confirm joist direction before moving drains.',`Toilet rough-in measured at ${S.ex.roughIn}".`,bu.note];
+    if(S.win.on) wa.push(`Window on the ${WALLS[S.win.wall]} wall, ${S.win.w}" wide, sill at ${S.win.sill}".`);
+    sec('Changes from existing',(m.devs.length?`<div class="scroll"><table><thead><tr><th>Change</th><th>From</th><th>To</th><th>Trade</th><th class="num">Est.</th></tr></thead><tbody>${m.devs.map(d=>`<tr><td>${esc(d.what)}${d.note?`<small>${esc(d.note)}</small>`:''}</td><td>${esc(d.from)}</td><td>${esc(d.to)}</td><td>${esc(d.trade)}</td><td class="num">${d.cost?usd(d.cost*S.region):'in fixtures'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="note" style="margin:0">No layout changes: fixtures stay on their existing drains and supplies.</p>')+
+      `<div class="pair" style="margin-top:14px"><div><span class="klab">Work around</span><ul class="plain">${wa.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div><div><span class="klab">Existing conditions</span>${cond.length?`<ul class="plain">${cond.map(c=>`<li><b>${CONDS[c][0]}</b>: ${CONDS[c][1]}</li>`).join('')}</ul>`:'<p class="note" style="margin:0">None flagged. Carry an allowance until the walls are open.</p>'}</div></div>`);
+  }
+  sec('Fit check',`<ul class="checks">${ev.list.map(c=>`<li><span class="pill ${c[0]}">${c[0]==='ok'?'ok':c[0]==='warn'?'check':'fail'}</span><span>${esc(c[1])}</span></li>`).join('')}</ul><p class="note">Clearances per IRC R307.1 and P2708.1. Dashed boxes on the plan are the 21" front clearances.</p>`);
+  sec('Build order, floor up',`<ol class="build">${buildOrder(m,bu).map(s=>`<li><div><b>${esc(s[0])}</b>${s[1]&&s[1].length?`<ul>${s[1].map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div></li>`).join('')}</ol>`);
+  sec('Fixture schedule',`<div class="scroll"><table><thead><tr><th>Tag</th><th>Item</th><th>Spec</th><th>Location</th></tr></thead><tbody>${m.fx.map(f=>`<tr><td><span class="tag">${f[0]}</span></td><td>${f[1]}</td><td>${esc(f[2])}${f[3]?`<small>${esc(f[3])}</small>`:''}</td><td>${esc(f[4]||'')}</td></tr>`).join('')}<tr><td><span class="tag">M-1</span></td><td>Metal finish</td><td>${esc(S.finish)} on all trim, faucets, hardware, glass hardware, and accessories</td><td></td></tr></tbody></table></div>`);
+  sec('Finish schedule',`<div class="scroll"><table><thead><tr><th>Tag</th><th>Surface</th><th>Material</th><th class="num">Net</th><th class="num">Waste</th><th class="num">Order</th></tr></thead><tbody>${m.surf.map(x=>`<tr><td><span class="tag">${x.tag}</span></td><td>${x.name}</td><td>${esc(x.detail)}<small>${esc(toneName(x.tone))}</small></td><td class="num">${sf(x.area)}</td><td class="num">${Math.round(x.waste*100)}%</td><td class="num">${sf(x.order)}</td></tr>`).join('')}<tr><td><span class="tag">PT-1</span></td><td>Walls &amp; ceiling</td><td>Bath paint, satin, mildew-resistant, 2 coats</td><td class="num">${sf(m.paintArea)}</td><td class="num"></td><td class="num">${m.gallons} gal</td></tr><tr class="total"><td></td><td colspan="4">Tile to order</td><td class="num">${sf(m.tileTotal)}</td></tr></tbody></table></div>`);
+  sec('Shopping list',`<div class="scroll"><table><thead><tr><th>Material</th><th class="num">Qty</th><th>For</th></tr></thead><tbody>${materials(m).map(r=>`<tr><td>${esc(r[0])}</td><td class="num">${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</tbody></table></div>`);
+  sec('Power, light &amp; air',`<ul class="plain">${power(m).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`);
+  const grp=g=>m.lines.filter(l=>l[3]===g);
+  const rows=(t,ls)=>ls.length?`<tr class="grouphead"><td colspan="2">${t}</td></tr>`+ls.map(l=>`<tr><td>${esc(l[0])}${l[2]?`<small>${esc(l[2])}</small>`:''}</td><td class="num">${usd(l[1])}</td></tr>`).join(''):'';
+  sec('Budget',`<div class="scroll"><table><thead><tr><th>Line</th><th class="num">Planning</th></tr></thead><tbody>${rows('Base scope',grp('base'))}${rows('Changes from existing',grp('dev'))}${rows('Existing conditions (allowances)',grp('cond'))}<tr><td>Contingency 10%</td><td class="num">${usd(m.contingency)}</td></tr><tr class="total"><td>Total (range ${usd(m.low)} to ${usd(m.high)})</td><td class="num">${usd(m.total)}</td></tr></tbody></table></div><p class="note">US 2026 planning numbers, ${esc({builder:'builder',mid:'mid',high:'high-end'}[S.tier])} grade, labor market ×${S.region}. Bids set the real number.</p>`);
+  sec('Before ordering',`<ul class="plain">${m.todo.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>${S.notes?`<p class="note"><b>Notes:</b> ${esc(S.notes)}</p>`:''}`);
+  el.innerHTML=h.join('');
+  if(fallbackOpen){const t=document.getElementById('fbText');t.value=fallbackOpen;t.focus();t.select();}
+}
+
+function buildOrder(m,bu){
+  const o=[],slab=S.floorType==='slab',plumb=m.devs.filter(d=>d.trade.includes('Plumbing'));
+  if(S.scope!=='new') o.push([S.scope==='refresh'?'Demo finishes':'Demo to studs and subfloor',[S.scope==='refresh'?'Pull fixtures, tile, and vanity; walls stay.':'Strip to studs, joists, or slab. Photograph the open walls.',...Object.keys(CONDS).filter(c=>S.ex.cond[c]).map(c=>`${CONDS[c][0]}: ${CONDS[c][1].toLowerCase()}.`)]]);
+  o.push(['Structure and subfloor',[slab?'Slab: grind high spots; crack-isolation over any cracks.':'Check deflection: L/360 for tile, L/720 for natural stone. Fix soft spots.',...(m.curbless?[slab?'Cut the slab to recess the shower 1.5 to 2".':'Drop or notch joists per the engineer to recess the shower 1.5 to 2".']:[]),...(S.pr.toilet==='wallhung'?['Frame a 2×6 wet wall for the carrier.']:[]),...(S.pr.door==='pocket'&&remodel()?['Frame the pocket door wall.']:[]),...(S.mirror==='cabinet'?['Frame the medicine cabinet bay.']:[]),...(S.blocking?['Block for grab bars at 33 to 36" AFF.']:[]),...(S.vanMount==='floating'?['Block the vanity wall.']:[]),...(S.enclosure==='frameless'?['Block for the glass hinges.']:[])]]);
+  o.push(['Rough plumbing',[...plumb.map(d=>`${d.what}${d.note?': '+d.note.toLowerCase():''}.`),...(m.hasShower?[`Valve at 48" AFF${m.combo?', spout 4" above the tub rim':''}${S.rain?', rain head arm on its own diverter':''}.`]:[]),'Pressure test before close-up.']]);
+  o.push(['Rough electrical and fan',[`${m.cfm} CFM fan ducted outside.`,`${m.cans} recessed cans, ${m.gfci} GFCI receptacle${m.gfci>1?'s':''}, dedicated 20 A circuit.`,...(m.heatMat?[`Heated floor circuit (${m.heatW} W, ${m.heatW>1440?'240 V':'120 V'}) and thermostat box.`]:[])]]);
+  if(m.combo) o.push(['Set the tub',[`${m.shW}×${m.shD}" tub in a mortar or foam bed, level, flange behind backer.`]]);
+  if(m.pan) o.push(['Shower pan',[m.curbless||S.shFloorTile==='12x24'?`Single-slope pan to a ${Math.max(24,m.shW-4)}" linear drain.`:'Four-way slope to a center drain.','1/4" per foot slope.']]);
+  if(m.hasShower) o.push(['Backer and waterproofing',[{liquid:`Cement board, then liquid membrane in 2 coats (${m.membrane} sq ft).`,sheet:`Cement board, then sheet membrane with banded seams (${m.membrane} sq ft).`,foam:`Foam board system, seams banded (${m.membrane} sq ft).`}[S.wp],...(m.pan?['Flood test the pan for 24 h before tile.']:[])]]);
+  o.push(['Floor tile (T-1)',[`Build-up: ${bu.L.filter(x=>x[2]!=='ref').map(x=>`${x[0].toLowerCase()} ${inch(x[1])}`).join(', ')}. ${inch(bu.total)} total.`,bu.note,...floorCuts(m.r),...(m.heatMat?[`${m.heatMat} sq ft heat mat, kept out from under the vanity and toilet.`]:[])]]);
+  if(m.pan) o.push(['Shower floor (T-3)',[`${toneName(S.shFloorTone)} ${TILES[S.shFloorTile].label}.`]]);
+  if(m.hasShower) o.push(['Shower walls (T-2)',[wallRows(m),...(S.niche?['Set the niche top and bottom on grout lines.']:[]),...(TONES[S.wallTone][2]?['Handmade tile: pull from three or four boxes at once so the color variation spreads evenly.']:[])]]);
+  if(m.accentArea) o.push(['Feature wall (T-5)',['Lay out the triangles on the floor first and photograph the layout; set from a centerline so the pattern is symmetric.']]);
+  if(S.walls!=='paint') o.push([S.walls==='full'?'Room walls (T-4)':'Wainscot (T-4)',[S.walls==='wainscot'?'Run the cap level at 42"; match the rows to the shower.':'Match the shower wall rows around the room.']]);
+  o.push(['Grout, silicone, paint',[`${TONES[S.wallTone][2]?'White grout, as with the glazed tile reference. ':''}Silicone, color-matched to the grout, at every change of plane.`,`${m.gallons} gal bath paint, 2 coats.`]]);
+  o.push(['Trim-out',['Toilet, vanity, faucets, valve trim, lights, fan grille, accessories.',...(S.enclosure==='frameless'||S.enclosure==='panel'?['Template the glass now; install 2 to 3 weeks later.']:[])]]);
+  return o;
+}
+function materials(m){
+  const r=[];
+  m.surf.forEach(x=>r.push([x.tileKey==='tri'?`Tile ${x.tag}: 6" triangles, split by color from the layout drawing`:`Tile ${x.tag}: ${x.tile.label}, ${toneName(x.tone).toLowerCase()}`,`${x.order} sq ft`,x.name]));
+  if(m.hasShower){
+    if(S.wp==='liquid'){r.push(['Cement backer board, 3×5 ft',`${m.backerSheets} sheets`,'Shower walls']);r.push(['Liquid waterproofing (ANSI A118.10)',`${Math.max(1,ceil(m.membrane/55))} gal`,`${m.membrane} sq ft, 2 coats`]);}
+    if(S.wp==='sheet'){r.push(['Cement backer board, 3×5 ft',`${m.backerSheets} sheets`,'Shower walls']);r.push(['Sheet membrane (ANSI A118.10)',`${m.membrane} sq ft`,'Shower walls and floor, corners, pipe seals']);}
+    if(S.wp==='foam') r.push(['Foam backer board, 4×8 ft',`${m.backerSheets} sheets`,`Shower walls, seams banded (${m.membrane} sq ft)`]);
+    if(m.pan) r.push([m.curbless||S.shFloorTile==='12x24'?`Linear drain, ${Math.max(24,m.shW-4)}"`:'Shower pan kit with center drain','1',m.curbless?'Curbless shower':'Shower floor']);
+    if(S.niche) r.push(['Niche framing or prefab niche 12×24','1','Shower']);
+  }
+  r.push([S.floorType==='slab'?(S.heat?'Heat membrane':'Crack-isolation membrane'):(S.heat?'Heat-ready uncoupling membrane':'Uncoupling membrane'),`${m.uncoupleRolls} roll${m.uncoupleRolls>1?'s':''} (${m.uncouple} sq ft)`,'Floor']);
+  r.push([`Thinset, 50 lb, ${m.surf.some(x=>x.tile.big)?'large-format mortar (12×24 and up)':'modified'}`,`${m.thinset} bags`,'All tile and membranes']);
+  m.grout.forEach(g=>r.push(['Grout, 25 lb',`${g.bags} bag${g.bags>1?'s':''}`,g.tag]));
+  if(m.trimPcs) r.push([`Edge trim, ${S.finish.toLowerCase()} or matching`,`${m.trimPcs} × 8'-2"`,`${Math.round(m.trimFt)} lin ft of tile edges`]);
+  r.push(['100% silicone, color-matched',`${m.hasShower?3:1} tubes`,'Changes of plane']);
+  r.push(['Bath paint, satin',`${m.gallons} gal`,`${Math.round(m.paintArea)} sq ft walls and ceiling`]);
+  if(m.heatMat) r.push(['Floor heat cable or mat + thermostat',`${m.heatMat} sq ft`,`${m.heatW} W`]);
+  return r;
+}
+function power(m){
+  const x=[];
+  x.push(`${m.cfm} CFM exhaust fan, 1.0 sone or quieter, ducted outside${S.humid?', humidity-sensing':''} (HVI sizing: ${Math.round(m.cfmNeed)} CFM).`);
+  x.push(`${m.cans} recessed lights${m.hasShower?', one wet-rated over the shower':''}, on a dimmer.`);
+  x.push(S.vanityLight==='sconces'?`Sconces each side of ${m.sinks===2?'each mirror':'the mirror'} at about 66" AFF, 36 to 40" apart.`:`Light bar over ${m.sinks===2?'each mirror':'the mirror'} at about 78" AFF.`);
+  x.push(`${m.gfci} GFCI receptacle${m.gfci>1?'s':''}, within 36" of each basin (NEC 210.52(D))${S.pr.toilet==='smart'?', one behind the toilet':''}.`);
+  x.push('Dedicated 20 A circuit for the bathroom receptacles (NEC 210.11(C)(3)); lights and fan on their own 15 A.');
+  if(m.heatMat) x.push(`Heated floor: ${m.heatMat} sq ft, about ${m.heatW} W, ${m.heatW>1440?'240 V':'120 V'} dedicated GFCI circuit, programmable thermostat.`);
+  if(S.towelWarmer) x.push('Towel warmer: hardwired on a timer, outside the shower zone.');
+  return x;
+}
+
+// ---------- export ----------
+function specText(){
+  const m=compute();if(m.err)return '';
+  const o=[],bu=buildUp();
+  o.push(`# ${S.name||'Bathroom'}: contractor spec`);
+  o.push(`${ftin(m.L)} × ${ftin(m.W)} room, ${ftin(m.H)} ceiling, ${Math.round(m.floor)} sq ft. ${{refresh:'Refresh, walls stay',gut:'Full gut remodel',new:'New room'}[S.scope]}. ${S.floorType==='slab'?'Slab':'Wood-framed'} floor. Grade: ${S.tier}. Metal: ${S.finish}.${S.look?` Look: ${LOOKS[S.look][0]}.`:''}`);
+  o.push(`Spec'd ${new Date().toISOString().slice(0,10)}${S.t0?` in ${mmss(elapsed())}`:''}.`);
+  if(remodel()){
+    o.push('\n## Changes from existing');
+    if(m.devs.length) m.devs.forEach(d=>o.push(`- **${d.what}** (${d.from} to ${d.to}), ${d.trade}${d.cost?`, about ${usd(d.cost*S.region)}`:''}${d.note?`. ${d.note}`:''}`));
+    else o.push('- No layout changes.');
+    const cond=Object.keys(CONDS).filter(c=>S.ex.cond[c]);
+    if(cond.length){o.push('\n## Existing conditions');cond.forEach(c=>o.push(`- ${CONDS[c][0]}: ${CONDS[c][1]}`));}
+    o.push(`\nToilet rough-in measured at ${S.ex.roughIn}".`);
+  }
+  o.push('\n## Fit check');evaluate('pr').list.forEach(c=>o.push(`- [${c[0]==='ok'?'ok':c[0]==='warn'?'check':'FAIL'}] ${c[1]}`));
+  o.push('\n## Build order, floor up');buildOrder(m,bu).forEach((s,i)=>{o.push(`${i+1}. **${s[0]}**`);(s[1]||[]).forEach(x=>o.push(`   - ${x}`));});
+  o.push('\n## Fixtures');m.fx.forEach(f=>o.push(`- **${f[0]} ${f[1]}**: ${f[2]}${f[3]?`. ${f[3]}`:''}${f[4]?` Location: ${f[4]}.`:''}`));
+  o.push(`- **M-1 Metal finish**: ${S.finish} throughout`);
+  o.push('\n## Finishes\n| Tag | Surface | Material | Net | Order |\n|---|---|---|---|---|');
+  m.surf.forEach(x=>o.push(`| ${x.tag} | ${x.name} | ${x.detail}, ${toneName(x.tone).toLowerCase()} | ${sf(x.area)} | ${sf(x.order)} (+${Math.round(x.waste*100)}%) |`));
+  o.push(`| PT-1 | Walls & ceiling | Bath paint, satin, 2 coats | ${sf(m.paintArea)} | ${m.gallons} gal |`);
+  o.push('\n## Shopping list');materials(m).forEach(r=>o.push(`- ${r[0]}: ${r[1]} (${r[2]})`));
+  o.push('\n## Power, light & air');power(m).forEach(x=>o.push(`- ${x}`));
+  o.push(`\n## Budget (planning, ${usd(m.low)} to ${usd(m.high)})`);m.lines.forEach(l=>o.push(`- ${l[0]}: ${usd(l[1])}`));o.push(`- Contingency 10%: ${usd(m.contingency)}`);o.push(`- **Total: ${usd(m.total)}**`);
+  o.push('\n## Before ordering');m.todo.forEach(x=>o.push(`- ${x}`));
+  if(S.notes) o.push(`\n## Notes\n${S.notes}`);
+  return o.join('\n');
+}
+function presCopyText(){const m=compute();if(m.err)return '';return [S.name||'Bathroom','',presText(m).join(' '),'',`Planning range: ${usd(m.low)} to ${usd(m.high)} (${S.tier} grade, before bids).`].join('\n');}
+function listText(){const m=compute();if(m.err)return '';return [`${S.name||'Bathroom'}: shopping list`,...materials(m).map(r=>`- ${r[0]}: ${r[1]} (${r[2]})`),`- Fan: ${m.cfm} CFM`,`- Recessed lights: ${m.cans}`].join('\n');}
+function copy(text,label){
+  if(!text)return;
+  const done=()=>{fallbackOpen=false;toast(label);if(S.view==='con')renderView();};
+  const fail=()=>{fallbackOpen=text;setView('con');document.getElementById('board').scrollTop=0;};
+  try{navigator.clipboard.writeText(text).then(done,fail);}catch(e){fail();}
+}
+let toastT;function toast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),1800);}
+
+// ---------- timer ----------
+function elapsed(){if(!S.t0)return 0;return ((S.t1||Date.now())-S.t0)/1000;}
+function startClock(){if(!S.t0){S.t0=Date.now();S.t1=null;}}
+function stopClock(){if(S.t0&&!S.t1)S.t1=Date.now();}
+function tick(){
+  const s=elapsed(),c=document.getElementById('clock');
+  document.getElementById('clockTxt').textContent=mmss(s);
+  document.getElementById('clockFill').style.width=Math.min(100,s/LIMIT*100)+'%';
+  c.classList.toggle('over',s>LIMIT);
+  document.getElementById('clockLbl').textContent=S.t1?(s<=LIMIT?'done, under 5:00':'done'):S.t0?'of 5:00':'starts on first tap';
+  const st=document.getElementById('sheetTime');if(st)st.textContent=S.t0?mmss(s):'not started';
+}
+setInterval(tick,1000);
+
+// ---------- steps & form ----------
+const STEPS=['Measure','What\'s there','Layout','Floor up','Fixtures','Budget'];
+function editSide(){return S.step<=2&&remodel()?'ex':'pr';}
+function renderSteps(){
+  document.getElementById('steps').innerHTML=STEPS.map((t,i)=>{const n=i+1,dis=n===2&&!remodel();return `<li><button type="button" data-goto="${n}" ${S.step===n?'aria-current="step"':''} class="${n<S.step?'done':''}" ${dis?'disabled':''}><span class="n">${n}</span>${t}</button></li>`;}).join('');
+  document.querySelectorAll('.panel[data-step]').forEach(p=>p.hidden=+p.dataset.step!==S.step);
+  document.getElementById('backBtn').disabled=S.step===1;
+  document.getElementById('nextBtn').textContent=S.step===6?'Finish and present':`Next: ${STEPS[S.step===1&&!remodel()?2:S.step]}`;
+}
+function goStep(n){
+  if(n===2&&!remodel())n=S.step<2?3:1;
+  n=Math.max(1,Math.min(6,n));
+  if(n>=3)initProposed();
+  S.step=n;S.sel=null;
+  save();renderSteps();syncForm();
+  setView(n<=3?'plan':n<=5?'con':'pres');
+  window.scrollTo({top:0});
+}
+function setView(v){S.view=v;document.querySelectorAll('.tabs [data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===v)));['plan','pres','con'].forEach(x=>document.getElementById('view-'+x).hidden=x!==v);save();renderView();}
+function renderView(){
+  const m=compute(),r=room(),dimHint=document.getElementById('dimHint');
+  if(S.view==='plan')renderPlanView();else if(S.view==='pres')renderPres(m);else renderCon(m);
+  if(!r.ok){dimHint.textContent='Check the room size: length and width between 3\' and 40\', ceiling 6\'-6" to 16\'.';dimHint.classList.add('err');document.getElementById('topSum').textContent='';return;}
+  dimHint.textContent=`Reads as ${ftin(r.L)} × ${ftin(r.W)}, ${ftin(r.H)} ceiling, ${Math.round(r.L*r.W)} sq ft`;dimHint.classList.remove('err');
+  document.getElementById('topSum').textContent=`${k(m.low)}–${k(m.high)}${remodel()?` · ${m.devs.length} change${m.devs.length===1?'':'s'}`:''}`;
+  renderReadouts(m);
+}
+function renderReadouts(m){
+  document.getElementById('devHead').textContent=remodel()?'Changes from existing':'New room: everything is new';
+  document.getElementById('devList').innerHTML=remodel()?(m.devs.length?m.devs.map(d=>`<li><span class="tag">${esc(d.trade.split(',')[0])}</span><span>${esc(d.what)}${d.note?`<br><span class="hint">${esc(d.note)}</span>`:''}</span><span class="cost">${d.cost?k(d.cost*S.region):''}</span></li>`).join(''):'<li><span></span><span>No changes yet. Everything stays on the existing drains.</span><span></span></li>'):'';
+  document.getElementById('layoutLead').textContent=remodel()?'Starts from what\'s there. Each change from the existing layout shows up below with what it costs.':'A new room, auto-arranged to start. Drag anything.';
+  document.getElementById('subHint').textContent=S.floorType==='slab'?'Concrete slab: crack-isolation membrane under the tile.':'Wood framed: uncoupling membrane over the plywood. Check for soft spots after demo.';
+  document.getElementById('floorRead').innerHTML=stackHTML(buildUp())+floorCuts(m.r).map(x=>`<div>${esc(x)}</div>`).join('');
+  document.getElementById('panHead').textContent=m.combo?'Tub':'Shower pan';
+  document.getElementById('panHint').textContent=m.combo?`${m.shW}×${m.shD}" tub sets before the backer board.`:m.curbless?`Curbless: recess the ${S.floorType==='slab'?'slab':'subfloor'} 1.5 to 2" and slope to a ${Math.max(24,m.shW-4)}" linear drain.`:(S.shFloorTile==='12x24'?'Large-format shower floor: single slope to a linear drain.':'Mosaic slopes four ways to a center drain.');
+  document.getElementById('wallRead').textContent=wallRows(m);
+}
+function buildChips(){
+  document.querySelectorAll('.chips[data-key]').forEach(g=>{
+    let opts;
+    if(g.dataset.tones) opts=Object.entries(TONES).filter(([,t])=>!t[3]).map(([key,[n,c]])=>[key,`<span class="sw" style="background:${c}"></span>${n}`]);
+    else if(g.dataset.metals) opts=Object.entries(METALS).map(([key,c])=>[key,`<span class="sw" style="background:${c}"></span>${key}`]);
+    else if(g.dataset.woods) opts=Object.entries(WOODS).map(([key,[n,c]])=>[key,`<span class="sw" style="background:${c}"></span>${n}`]);
+    else opts=g.dataset.opts.split('|').map(o=>{const i=o.indexOf(':');return [o.slice(0,i),o.slice(i+1)];});
+    g.innerHTML=opts.map(([v,l])=>`<button type="button" class="chip" data-v="${esc(v)}">${l}</button>`).join('');
+  });
+  document.getElementById('presets').innerHTML=PRESETS.map(p=>`<button type="button" class="chip" data-preset="${p[0]}">${p[1]}</button>`).join('');
+  document.getElementById('condChips').innerHTML=Object.entries(CONDS).map(([key,c])=>`<button type="button" class="chip tog" data-toggle="ex.cond.${key}">${c[0]}</button>`).join('');
+  document.getElementById('lookChips').innerHTML=Object.entries(LOOKS).map(([key,l])=>`<button type="button" class="chip look" data-look="${key}" title="${esc(l[1])}">${lookIcon(key)}${l[0]}</button>`).join('');
+}
+function cond(c){return {win:S.win.on,exBath:S.ex.bath.type!=='none',prBath:S.pr.bath.type!=='none',prPan:S.pr.bath.type==='shower'||S.pr.bath.type==='curbless',prDouble:S.pr.vanW>=60,remodel:remodel()}[c];}
+function syncForm(){
+  document.querySelectorAll('.chips[data-key]').forEach(g=>{const v=getP(S,g.dataset.key);g.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(String(v)===b.dataset.v)));});
+  document.querySelectorAll('[data-toggle]').forEach(b=>b.setAttribute('aria-pressed',String(!!getP(S,b.dataset.toggle))));
+  document.querySelectorAll('[data-look]').forEach(b=>b.setAttribute('aria-pressed',String(S.look===b.dataset.look)));
+  document.querySelectorAll('#form [data-field]').forEach(i=>{if(document.activeElement!==i)i.value=getP(S,i.dataset.field)??'';});
+  document.querySelectorAll('[data-if]').forEach(e=>e.hidden=!cond(e.dataset.if));
+  [['ex','exSize'],['pr','prSize']].forEach(([side,id])=>{const b=S[side].bath;document.getElementById(id).innerHTML=(SIZES[b.type]||[]).map(([w,d])=>`<button type="button" class="chip" data-size="${side},${w},${d}" aria-pressed="${+b.w===w&&+b.d===d}">${w}×${d}</button>`).join('');});
+  document.getElementById('exampleNote').hidden=!S.example;
+}
+function changed(){S.example=false;startClock();save();syncForm();renderView();tick();}
+
+function onKey(path,v){
+  setP(S,path,v);
+  if(LOOK_KEYS.has(path))S.look=null;
+  const m=path.match(/^(ex|pr)\.bath\.type$/);
+  if(m){const side=m[1],b=S[side].bath;
+    if(SIZE_DEFAULT[v]&&!(SIZES[v]||[]).some(([w,d])=>w===+b.w&&d===+b.d))[b.w,b.d]=SIZE_DEFAULT[v];
+    if(v==='none'){if(S[side].pos)delete S[side].pos.bath;}else if(!S[side].pos||!S[side].pos.bath)placeOne(side,'bath');
+    if(side==='pr'&&v==='curbless'&&S.enclosure==='curtain')S.enclosure='panel';}
+  if(path==='pr.vanW'){if(v<60)S.pr.sinks=1;else if(v>=72)S.pr.sinks=2;}
+  if(path==='ex.vanW')S.ex.sinks=v>=60?2:1;
+  if(path==='scope'&&v==='new'){S.prInit=false;S.pr.door='same';if(S.step>=2){initProposed();if(S.step===2)S.step=3;renderSteps();}}
+}
+document.addEventListener('click',e=>{
+  const chip=e.target.closest('.chips[data-key] .chip');
+  if(chip){const g=chip.parentElement;let v=chip.dataset.v;if(g.dataset.num)v=+v;onKey(g.dataset.key,v);changed();return;}
+  const tg=e.target.closest('[data-toggle]');
+  if(tg){const p=tg.dataset.toggle;setP(S,p,!getP(S,p));if(LOOK_KEYS.has(p))S.look=null;if(p==='pr.ftub'){if(S.pr.ftub)placeOne('pr','ftub');else if(S.pr.pos)delete S.pr.pos.ftub;}changed();return;}
+  const lk=e.target.closest('[data-look]');if(lk){Object.assign(S,clone(LOOKS[lk.dataset.look][2]));S.look=lk.dataset.look;changed();toast(`Applied ${LOOKS[S.look][0]}`);return;}
+  const sz=e.target.closest('[data-size]');if(sz){const [side,w,d]=sz.dataset.size.split(',');S[side].bath.w=+w;S[side].bath.d=+d;changed();return;}
+  const pr=e.target.closest('[data-preset]');
+  if(pr){const p=PRESETS.find(x=>x[0]===pr.dataset.preset);S=Object.assign(clone(BASE),clone(p[2]),{t0:S.t0,t1:null,step:1,view:'plan'});fallbackOpen=false;changed();renderSteps();setView('plan');toast(`Loaded ${p[1]}`);return;}
+  const gt=e.target.closest('[data-goto]');if(gt){startClock();goStep(+gt.dataset.goto);return;}
+  const tab=e.target.closest('.tabs [data-view]');if(tab){setView(tab.dataset.view);return;}
+  const act=e.target.closest('[data-act]');
+  if(act){const a=act.dataset.act;if(a==='arrange-ex')autoArrange('ex');if(a==='arrange-pr')autoArrange('pr');if(a==='reset-pr'){S.prInit=false;initProposed();}S.sel=null;changed();toast(a==='reset-pr'?'Reset to existing':'Arranged');return;}
+  if(e.target.id==='copyPres'){copy(presCopyText(),'Summary copied');}
+});
+document.addEventListener('input',e=>{
+  const f=e.target.closest('#form [data-field]');if(!f)return;
+  setP(S,f.dataset.field,f.dataset.num?(+f.value||0):f.value);
+  S.example=false;startClock();save();
+  document.getElementById('exampleNote').hidden=true;
+  if(f.dataset.field!=='notes'){syncSizes();renderView();}
+  tick();
+});
+function syncSizes(){document.querySelectorAll('[data-size]').forEach(b=>{const [side,w,d]=b.dataset.size.split(',');b.setAttribute('aria-pressed',String(+S[side].bath.w===+w&&+S[side].bath.d===+d));});}
+document.getElementById('form').addEventListener('submit',e=>e.preventDefault());
+document.getElementById('backBtn').addEventListener('click',()=>goStep(S.step===3&&!remodel()?1:S.step-1));
+document.getElementById('nextBtn').addEventListener('click',()=>{startClock();if(S.step===6){stopClock();save();setView('pres');tick();toast(elapsed()<=LIMIT?`Spec'd in ${mmss(elapsed())}`:'Done');return;}goStep(S.step===1&&!remodel()?3:S.step+1);});
+document.getElementById('copySpec').addEventListener('click',()=>{stopClock();save();tick();copy(specText(),'Contractor spec copied as Markdown');});
+document.getElementById('copyList').addEventListener('click',()=>copy(listText(),'Shopping list copied'));
+let armT;
+document.getElementById('newSpec').addEventListener('click',e=>{
+  const b=e.currentTarget;
+  if(!b.dataset.armed){b.dataset.armed='1';b.textContent='Clear and restart?';b.classList.add('danger');clearTimeout(armT);armT=setTimeout(()=>{delete b.dataset.armed;b.textContent='New spec';b.classList.remove('danger');},3500);return;}
+  delete b.dataset.armed;b.textContent='New spec';b.classList.remove('danger');
+  S=Object.assign(clone(BASE),{name:'New bathroom',notes:'',t0:null,t1:null,example:false});fallbackOpen=false;save();renderSteps();syncForm();setView('plan');tick();toast('Started a new spec');
+});
+
+// ---------- plan dragging ----------
+const svg=document.getElementById('planSvg');let drag=null;
+function toRoom(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse());}
+function moveTo(id,p){
+  const r=room(),side=editSide(),dist={T:p.y,B:r.Win-p.y,L:p.x,R:r.Lin-p.x};
+  const wall=Object.keys(dist).reduce((a,b)=>dist[a]<=dist[b]?a:b),len=wallLen(r,wall),along=wall==='T'||wall==='B'?p.x:p.y;
+  const w=id==='door'?S.door.w:id==='window'?S.win.w:sizeOf(side,id);
+  let off=Math.round(along-w/2);off=Math.max(0,Math.min(len-w,off));if(off<4)off=0;if(len-w-off<4)off=Math.max(0,len-w);
+  if(id==='door'){S.door.wall=wall;S.door.off=off;}else if(id==='window'){S.win.wall=wall;S.win.off=off;}else{S[side].pos=S[side].pos||{};S[side].pos[id]={wall,off};}
+}
+svg.addEventListener('pointerdown',e=>{
+  const g=e.target.closest('[data-drag]');if(!g)return;
+  e.preventDefault();drag={id:g.dataset.drag};if(drag.id!=='door'&&drag.id!=='window')S.sel=drag.id;
+  try{svg.setPointerCapture(e.pointerId);}catch(_){}
+  S.example=false;startClock();renderPlanView();
+});
+svg.addEventListener('pointermove',e=>{if(!drag)return;moveTo(drag.id,toRoom(e));renderPlanView();});
+const endDrag=()=>{if(!drag)return;drag=null;changed();};
+svg.addEventListener('pointerup',endDrag);svg.addEventListener('pointercancel',endDrag);
+svg.addEventListener('keydown',e=>{
+  const g=e.target.closest('[data-drag]');if(!g)return;const id=g.dataset.drag,side=editSide();
+  const pos=id==='door'?S.door:id==='window'?S.win:(S[side].pos||{})[id];if(!pos)return;
+  const step=e.shiftKey?6:1,horiz=pos.wall==='T'||pos.wall==='B';let d=0;
+  if(e.key==='ArrowLeft'&&horiz)d=-step;if(e.key==='ArrowRight'&&horiz)d=step;if(e.key==='ArrowUp'&&!horiz)d=-step;if(e.key==='ArrowDown'&&!horiz)d=step;
+  if(e.key==='w'||e.key==='W'){const order=['T','R','B','L'];pos.wall=order[(order.indexOf(pos.wall)+1)%4];pos.off=0;}
+  else if(d)pos.off=Math.max(0,pos.off+d);else return;
+  e.preventDefault();if(id!=='door'&&id!=='window')S.sel=id;changed();
+  const again=svg.querySelector(`[data-drag="${id}"]`);if(again)again.focus();
+});
+
+// boot
+buildChips();
+if(S.step>=3)initProposed();
+renderSteps();syncForm();setView(S.view||'plan');tick();
+window.__bath={compute,evaluate,deviations,get S(){return S},goStep,setView};
+})();
+</script>
+</body>
+</html>
