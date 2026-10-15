@@ -604,6 +604,28 @@ nm.net_add(day, "aa:bb", 1, 1, {})
 check("and the stamp is the first tick's, not the latest one's",
       day["nets"]["aa:bb"]["since"] == first)
 
+# Time on a network, summed per tick (2026-10-15). The span from the first byte
+# read 8h on a network joined at 00:39, left at 06:21 and rejoined, the same as
+# Session and Today, because it ran through the hours spent on the other one.
+day = {"date": "2026-10-15", "started": None, "updated": None, "apps": {}}
+for _ in range(3):
+    nm.net_add(day, "aa:bb", 10, 10, {}, secs=5.0)
+for _ in range(4):
+    nm.net_add(day, "cc:dd", 10, 10, {}, secs=5.0)
+nm.net_add(day, "aa:bb", 10, 10, {}, secs=5.0)
+check("each network counts only the ticks spent on it",
+      day["nets"]["aa:bb"]["secs"] == 20.0 and day["nets"]["cc:dd"]["secs"] == 20.0)
+nm.net_add(day, "aa:bb", 0, 0, {}, secs=5.0)
+check("a quiet tick still counts as time there",
+      day["nets"]["aa:bb"]["secs"] == 25.0)
+nm.net_add(day, "ee:ff", 0, 0, {}, secs=5.0)
+check("but a network that has moved nothing has no first-cost stamp",
+      "since" not in day["nets"]["ee:ff"] and day["nets"]["ee:ff"]["secs"] == 5.0)
+old = {"nets": {"aa:bb": {"in": 1, "out": 1, "apps": {}, "since": first}}}
+nm.net_add(old, "aa:bb", 1, 1, {}, secs=5.0)
+check("an entry written before the field starts counting from the next tick",
+      old["nets"]["aa:bb"]["secs"] == 5.0)
+
 # The day file is where they live, so they rotate with it and every past day
 # keeps its own breakdown rather than one running figure that forgets.
 nm.save_json(nm.state_path("2026-08-30"), day)
@@ -1011,6 +1033,41 @@ check("a remembered network can be named on its own",
 nm.network_remember(nm.load_config(), "cc:dd")
 check("and the name survives the next refresh",
       nm.read_json(nm.NETWORKS_PATH)["cc:dd"]["name"] == "Kate's office")
+
+# Memory off stops the modes following a network, not netmeter knowing which
+# network it is (2026-10-15). From 2026-09-04 every new network went unnamed.
+reset()
+nm.save_json(nm.NETWORKS_PATH, {"cc:dd": {"settings": {"lowdata": True},
+                                          "last_seen": "2026-08-30",
+                                          "name": "Kate's office"}})
+nm.save_json(nm.PROFILE_PATH, {"mac": "cc:dd", "name": "",
+                               "applied": {}, "saved": {}})
+nm.update_config(remember_networks=False, lowdata=False, network_profiles={})
+nm.profile_check(nm.load_config(), "90:5a:8:ac:66:9b", "172.20.0.1")
+nets = nm.read_json(nm.NETWORKS_PATH)
+new = nets.get("90:5a:8:ac:66:9b") or {}
+check("with memory off a new network is still recorded",
+      new.get("router") == "172.20.0.1"
+      and new.get("last_seen") == datetime.date.today().isoformat())
+check("but with no settings, so nothing claims what its modes were",
+      "settings" not in new and "changed" not in new)
+check("and the network it left keeps its name and its old settings",
+      nets["cc:dd"]["name"] == "Kate's office"
+      and nets["cc:dd"]["settings"] == {"lowdata": True}
+      and nets["cc:dd"]["last_seen"] == "2026-08-30")
+check("and no mode was applied on the way in",
+      nm.load_config()["lowdata"] is False)
+nm.networks_cmd("name", "90:5a:8:ac:66:9b", "Cafe")
+check("so it can be named with memory off",
+      nm.read_json(nm.NETWORKS_PATH)["90:5a:8:ac:66:9b"]["name"] == "Cafe")
+nm.profile_check(nm.load_config(), "90:5a:8:ac:66:9b", "172.20.0.1")
+check("and the name survives the next tick there",
+      nm.read_json(nm.NETWORKS_PATH)["90:5a:8:ac:66:9b"]["name"] == "Cafe")
+nm.update_config(remember_networks=True)
+nm.profile_check(nm.load_config(), "90:5a:8:ac:66:9b", "172.20.0.1")
+check("turning memory back on applies nothing from an identity-only entry",
+      nm.load_config()["lowdata"] is False
+      and nm.read_json(nm.NETWORKS_PATH)["90:5a:8:ac:66:9b"]["name"] == "Cafe")
 
 # --- a standing fight says itself once, not once a minute -------------------
 

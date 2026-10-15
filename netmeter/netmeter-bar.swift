@@ -978,9 +978,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // tether` spells out. Same day as Today, so the three are comparable.
         let netUsed = (now?["net_used"] as? NSNumber)?.doubleValue ?? 0
         let netName = (now?["net_name"] as? String) ?? ""
-        // The network's own span, not the day's. They are the same on a day
-        // spent in one place and very different on the day you moved.
-        let netAge = elapsed(since: nets[netMac]?["since"] as? String)
+        // Time actually on this network today, summed by the daemon tick by
+        // tick. The span since its first byte, shown here until 2026-10-15,
+        // ran through the hours spent on another network and read 8h beside
+        // Session and Today. A day file from before `secs` falls back to it.
+        let netSecs = (nets[netMac]?["secs"] as? NSNumber)?.doubleValue
+        let netAge = netSecs.map { fmtDuration($0) }
+            ?? elapsed(since: nets[netMac]?["since"] as? String)
         menu.addItem(headerRow(session: (sessTotal, sessAge),
                                today: (todayTotal, todayAge),
                                network: (netUsed, netAge),

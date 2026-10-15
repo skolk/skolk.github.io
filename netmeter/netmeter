@@ -637,7 +637,7 @@ def load_tether(cfg):
     return t
 
 
-def net_add(data, mac, d_in, d_out, tick_io, name=""):
+def net_add(data, mac, d_in, d_out, tick_io, name="", secs=0):
     """Charge a tick to the network it happened on, inside the day it happened.
 
     Totals come off the interface, the same source the cap trusts, because that
@@ -649,18 +649,25 @@ def net_add(data, mac, d_in, d_out, tick_io, name=""):
     The period version put a number next to Session and Today that covered a
     different span from either, so a menu could read Today 652 MB and Network
     35 MB and look broken while being correct. Three scopes worth comparing
-    have to be three scopes you can compare."""
+    have to be three scopes you can compare.
+
+    `secs` is the tick's length, charged whether or not it moved a byte, so the
+    entry also says how long you were actually on this network today."""
     if not mac:
         return None
     e = data.setdefault("nets", {}).setdefault(
         mac, {"in": 0, "out": 0, "apps": {}})
-    # When this network first cost anything today. The header shows the span
-    # next to the number, which on an ordinary day reads as how long you have
-    # been on this network, and on the day this shipped is what stops "Today
-    # 722 MB / Network 4.8 MB" from looking like a bug. setdefault rather than
-    # a branch on the entry being new, so an entry written before the field
-    # existed picks one up instead of showing a number with no span at all.
-    e.setdefault("since", datetime.datetime.now().isoformat(timespec="seconds"))
+    # When this network first cost anything today. setdefault rather than a
+    # branch on the entry being new, so an entry written before the field
+    # existed picks one up. No longer what the header shows: on 2026-10-15 a
+    # network joined at 00:39, left at 06:21 for another and rejoined read
+    # "8h 6m" beside its number, the same as Session and Today, because a span
+    # from the first byte runs straight through the hours spent elsewhere.
+    if d_in or d_out or tick_io:
+        e.setdefault("since", datetime.datetime.now().isoformat(timespec="seconds"))
+    # Time on this network, summed tick by tick. A tick is the sampler's
+    # interval and never a sleep, so the lid being shut adds nothing.
+    e["secs"] = e.get("secs", 0) + max(0, secs)
     e["in"] += max(0, d_in)
     e["out"] += max(0, d_out)
     if name:
@@ -2352,6 +2359,25 @@ def network_remember(cfg, mac, ip=None):
     save_json(NETWORKS_PATH, nets)
 
 
+def network_identify(mac, ip=None):
+    """The part of memory that is not a setting: that this network exists, its
+    router, the day we were last here, and whatever name it was given. Written
+    with remembering off, so `networks name` has an entry to name and the menu
+    a name to show. No settings, so turning memory back on applies nothing
+    until a stint has written some. Skips the write when nothing moved."""
+    nets = read_json(NETWORKS_PATH) or {}
+    entry = dict(nets.get(mac) or {})
+    today = datetime.date.today().isoformat()
+    if entry.get("last_seen") == today and (not ip or entry.get("router") == ip):
+        return
+    entry["last_seen"] = today
+    entry.setdefault("name", "")
+    if ip:
+        entry["router"] = ip
+    nets[mac] = entry
+    save_json(NETWORKS_PATH, nets)
+
+
 def profile_check(cfg, gw_mac, gw_ip=None):
     """Called once per daemon tick with the MAC already read for the tether
     counter. Returns True when it rewrote config, so the caller reloads.
@@ -2367,6 +2393,11 @@ def profile_check(cfg, gw_mac, gw_ip=None):
     if gw_mac is None:
         return False
     remember = bool(cfg.get("remember_networks", True))
+    if not remember:
+        # Memory off stops the modes following a network, not netmeter knowing
+        # which network it is. Both used to ride the one switch, so from
+        # 2026-09-04 every new network went unnamed and unnameable.
+        network_identify(gw_mac, gw_ip)
     stint = read_json(PROFILE_PATH) or {}
     if stint.get("mac") == gw_mac:
         # Same stint: manual changes stand until we leave, and memory keeps
@@ -2555,8 +2586,11 @@ def networks_cmd(action, name, label=None):
                                       if set_on and set_on != seen else "")
         u = day_nets.get(mac) or {}
         moved = u.get("in", 0) + u.get("out", 0)
-        print(f"  {label}{paren} · {fmt(moved)} · {when} · "
-              f"{profile_summary(memory_settings(e))}{here}")
+        # An entry written with memory off knows the network and nothing about
+        # its modes; "low data off" would claim a setting nobody recorded.
+        modes = (profile_summary(memory_settings(e)) if e.get("settings")
+                 else "modes not remembered")
+        print(f"  {label}{paren} · {fmt(moved)} · {when} · {modes}{here}")
 
     # A network that has moved bytes but is not remembered still spent the
     # data, and leaving it out would make the column quietly not add up.
@@ -2764,10 +2798,13 @@ def run_daemon(interval, ticks=None):
         if wb and prev:
             d_in = wb[0] - prev[0] if wb[0] >= prev[0] else wb[0]
             d_out = wb[1] - prev[1] if wb[1] >= prev[1] else wb[1]
-        if gw_mac and (d_in or d_out or tick_io):
+        # Every tick with a MAC, quiet or not: the time on a network has to
+        # count the minutes it moved nothing, or it reads short of the stay.
+        if gw_mac:
             nets_known = read_json(NETWORKS_PATH) or {}
             net_add(data, gw_mac, d_in, d_out, tick_io,
-                    name=(nets_known.get(gw_mac) or {}).get("name", ""))
+                    name=(nets_known.get(gw_mac) or {}).get("name", ""),
+                    secs=elapsed)
         # Only when the MAC actually read. A wi-fi blip returns None for a
         # beat, and taking that as "this network has moved nothing" would blink
         # the readout to zero and back, which is the same misread the stint
