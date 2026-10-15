@@ -755,10 +755,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // stays first: the reset button belongs to it and it is the one you reach
     // for mid-task, which is why it did not simply become another row.
     var scope = 1
-    // The other networks today, folded away until asked for. Collapsed is the
-    // right default: most days are one network, and a fold that opens onto a
-    // single row you are already looking at is a row wasted.
-    var netsExpanded = false
+    // The other networks today, open by default. It was collapsed on the
+    // reasoning that most days are one network, but the list only exists on a
+    // day with two or more, so the fold hid the very answer the day had; on
+    // 2026-10-15 "how much did each network use" went unanswered behind it.
+    var netsExpanded = true
     var netRowItems: [(item: NSMenuItem, here: Bool)] = []
     var netsMoreLabel: NSTextField?
     // Live references into the open menu. Retitling an item and redrawing a view
@@ -1012,7 +1013,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     l.lineBreakMode = .byTruncatingMiddle
                     l.frame = NSRect(x: 24, y: 2, width: 190, height: 14)
                     v.addSubview(l)
-                    let r = NSTextField(labelWithString: fmtBytes(netTotal(e), space: false))
+                    // Bytes and time on it, in the header's own shape, so each
+                    // row says what that network cost and for how long.
+                    let secs = (e?["secs"] as? NSNumber)?.doubleValue
+                    let r = NSTextField(labelWithString: fmtBytes(netTotal(e), space: false)
+                                        + (secs.map { " \u{00B7} " + fmtDuration($0) } ?? ""))
                     r.font = NSFont.monospacedDigitSystemFont(ofSize: 11,
                                                               weight: here ? .semibold : .regular)
                     r.textColor = here ? .secondaryLabelColor : .tertiaryLabelColor
