@@ -781,7 +781,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // one mutation a tracking menu tolerates. Three depths rather than two,
     // because "everything" is a lot of rows and "the top handful" is usually
     // the question: min shows 3, some 6, all 20.
-    var appsView = "some"
+    var appsView = "min"
     var appRowItems: [NSMenuItem] = []      // every built row, in order
     var appRowFrozen: [Bool] = []           // a frozen row is never hidden
     var appRowSetters: [(String) -> Void] = []  // restate a row without rebuilding
@@ -801,9 +801,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var armedLine: NSMenuItem?
     // Two lists that grew past reading on a Low Data morning (2026-10-16:
     // twelve held apps as twelve lines of text, then ten paused rows under
-    // the app list). Each shows its first five and folds the rest behind a
-    // row that says how many. Folded again on every menu open.
-    let foldAt = 5
+    // the app list). Each shows its first three and folds the rest behind a
+    // row that says how many. Folded again on every menu open. Five was the
+    // first cut and still pushed the chart below the bottom of the screen;
+    // three matches the app list's own shortest depth.
+    let foldAt = 3
     var holdExpanded = false
     var holdMoreItem: NSMenuItem?
     var holdMoreLabel: NSTextField?
@@ -1057,7 +1059,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         // Per-app rows with an inline on/off switch (on = running, off = frozen).
         // All twenty are built; how many show is the fold's business.
-        appsView = appsViewFrom(cfg)
+        // Three on every open, like the held and paused lists. The depth used
+        // to persist, so one look at all twenty left the chart off the bottom
+        // of the screen for every open after it (2026-10-16).
+        appsView = "min"
         appRowItems = []
         appRowFrozen = []
         pausedItems = []
@@ -1398,14 +1403,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    // apps_view is the current key; apps_open was the older two-state one, and
-    // a config written before this change still has to land somewhere sensible.
-    func appsViewFrom(_ cfg: [String: Any]) -> String {
-        if let v = cfg["apps_view"] as? String, ["min", "some", "all"].contains(v) {
-            return v
-        }
-        return ((cfg["apps_open"] as? Bool) ?? false) ? "all" : "some"
-    }
 
     // The fold under the app rows. One PickRow with two hit zones: the label
     // steps down a depth (min -> some -> all -> min), the glyph on the right
@@ -1522,7 +1519,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func setAppsView(_ view: String) {
         appsView = view
         applyAppsView()
-        runNetmeter(["display", "--apps-view", view])
     }
 
     // Pause All and Unpause All, side by side at the top. The left button is

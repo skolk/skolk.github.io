@@ -168,10 +168,11 @@ DEFAULT_CONFIG = {
     # Explicit profiles in network_profiles still win where both exist.
     "remember_networks": True,
     "combine_updown": False, "show_rate": True, "show_total": True,
-    # apps_view: how much of the per-app list the bar shows, "min" (3), "some"
-    # (6) or "all" (20). apps_open is the older two-state key, still read once
-    # so an existing config lands somewhere sensible.
-    "recent_window": 60, "recent_open": True, "apps_view": "some",
+    # apps_view: no longer read. The bar opens the per-app list at three every
+    # time since 2026-10-16 (three running, three held, three paused, and the
+    # chart still on screen under a Low Data morning's worth of holds); the key
+    # and `display --apps-view` stay so an older bar or config does no harm.
+    "recent_window": 60, "recent_open": True, "apps_view": "min",
     "tether_name": "", "tether_cap_gb": 0, "tether_reset_day": 1,
     # tether_linked: the day the link was made, so the "nothing counted" check
     # ages from the link rather than from a period that predates it.
