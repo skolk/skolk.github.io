@@ -2850,6 +2850,11 @@ def run_daemon(interval, ticks=None):
             "up_bps": tick_out / elapsed,
             "session_in": s_in,
             "session_out": s_out,
+            # Today's total, the same sum the menu's Today row makes, so the
+            # menu bar title can follow whichever scope is selected without
+            # reading the day file every two seconds.
+            "today_used": sum(v[0] + v[1] for v in data["apps"].values()
+                              if isinstance(v, list) and len(v) >= 2),
             "session_started": sess_started,
             "tether_name": cfg.get("tether_name", ""),
             "tether_used": tether["in"] + tether["out"],

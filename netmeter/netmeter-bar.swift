@@ -383,9 +383,37 @@ class ChartView: NSView {
     var colors: [NSColor] = [] { didSet { needsDisplay = true } }
     var peak: Double = 0 { didSet { needsDisplay = true } }
     var timeOnX = true { didSet { needsDisplay = true } }
+    // The column under the pointer, or nil. The owner turns it into words;
+    // the chart only shades the column so you can see which one is meant.
+    var hover: Int? { didSet { if hover != oldValue { needsDisplay = true; onHover?(hover) } } }
+    var onHover: ((Int?) -> Void)?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: bounds,
+                                       options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways],
+                                       owner: self))
+    }
+    override func mouseMoved(with event: NSEvent) {
+        guard !stacks.isEmpty else { hover = nil; return }
+        let p = convert(event.locationInWindow, from: nil)
+        let along = timeOnX ? p.x - bounds.minX : bounds.maxY - p.y
+        let span = timeOnX ? bounds.width : bounds.height
+        hover = min(stacks.count - 1, max(0, Int(along / (span / CGFloat(stacks.count)))))
+    }
+    override func mouseExited(with event: NSEvent) { hover = nil }
 
     override func draw(_ dirtyRect: NSRect) {
         let plot = bounds
+        if let h = hover, !stacks.isEmpty {
+            let slot = (timeOnX ? plot.width : plot.height) / CGFloat(stacks.count)
+            NSColor.secondaryLabelColor.withAlphaComponent(0.18).setFill()
+            (timeOnX ? NSRect(x: plot.minX + CGFloat(h) * slot, y: plot.minY,
+                              width: slot, height: plot.height)
+                     : NSRect(x: plot.minX, y: plot.maxY - CGFloat(h + 1) * slot,
+                              width: plot.width, height: slot)).fill()
+        }
         NSColor.secondaryLabelColor.withAlphaComponent(0.22).setStroke()
         let axis = NSBezierPath()
         axis.lineWidth = 1
@@ -822,7 +850,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var recentEmpty: NSMenuItem?
     var recentChartItem: NSMenuItem?
     var recentChart: ChartView?
-    var recentPeak: NSTextField?
+    var recentPeak: NSTextField?            // the readout line over the chart
+    var recentLast: RecentBreakdown?
     var recentAxisLeft: NSTextField?
     var recentAxisRight: NSTextField?
 
@@ -871,13 +900,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     : "↓\(fmtRate(d)) ↑\(fmtRate(u))")
             }
             if wantTotal {
-                var tail = fmtBytes(si + so, space: false)
+                // The total is whichever scope the menu has selected, so the
+                // number in the bar is the bold one in the header. It was the
+                // session always, and read wrong beside a Today or Network
+                // header (2026-10-16).
+                let total = scope == 0 ? si + so
+                          : scope == 1 ? ((now["today_used"] as? Double) ?? si + so)
+                          : ((now["net_used"] as? Double) ?? 0)
+                parts.append(fmtBytes(total, space: false))
+                // The cap is a fourth span, the billing period, and the one
+                // that costs money, so on the metered network it rides along
+                // rather than replacing the scope's number.
                 if (now["tether_on"] as? Bool) == true,
                    let used = now["tether_used"] as? Double,
                    let cap = (now["tether_cap_gb"] as? NSNumber)?.doubleValue, cap > 0 {
-                    tail = String(format: "⌁%.1f/%.0fG", used / GB, cap)
+                    parts.append(String(format: "⌁%.1f/%.0fG", used / GB, cap))
                 }
-                parts.append(tail)
             }
             title = parts.isEmpty ? "⇅" : parts.joined(separator: " · ")
         }
@@ -1286,14 +1324,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // The chart: usage against time, above the ranked rows.
         let chartItem = NSMenuItem()
         let cv = NSView(frame: NSRect(x: 0, y: 0, width: 348, height: 104))
-        let peakLabel = NSTextField(labelWithString: "")
-        peakLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
-        peakLabel.textColor = .tertiaryLabelColor
-        peakLabel.alignment = .right
-        peakLabel.frame = NSRect(x: 24, y: 86, width: 314, height: 13)
-        cv.addSubview(peakLabel)
-        recentPeak = peakLabel
-        let chart = ChartView(frame: NSRect(x: 24, y: 22, width: 314, height: 62))
+        // The readout: the window's total in full size, then its rate. Hover a
+        // column and it reads that column instead. It was a 10pt grey "peak
+        // 126MB per 1m" in the corner and a total squeezed beside the window
+        // picker, and neither said what any one bar was (2026-10-16).
+        let readout = NSTextField(labelWithString: "")
+        readout.lineBreakMode = .byTruncatingTail
+        readout.frame = NSRect(x: 24, y: 84, width: 314, height: 18)
+        cv.addSubview(readout)
+        recentPeak = readout
+        let chart = ChartView(frame: NSRect(x: 24, y: 22, width: 314, height: 60))
+        chart.onHover = { [weak self] _ in self?.refreshReadout() }
         cv.addSubview(chart)
         recentChart = chart
         let axisL = NSTextField(labelWithString: "")
@@ -1346,9 +1387,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Six table rows, so six coloured series in the chart plus "other".
         let b = recentBreakdown(minutes: recentWindow, columns: 60,
                                 topN: recentRowItems.count)
-        recentTitle?.stringValue = b.grand > 0
-            ? "Last \(windowLabel(recentWindow))  \(fmtBytes(b.grand, space: false))"
-            : "Last \(windowLabel(recentWindow))"
+        recentLast = b
+        recentTitle?.stringValue = "Last \(windowLabel(recentWindow))"
         recentChevron?.label = recentOpen ? "\u{25BE}" : "\u{25B8}"
         recentChevron?.isOn = recentOpen
 
@@ -1356,9 +1396,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         recentChart?.colors = SERIES_COLORS
         recentChart?.peak = b.peak
         recentChartItem?.isHidden = !recentOpen
-        recentPeak?.stringValue = b.peak > 0
-            ? "peak \(fmtBytes(b.peak, space: false)) per \(b.perColumn)m"
-            : ""
+        refreshReadout()
         recentAxisLeft?.stringValue = "-\(windowLabel(recentWindow))"
         recentAxisRight?.stringValue = "now"
 
@@ -1378,6 +1416,44 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             recentEmpty?.title = "     Nothing recorded yet. History starts when the daemon does."
             recentEmpty?.isHidden = !(recentOpen && b.grand == 0)
         }
+    }
+
+    // The line over the chart. No column under the pointer: the window's
+    // total, big, then its average and peak per minute. A column under it:
+    // that column's time, its total, and the two apps that made most of it.
+    func refreshReadout() {
+        guard let b = recentLast, let field = recentPeak else { return }
+        let big: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold),
+            .foregroundColor: NSColor.labelColor]
+        let small: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular),
+            .foregroundColor: NSColor.secondaryLabelColor]
+        let out = NSMutableAttributedString()
+        if let h = recentChart?.hover, h < b.columns.count {
+            let col = b.columns[h]
+            let per = b.perColumn
+            let tf = DateFormatter(); tf.dateFormat = "HH:mm"
+            let end = Date().addingTimeInterval(-Double((b.columns.count - 1 - h) * per * 60))
+            let when = per == 1 ? tf.string(from: end)
+                : "\(tf.string(from: end.addingTimeInterval(-Double(per * 60))))\u{2013}\(tf.string(from: end))"
+            out.append(NSAttributedString(string: fmtBytes(col.reduce(0, +)) + " ", attributes: big))
+            let names = b.keys + ["everything else"]
+            let top = col.enumerated().filter { $0.element > 0 }
+                .sorted { $0.element > $1.element }.prefix(2)
+                .map { "\(names[$0.offset]) \(fmtBytes($0.element))" }
+            out.append(NSAttributedString(
+                string: " at \(when)" + (top.isEmpty ? "" : " \u{00B7} " + top.joined(separator: ", ")),
+                attributes: small))
+        } else if b.grand > 0 {
+            let avg = b.grand / Double(max(1, recentWindow))
+            let peak = b.peak / Double(max(1, b.perColumn))
+            out.append(NSAttributedString(string: fmtBytes(b.grand) + " ", attributes: big))
+            out.append(NSAttributedString(
+                string: " avg \(fmtBytes(avg))/min \u{00B7} peak \(fmtBytes(peak))/min",
+                attributes: small))
+        }
+        field.attributedStringValue = out
     }
 
     @objc func toggleRecentOpen() {
@@ -1721,6 +1797,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func modeChanged(_ sender: NSSegmentedControl) {
         scope = sender.selectedSegment
         if let menu = statusItem.menu { menuNeedsUpdate(menu) }
+        update()   // the title's total follows the scope
     }
 
     // Returns the row and a closure that restates it. Three states, not two:
