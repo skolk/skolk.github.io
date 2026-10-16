@@ -799,6 +799,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var capButton: ModeButton?
     var holdLine: NSMenuItem?
     var armedLine: NSMenuItem?
+    // Two lists that grew past reading on a Low Data morning (2026-10-16:
+    // twelve held apps as twelve lines of text, then ten paused rows under
+    // the app list). Each shows its first five and folds the rest behind a
+    // row that says how many. Folded again on every menu open.
+    let foldAt = 5
+    var holdExpanded = false
+    var holdMoreItem: NSMenuItem?
+    var holdMoreLabel: NSTextField?
+    var pausedExpanded = false
+    var pausedItems: [NSMenuItem] = []     // every frozen row, in menu order
+    var pausedMoreLabel: NSTextField?
     // Three states across one button: off, holding, hard stopped. isOn alone
     // cannot carry three, and the label changes meaning between them, so the
     // delegate keeps the pair and the button is told what to draw.
@@ -934,6 +945,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         holdItem.toolTip = "What netmeter is holding right now, and which control did it; Unpause All or the app's own switch lets it go"
         menu.addItem(holdItem)
         holdLine = holdItem
+        holdExpanded = false
+        let holdMore = foldRow { [weak self] in
+            guard let self = self else { return }
+            self.holdExpanded.toggle()
+            self.refreshHolding()
+        }
+        menu.addItem(holdMore.item)
+        holdMoreItem = holdMore.item
+        holdMoreLabel = holdMore.label
         let armedItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         armedItem.isEnabled = false
         armedItem.toolTip = "What would hold an app if one moved too much: the modes that are on, and the cap when it is armed"
@@ -1040,6 +1060,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         appsView = appsViewFrom(cfg)
         appRowItems = []
         appRowFrozen = []
+        pausedItems = []
+        pausedExpanded = false
         var listed = Set<String>()
         // A billing period's worth of bytes needs a coarser floor than a day's
         // or the list is thirty rows of system chatter.
@@ -1059,6 +1081,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(item)
             appRowItems.append(item)
             appRowFrozen.append(frozen)
+            if frozen { pausedItems.append(item) }
             appRowSetters.append(setState)
             appRowPausable.append(pausable)
             appRowNames.append(r.0)
@@ -1069,11 +1092,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             appsMoreLabel = nil
             appsZoomLabel = nil
         }
-        applyAppsView()
         // Anything still frozen but no longer in today's top list stays reachable.
         for (name, _) in paused where !listed.contains(name) {
-            menu.addItem(appRow(name, -1, pausable: true, state: "paused").0)
+            let item = appRow(name, -1, pausable: true, state: "paused").0
+            menu.addItem(item)
+            pausedItems.append(item)
         }
+        if pausedItems.count > foldAt {
+            let pausedMore = foldRow { [weak self] in
+                guard let self = self else { return }
+                self.pausedExpanded.toggle()
+                self.applyAppsView()
+            }
+            menu.addItem(pausedMore.item)
+            pausedMoreLabel = pausedMore.label
+        } else {
+            pausedMoreLabel = nil
+        }
+        applyAppsView()
         recentWindow = (cfg["recent_window"] as? NSNumber)?.intValue ?? 60
         recentOpen = (cfg["recent_open"] as? Bool) ?? true
         menu.addItem(.separator())
@@ -1196,14 +1232,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                        parts: ["unknown, the daemon is not reporting"],
                        color: .systemOrange)
             armedLine?.isHidden = true
+            holdMoreItem?.isHidden = true
             return
         }
         if holding.isEmpty {
             setWrapped(holdLine, glyph: "\u{25CB}", prefix: "Holding nothing", parts: [])
         } else {
-            setWrapped(holdLine, glyph: "\u{25CF}", prefix: "Holding: ", parts: holding,
+            let shown = holdExpanded ? holding : Array(holding.prefix(foldAt))
+            setWrapped(holdLine, glyph: "\u{25CF}", prefix: "Holding: ", parts: shown,
                        color: .labelColor)
         }
+        let extra = holding.count - foldAt
+        holdMoreItem?.isHidden = extra <= 0
+        holdMoreLabel?.stringValue = holdExpanded ? "\u{25BE} Show fewer"
+            : "\u{25B8} \(extra) more held, expand to see"
         armedLine?.isHidden = armed.isEmpty
         setWrapped(armedLine, glyph: "\u{25CB}", prefix: "Armed: ", parts: armed)
     }
@@ -1395,6 +1437,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return item
     }
 
+    // A fold row for a list that has its own count: a quiet line whose click
+    // never closes the menu. The caller sets the words; the label comes back
+    // so they can change in place while the menu is open.
+    func foldRow(_ onClick: @escaping () -> Void) -> (item: NSMenuItem, label: NSTextField) {
+        let item = NSMenuItem()
+        let row = PickRow(frame: NSRect(x: 0, y: 0, width: 348, height: 20))
+        let label = NSTextField(labelWithString: "")
+        label.font = NSFont.systemFont(ofSize: 11)
+        label.textColor = .tertiaryLabelColor
+        label.frame = NSRect(x: 24, y: 2, width: 300, height: 15)
+        row.addSubview(label)
+        row.onClickAt = { _ in onClick() }
+        item.view = row
+        return (item, label)
+    }
+
     // The fold under the network rows. Same idiom as the app list's: a
     // PickRow whose click never closes the menu, so you can open the list,
     // read it, and carry on without the menu snapping shut underneath you.
@@ -1436,13 +1494,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    // Hide and show in place. A frozen row is never hidden whatever the depth:
-    // the switch that unfreezes it must not be behind the fold that lists it.
+    // Hide and show in place. A frozen row ignores the depth: the switch that
+    // unfreezes it must not hide behind a fold about bytes. Past five, though,
+    // the frozen rows have a fold of their own, which says how many it holds
+    // and is one click away, with Unpause All at the top for the lot.
     func applyAppsView() {
         let shown = appsShown(appsView)
-        for (i, item) in appRowItems.enumerated() {
-            item.isHidden = i >= shown && !appRowFrozen[i]
+        for (i, item) in appRowItems.enumerated() where !appRowFrozen[i] {
+            item.isHidden = i >= shown
         }
+        for (k, item) in pausedItems.enumerated() {
+            item.isHidden = !pausedExpanded && k >= foldAt
+        }
+        let extraPaused = pausedItems.count - foldAt
+        pausedMoreLabel?.stringValue = pausedExpanded ? "\u{25BE} Show fewer paused"
+            : "\u{25B8} \(extraPaused) more paused, expand to see"
         let hidden = appRowItems.enumerated()
             .filter { $0.offset >= shown && !appRowFrozen[$0.offset] }.count
         appsMoreLabel?.stringValue = hidden > 0
