@@ -594,6 +594,52 @@ footer a{color:var(--accent)}
   padding:8px 16px;font-weight:600;font-size:13px;
 }
 .logbtn:hover{filter:brightness(1.08)}
+.actbar .rate{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.actbar .rate .rl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.actbar .memtag{font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--brass);border:1px solid var(--brass);border-radius:2px;padding:2px 6px}
+
+/* from memory: the tab is covered, the section names stay */
+.staff.hidden{display:none}
+.memcover{border:1px dashed var(--rule-2);border-radius:2px;padding:18px 20px;margin-top:8px;
+  display:flex;flex-direction:column;gap:6px;background:var(--panel)}
+.memcover[hidden]{display:none}
+.memcover b{font-family:var(--f-mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--brass)}
+.memcover span{font-size:13px;color:var(--ink-2);max-width:64ch}
+.memcover .memsections{font-family:var(--f-mono);font-size:12px;color:var(--ink)}
+
+/* ---------- the five ---------- */
+.fivebox{border:1px solid var(--rule);border-radius:2px;background:var(--panel);padding:16px 22px 18px;margin-bottom:18px}
+.five-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.five-head h2{margin:0}
+.five-head .fcount{font-family:var(--f-mono);font-size:22px;color:var(--accent);font-variant-numeric:tabular-nums}
+.five-head .fleft{font-size:12.5px;color:var(--muted)}
+.five-head .ghost{margin-left:auto}
+.fives{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.fslot{border:1px solid var(--rule-2);border-left:3px solid var(--rule-2);border-radius:2px;padding:10px 12px;
+  background:var(--bg);display:flex;flex-direction:column;gap:4px;min-height:96px}
+.fslot.empty{border-style:dashed;color:var(--muted);font-size:12.5px;justify-content:center}
+.fslot[data-stage="2"]{border-left-color:var(--brass)}
+.fslot[data-stage="3"]{border-left-color:var(--accent)}
+.fslot[data-stage="4"]{border-left-color:var(--accent);background:var(--accent-soft)}
+.fslot .ft{font-size:14px;font-weight:600;line-height:1.2;cursor:pointer}
+.fslot .ft:hover{color:var(--accent)}
+.fslot .fs{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--brass);font-weight:600}
+.fslot[data-stage="3"] .fs,.fslot[data-stage="4"] .fs{color:var(--accent)}
+.fslot .fd{font-size:12px;color:var(--muted);line-height:1.4}
+.fslot .fdue{font-family:var(--f-mono);font-size:11px;color:var(--ink-2)}
+.fslot .fdue.hot{color:var(--brass);font-weight:600}
+.pips{display:flex;gap:3px;margin-top:auto}
+.pips i{display:block;flex:1;height:4px;background:var(--rule);border-radius:1px}
+.pips i.on{background:var(--accent)}
+.weeks{display:grid;grid-template-columns:repeat(var(--nw,9),1fr);gap:4px;margin-top:14px}
+.wk{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.wk .wbar{height:4px;background:var(--rule);border-radius:1px;overflow:hidden}
+.wk .wbar i{display:block;height:100%;background:var(--accent)}
+.wk.cur{color:var(--ink)}
+.wk .wm{color:var(--ink-2);font-variant-numeric:tabular-nums}
+.fivenote{font-size:12px;color:var(--muted);margin:10px 0 0;max-width:72ch}
+@media (max-width:620px){ .weeks{grid-template-columns:repeat(5,1fr)} }
 
 /* ---------- routines ---------- */
 .routine-pick{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px}
@@ -724,7 +770,7 @@ table.log tr.newday td{border-top:1px solid var(--rule-2)}
 <header class="mast">
   <div>
     <h1>Clawhammer <em>Banjo Practice</em></h1>
-    <p>Pick a tune, pick a way to work on it, and the page keeps the receipt: what you played, when, for how long, at what tempo. There is a suggested fifteen-minute routine if you want one, and no obligation to use it.</p>
+    <p>Pick a tune, pick a way to work on it, and the page keeps the receipt: what you played, when, for how long, at what tempo. There is a thirty-minute routine built for getting five tunes into memory, if you want one, and no obligation to use it.</p>
   </div>
   <div class="tuning">
     <span class="lbl">Tuning for this tune <span class="ver" id="verTag"></span></span>
@@ -743,6 +789,18 @@ table.log tr.newday td{border-top:1px solid var(--rule-2)}
 </nav>
 
 <section class="panel" id="p-practice">
+
+<div class="fivebox" id="fivebox">
+  <div class="five-head">
+    <h2>Five by memory</h2>
+    <span class="fcount" id="fiveCount">0 / 5</span>
+    <span class="fleft" id="fiveLeft"></span>
+    <button class="ghost" id="fivePin">Add this tune to the five</button>
+  </div>
+  <div class="fives" id="fives"></div>
+  <div class="weeks" id="fiveWeeks"></div>
+  <p class="fivenote">A tune counts once you have played it <b>clean from memory on three different days, at least a week apart first to last</b>. Turn on <i>From memory</i> in the player and the tab hides. Rate each go when you log it. The due date spaces out after every clean go: 1, 2, 4, 7, then 14 days. A go that falls apart brings the tune back tomorrow.</p>
+</div>
 
 <div class="picker">
   <div class="pick">
@@ -854,7 +912,12 @@ slots count eighth notes from 0 · notes run C3 to G4, sharps as F#4
     <span class="awhat" id="actWhat"></span>
     <span class="atime" id="actTime">00:00</span>
     <span class="abtns">
-      <button class="logbtn" id="actLog">Log it</button>
+      <span class="rate" id="actRate">
+        <span class="rl">Log it:</span>
+        <button class="logbtn" data-rate="clean">Clean</button>
+        <button class="ghost" data-rate="slips">A few slips</button>
+        <button class="ghost" data-rate="broke">Fell apart</button>
+      </span>
       <button class="ghost" id="actDrop">Discard</button>
     </span>
   </div>
@@ -917,8 +980,17 @@ slots count eighth notes from 0 · notes run C3 to G4, sharps as F#4
       <button data-pct="100">Full</button>
     </div>
     <label class="toggle"><input type="checkbox" id="metro"> Click</label>
-    <label class="toggle"><input type="checkbox" id="countin" checked> Count in</label>
+    <div class="tgroup">
+      <span class="glabel">Count in</span>
+      <div class="seg" id="countSeg">
+        <button data-bars="0">Off</button>
+        <button data-bars="1">1 bar</button>
+        <button data-bars="2">2 bars</button>
+      </div>
+    </div>
     <label class="toggle"><input type="checkbox" id="names" checked> Note names</label>
+    <label class="toggle" title="Scroll the page to keep the playing bar in view. Scroll by hand and it lets go until the next Play."><input type="checkbox" id="follow"> Follow</label>
+    <label class="toggle" title="Hide the tab and play it from memory. Anything you log with the tab hidden counts toward the five."><input type="checkbox" id="hideTab"> From memory</label>
     <button class="ghost" id="clearLoop">Whole tune</button>
     <span class="pct" id="loopOut"></span>
   </div>
@@ -951,6 +1023,11 @@ slots count eighth notes from 0 · notes run C3 to G4, sharps as F#4
       <span>· click a measure, then another, to loop that stretch</span>
     </div>
     <div class="staff" id="staff"></div>
+    <div class="memcover" id="memCover" hidden>
+      <b>Tab hidden: from memory</b>
+      <span>Play it through, then log how it went. If you lose your place, start from the nearest section and keep going.</span>
+      <span class="memsections" id="memSections"></span>
+    </div>
   </div>
 </section>
 
@@ -1079,6 +1156,14 @@ slots count eighth notes from 0 · notes run C3 to G4, sharps as F#4
     <p><b>Melody and drone</b> adds the 5th string and no brush, which is where it starts sounding like a banjo. <b>Whole thing</b> weaves the brush back in. <b>Drop-thumb</b> moves that off-beat thumb onto the 2nd string, and it will feel wrong for a fortnight.</p>
     <p>To work on a hard stretch, loop two measures: click one, then the next, and leave it at 45% until it is boring. Boring is the goal. Then nudge the tempo up 4&nbsp;bpm at a time with the <code>]</code> key.</p>
   </div>
+  <div>
+    <h4>Getting a tune into memory</h4>
+    <p><b>Recall early.</b> Hide the tab and try a section from the first day, even badly. Pulling a tune out of your head is what puts it there. Rereading the tab only feels like learning.</p>
+    <p><b>Stop before the mistake.</b> Slow down until you never miss, then speed up four bpm at a time. A wrong note played ten times gets learned too.</p>
+    <p><b>Mix and space.</b> Change tune after each go instead of hammering one, and come back after a gap of days. It feels worse in the moment and holds better a week later.</p>
+    <p><b>Know the sections.</b> Name them (verse, chorus, A part, B part) and practise starting from each one. If you lose your place mid-tune, that is where you get back in.</p>
+    <p><b>Sleep on it.</b> A motor skill often plays better the next day than at the end of practice. Thirty minutes every day beats three and a half hours on Sunday.</p>
+  </div>
 </div>
 </section><!-- /p-technique -->
 
@@ -1094,7 +1179,7 @@ slots count eighth notes from 0 · notes run C3 to G4, sharps as F#4
 <script>
 "use strict";
 
-const VERSION = "0.9.1";
+const VERSION = "0.10.0";
 const BUILT = "2026-08-31";
 
 /* ============================ tuning & fretboard ============================ */
@@ -1406,128 +1491,388 @@ SONGS.push({
   ]
 });
 
-/* chord-chart-only tunes: rungs 1 and 2 of the ladder work, melody tab still to come */
+/* the twelve-week plan, past the first ten */
 function chart(str){ return str.trim().split(/\s+/).map(c => bar(c)); }
-function charted(o){ return Object.assign({noTab:true, meter:"4/4", tuning:"openG"}, o); }
+function charted(o){
+  const s = Object.assign({meter:"4/4", tuning:"openG"}, o);
+  s.noTab = !s.bars.some(b => b.m && b.m.length);   // chord chart only until a bar carries melody
+  return s;
+}
 
 SONGS.push(charted({
   id:"southaustralia", n:11, week:2, world:"Shanty",
-  title:"South Australia", target:108, chords:["G","C","D7"],
+  title:"South Australia", meter:"4/4", target:108, chords:["G", "D7", "Em"],
   teach:"Written for a banjo whether it knows it or not. Call and response, and it accelerates on its own.",
   lyric:"Heave away, haul away, we're bound for South Australia.",
-  bars:chart("G G C G G D7 G G G C G D7 G C D7 G")
+  src:"thesession.org, tune 26380, setting 56669, notated in D and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D4@6:2",{pickup:true}),
+    bar("G","B3@0:2 D4@2:2 D4@4:2 D4@6:2",{section:"Verse"}),
+    bar("G","E4@0:2 D4@2:2 D4@4:4"),
+    bar("G","E4@0:2 D4@2:2 D4@4:4"),
+    bar("G","E4@0:2 D4@2:2 D4@4:2 D4@6:2"),
+    bar("G","B3@0:2 D4@2:2 D4@4:2 D4@6:2"),
+    bar("G","A3@0:2 B3@2:2 G3@4:2 G3@6:1 A3@7:1"),
+    bar("G","B3@0:3 C4@3:1 D4@4:2 B3@6:2"),
+    bar("D7/G","A3@0:4 G3@4:2"),
+    bar("Em","G4@0:3 G4@3:1 E4@4:2 G4@6:2",{section:"Chorus"}),
+    bar("Em/G","E4@0:2 D4@2:2 D4@4:4"),
+    bar("G","E4@0:2 D4@2:2 D4@4:4"),
+    bar("G","E4@0:2 D4@2:2 D4@4:4"),
+    bar("Em","G4@0:3 G4@3:1 E4@4:2 G4@6:2"),
+    bar("Em","E4@0:2 D4@2:2 B3@4:2 G3@6:2"),
+    bar("G","B3@0:3 C4@3:1 D4@4:2 B3@6:2"),
+    bar("D7/G","A3@0:4 G3@4:2")
+  ]
 }));
 
 SONGS.push(charted({
   id:"leaveher", n:12, week:3, world:"Shanty",
-  title:"Leave Her Johnny", target:76, chords:["G","C","D7"],
+  title:"Leave Her Johnny", meter:"4/4", target:76, chords:["G", "D7", "Em"],
   teach:"Slow and sad, and therefore the best place to practise a bum-ditty that does not wobble under a vocal.",
   lyric:"Leave her, Johnny, leave her, for the voyage is long and the winds don't blow.",
-  bars:chart("G C G D7 G C G/D7 G")
+  src:"Singing Together, BBC, Summer 1968, via folkinfo.org, notated in F and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","G3@6:1 A3@7:1",{pickup:true}),
+    bar("G","B3@0:2 B3@2:2 B3@4:1 A3@5:1 G3@6:1 A3@7:1",{section:"Verse"}),
+    bar("G","B3@0:2 B3@2:1 A3@3:1 G3@4:4"),
+    bar("D7","A3@0:2 A3@2:2 A3@4:3 G3@7:1"),
+    bar("G","B3@0:2 D4@2:4 D4@6:2"),
+    bar("Em/G","E4@0:2 E4@2:2 D4@4:2 B3@6:2"),
+    bar("G","B3@0:2 B3@2:1 A3@3:1 G3@4:2 D4@6:2"),
+    bar("G","B3@0:3 G3@3:1 B3@4:3 A3@7:1"),
+    bar("G","A3@0:2 G3@2:4")
+  ]
 }));
 
 SONGS.push(charted({
   id:"wildrover", n:13, week:3, world:"Irish",
-  title:"The Wild Rover", target:96, meter:"3/4", chords:["G","C","D7","Em"],
+  title:"The Wild Rover", meter:"3/4", target:96, chords:["G", "D7", "Em"],
   teach:"A waltz, so the right hand changes: one melody note, one brush, one thumb. Four built-in stops for the room to clap into.",
   lyric:"And it's no, nay, never, no nay never no more.",
-  bars:chart("G G C G G C D7 D7 G C G Em G D7 G G")
+  src:"thesession.org, tune 9635, setting 9635, notated in D and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","G3@5:1",{pickup:true}),
+    bar("G","G3@0:1 A3@1:1 G3@2:1 G3@3:1 D3@4:1 B3@5:1"),
+    bar("G/D7","B3@0:1 A3@1:1 B3@2:1 C4@3:3"),
+    bar("D7/G","C4@0:2 D4@2:1 D4@3:1 B3@4:1 D4@5:1"),
+    bar("D7/G","C4@0:1 A3@1:1 F#3@2:1 D3@3:1 B3@4:1 A3@5:1"),
+    bar("G","G3@0:3 G3@3:2 G3@5:1"),
+    bar("G","G3@0:1 A3@1:1 G3@2:1 G3@3:1 D3@4:1 B3@5:1"),
+    bar("G/D7","B3@0:1 A3@1:1 B3@2:1 C4@3:3"),
+    bar("D7/G","C4@0:2 D4@2:1 D4@3:1 B3@4:1 D4@5:1"),
+    bar("D7/G","C4@0:1 F#3@2:1 D3@3:1 B3@4:1 A3@5:1"),
+    bar("G/D7","G3@0:1 F#3@1:1 G3@2:1 A3@3:3"),
+    bar("D7","F#3@0:1 D3@1:1 D3@3:3"),
+    bar("G","D3@0:1 B3@1:1 B3@2:1 B3@3:1 A3@4:1 B3@5:1"),
+    bar("D7","C4@0:3 C4@3:1 B3@4:1 C4@5:1"),
+    bar("G","D4@0:3 D4@3:1 B3@4:1 G3@5:1"),
+    bar("Em","F#3@0:1 E3@1:2 E3@3:2 E3@5:1"),
+    bar("G","D3@0:1 B3@1:1 B3@2:1 B3@3:2 A3@5:1"),
+    bar("G","G3@0:3 G3@3:2")
+  ]
 }));
 
 SONGS.push(charted({
   id:"blowman", n:14, week:5, world:"Shanty",
-  title:"Blow the Man Down", target:96, meter:"6/8", chords:["G","C","D7"],
+  title:"Blow the Man Down", meter:"6/8", target:96, chords:["G", "Em", "D7", "Am"],
   teach:"Your first tune in 6/8 at a walking pace, and a way into jig rhythm months before jig speed.",
   lyric:"Give me some time to blow the man down.",
-  bars:chart("G G D7 G G C G/D7 G")
+  src:"Digital Tradition collection, notated in D and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","B3@5:1",{pickup:true}),
+    bar("G","D4@0:1 E4@1:1 D4@2:1 B3@3:1 G3@4:1 B3@5:1"),
+    bar("G","D4@0:1 E4@1:1 D4@2:1 B3@3:2 G3@5:1"),
+    bar("G/Em","D4@0:3 E4@3:3"),
+    bar("D7","C4@0:1 B3@1:1 C4@2:1 A3@3:2 B3@5:1"),
+    bar("D7","C4@0:1 D4@1:1 C4@2:1 A3@3:1 F#3@4:1 A3@5:1"),
+    bar("Am","C4@0:1 B3@1:1 A3@2:1 E4@3:3"),
+    bar("D7","D4@0:1 D4@1:1 D4@2:1 D4@3:2 C4@5:1"),
+    bar("G","B3@0:1 A3@1:1 B3@2:1 G3@3:2")
+  ]
 }));
 
 SONGS.push(charted({
   id:"oldjoeclark", n:15, week:7, world:"Old-time",
-  title:"Old Joe Clark", target:110, capo:2, chords:["G","F"],
-  teach:"The most-called tune at an American old-time jam. Capo 2 and play G shapes; the F shape is the flat seventh that makes it mixolydian.",
+  title:"Old Joe Clark", meter:"4/4", target:110, capo:2, chords:["G", "F", "C"],
+  teach:"The most-called tune at an American old-time jam. Capo 2 and play G shapes; the F is the flat seventh that makes it mixolydian, and the D turns up at the end of each part.",
   lyric:"Fare thee well, Old Joe Clark, fare thee well I say.",
-  bars:chart("G G F G G G F G G G F G G G F G")
+  src:"thesession.org, tune 14474, setting 26621, notated in A mixolydian and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G/F","G3@0:2 D4@2:3 E4@5:1 F4@6:2",{section:"Part A"}),
+    bar("C","E4@0:2 D4@2:2 C4@4:2 B3@6:2"),
+    bar("G/F","C4@0:2 D4@2:3 E4@5:1 F4@6:2"),
+    bar("G","E4@0:2 D4@2:6"),
+    bar("G/F","G3@0:2 D4@2:3 E4@5:1 F4@6:2"),
+    bar("C","E4@0:2 D4@2:2 C4@4:2 B3@6:2"),
+    bar("G","A3@0:2 G3@2:2 B3@4:2 A3@6:2"),
+    bar("G","F3@0:2 G3@2:6"),
+    bar("G","D3@0:2 G3@2:3 G3@5:1 G3@6:2",{section:"Part B"}),
+    bar("G","G3@0:2 D4@2:2 C4@4:2 B3@6:2"),
+    bar("G","B3@0:2 G3@2:3 G3@5:1 B3@6:2"),
+    bar("F","G3@0:2 A3@2:6"),
+    bar("G","A3@0:2 G3@2:3 G3@5:1 G3@6:2"),
+    bar("G","G3@0:2 D4@2:2 C4@4:2 B3@6:2"),
+    bar("G","A3@0:2 G3@2:2 B3@4:2 A3@6:2"),
+    bar("G","F3@0:2 G3@2:6")
+  ]
 }));
 
 SONGS.push(charted({
   id:"cluckoldhen", n:16, week:7, world:"Old-time",
-  title:"Cluck Old Hen", tuning:"sawmill", target:104, capo:2, chords:["G","F"],
+  title:"Cluck Old Hen", meter:"4/4", tuning:"sawmill", target:104, capo:2, chords:["F", "G", "C"],
   teach:"Two chords and pure attitude. Sawmill capoed at 2. The B part is a hen impression. Play it like one.",
   lyric:"Cluck old hen, cluck and sing, ain't laid an egg since way last spring.",
-  bars:chart("G G F G G G F G G F G F G F G G")
+  src:"thesession.org, tune 11876, setting 11876, notated in A and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("F","C4@0:2 F3@2:2 A3@4:3 A#3@7:1",{section:"Part A"}),
+    bar("F/G","C4@0:1 A3@1:1 A#3@2:1 A3@3:1 G3@4:2 G3@6:2"),
+    bar("C","C4@0:2 E3@2:2 G3@4:2 G3@6:1 A3@7:1"),
+    bar("F","A#3@0:1 G3@1:1 A3@2:1 G3@3:1 F3@4:2 F3@6:2"),
+    bar("F","C4@0:2 F3@2:2 A3@4:1 G3@5:1 A3@6:1 A#3@7:1"),
+    bar("C","C4@0:1 A3@1:1 C4@2:1 A#3@3:1 G3@4:1 A3@5:1 G3@6:1 E3@7:1"),
+    bar("C","C4@0:1 D3@1:1 E3@2:1 F3@3:1 G3@4:1 A3@5:1 G3@6:1 A3@7:1"),
+    bar("C/F","A#3@0:1 G3@1:1 E3@2:2 F3@4:2 F3@6:2"),
+    bar("F/C","C4@0:2 F3@2:2 F3@4:1 C4@5:1 G3@6:2"),
+    bar("C","G3@0:2 C4@2:2 E3@4:2 G3@6:2"),
+    bar("C/F","G3@0:2 A3@2:1 G3@3:1 A3@4:1 G3@5:1 F3@6:2"),
+    bar("F","F3@0:2 F3@2:2 F4@4:2 E4@6:2"),
+    bar("F","F4@0:2 D4@2:1 E4@3:1 F4@4:1 D4@5:1 D3@6:1 D3@7:1",{section:"Part B"}),
+    bar("F","F4@0:2 E4@2:2 F4@4:2 D4@6:1 C4@7:1"),
+    bar("F","A3@0:1 G3@1:1 F3@2:3 G3@5:1 A3@6:2"),
+    bar("F","F4@0:2 E4@2:2 F4@4:2 D4@6:1 E4@7:1"),
+    bar("F","F4@0:1 D4@1:1 A#3@2:1 A#3@3:1 F4@4:2 A4@6:2"),
+    bar("G/F","G4@0:2 F4@2:1 D4@3:1 C4@4:1 A3@5:1 F3@6:2"),
+    bar("F/G","F3@0:2")
+  ]
 }));
 
 SONGS.push(charted({
   id:"wellerman", n:17, week:8, world:"Shanty",
-  title:"The Wellerman", target:96, chords:["Dm","F","C","Am"],
-  teach:"Minor, four chords, and a chorus that carries a room without you doing anything clever. The one everybody already knows.",
+  title:"The Wellerman", meter:"4/4", target:96, chords:["Em", "Am", "G"],
+  teach:"Minor, and a chorus that carries a room without you doing anything clever. The one everybody already knows.",
   lyric:"Soon may the Wellerman come, to bring us sugar and tea and rum.",
-  bars:chart("Dm Dm F C Dm Dm C Dm F F C C Dm Dm C Dm")
+  src:"thesession.org, tune 20383, setting 40372. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("Em","B3@0:1 E3@1:1 E3@2:1 G3@3:1 B3@4:1 B3@5:1 B3@6:1 B3@7:1"),
+    bar("Am/Em","C4@0:1 A3@1:1 A3@2:1 C4@3:1 E4@4:1 B3@5:1 B3@6:2"),
+    bar("Em","E3@0:1 E3@1:1 E3@2:1 G3@3:1 B3@4:1 B3@5:1 B3@6:1 B3@7:1"),
+    bar("Em","B3@0:1 A3@1:1 G3@2:1 F#3@3:1 E3@4:4"),
+    bar("Em/G","E4@0:2 E4@2:1 C4@3:1 D4@4:1 B3@5:1 B3@6:1 B3@7:1"),
+    bar("Am/Em","C4@0:1 A3@1:1 A3@2:1 C4@3:1 E4@4:1 B3@5:1 B3@6:2"),
+    bar("Em/G","E4@0:2 E4@2:1 C4@3:1 D4@4:1 B3@5:1 B3@6:1 B3@7:1"),
+    bar("Em","B3@0:1 A3@1:1 G3@2:1 F#3@3:1 E3@4:4")
+  ]
 }));
 
 SONGS.push(charted({
   id:"countydown", n:18, week:8, world:"Irish",
-  title:"Star of the County Down", target:84, chords:["Em","D","G"],
-  teach:"Minor and modal, and it wants to be played slowly and clearly. A tune that teaches restraint.",
+  title:"Star of the County Down", meter:"3/4", target:84, chords:["G", "Em", "D"],
+  teach:"Minor, in waltz time, and it wants to be played slowly and clearly. Thirty-two bars, so learn it in four-bar pieces. A tune that teaches restraint.",
   lyric:"From Bantry Bay up to Derry Quay, and from Galway to Dublin town.",
-  bars:chart("Em Em D D Em Em D Em G G D D Em Em D Em")
+  src:"thesession.org, tune 9747, setting 9747, notated in A minor and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","B3@2:2 D4@4:2",{pickup:true}),
+    bar("Em","E4@0:4 E4@4:2"),
+    bar("Em","E4@0:3 D4@3:1 E4@4:2"),
+    bar("Em","G4@0:4 G4@4:2"),
+    bar("D","A4@0:3 G4@3:1 A4@4:2"),
+    bar("Em","B4@0:3 A4@3:1 G4@4:2"),
+    bar("G","E4@0:1 D4@1:1 D4@2:2 B3@4:2"),
+    bar("G","D4@0:6"),
+    bar("G/D","D4@0:2 G4@2:2 F#4@4:2"),
+    bar("Em","E4@0:4 E4@4:2"),
+    bar("Em","E4@0:3 D4@3:1 E4@4:2"),
+    bar("Em","G4@0:4 G4@4:2"),
+    bar("D","A4@0:3 G4@3:1 A4@4:2"),
+    bar("Em","B4@0:3 A4@3:1 G4@4:2"),
+    bar("Em","E4@0:4 E4@4:2"),
+    bar("Em","E4@0:6"),
+    bar("Em","E4@0:2 G4@2:2 B4@4:2"),
+    bar("G","D5@0:4 B4@4:2"),
+    bar("D/Em","B4@0:1 A4@1:1 A4@2:2 G4@4:2"),
+    bar("D","A4@0:3 B4@3:1 A4@4:2"),
+    bar("D","A4@0:3 G4@3:1 A4@4:2"),
+    bar("Em","B4@0:3 A4@3:1 G4@4:2"),
+    bar("G","E4@0:1 D4@1:1 D4@2:2 B3@4:2"),
+    bar("G","D4@0:6"),
+    bar("G/D","D4@0:2 G4@2:2 F#4@4:2"),
+    bar("Em","E4@0:4 E4@4:2"),
+    bar("Em","E4@0:3 D4@3:1 E4@4:2"),
+    bar("Em","G4@0:4 G4@4:2"),
+    bar("D","A4@0:3 G4@3:1 A4@4:2"),
+    bar("Em","B4@0:3 A4@3:1 G4@4:2"),
+    bar("Em","E4@0:4 E4@4:2"),
+    bar("Em","E4@0:6"),
+    bar("Em","E4@0:2")
+  ]
 }));
 
 SONGS.push(charted({
   id:"wildwood", n:19, week:9, world:"Old-time",
-  title:"Wildwood Flower", tuning:"doubleC", target:92, chords:["C","F","G"],
+  title:"Wildwood Flower", meter:"4/4", tuning:"doubleC", target:92, chords:["C", "Dm", "F"],
   teach:"Everyone's first real song. Gives you the I-IV-V shapes all over again in double C, which is the point of learning it here.",
   lyric:"I'll twine with my mingles of raven black hair.",
-  bars:chart("C C C C G G C C C C F F C G C C")
+  src:"Digital Tradition collection. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("C","E3@6:1 F3@7:1"),
+    bar("C","G3@0:2 A3@2:1 C4@3:1 E3@4:2 F3@6:1 E3@7:1"),
+    bar("Dm/C","D3@0:2 F3@2:1 B3@3:1 C3@4:2 E3@6:1 F3@7:1"),
+    bar("C","G3@0:2 A3@2:1 C4@3:1 E3@4:2 F3@6:1 E3@7:1"),
+    bar("Dm/C","D3@0:2 F3@2:1 B3@3:1 C3@4:2 G3@6:2"),
+    bar("C","E4@0:2 E4@2:1 D4@3:1 C4@4:2 G3@6:1 G3@7:1"),
+    bar("F/C","A3@0:2 B3@2:1 A3@3:1 G3@4:2 E3@6:2"),
+    bar("C","E3@0:2 E3@2:1 D3@3:1 E3@4:2 G3@6:1 E3@7:1"),
+    bar("Dm/C","D3@0:2 F3@2:1 B3@3:1 C3@4:2")
+  ]
 }));
 
 SONGS.push(charted({
   id:"angeline", n:20, week:9, world:"Old-time",
-  title:"Angeline the Baker", tuning:"doubleC", target:108, capo:2, chords:["C","G"],
+  title:"Angeline the Baker", meter:"4/4", tuning:"doubleC", target:108, capo:2, chords:["C", "F", "G", "Am"],
   teach:"The tune that forces real drop-thumb. Double C capoed to D. Nothing teaches the technique faster.",
   lyric:"Angeline the baker, Angeline I know, should have married Angeline twenty years ago.",
-  bars:chart("C C C C G G C C C C C C G G C C")
+  src:"thesession.org, tune 14300, setting 26118, notated in D and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("C","C4@0:1 G3@1:1 A3@2:1 C4@3:1 G3@4:1 A3@5:1 C4@6:2",{section:"Part A"}),
+    bar("C","C4@0:1 G3@1:1 A3@2:1 C4@3:1 G3@4:1 A3@5:3"),
+    bar("F/G","C4@0:1 G3@1:1 A3@2:1 C4@3:1 D4@4:1 E4@5:1 D4@6:1 C4@7:1"),
+    bar("Am","C4@0:1 E4@1:1 D4@2:1 C4@3:1 A3@4:1 G3@5:1 A3@6:1 G3@7:1"),
+    bar("C","E4@0:1 G4@1:1 E4@2:1 D4@3:1 C4@4:1 E4@5:1 D4@6:1 C4@7:1",{section:"Part B"}),
+    bar("C/F","E4@0:1 G4@1:1 E4@2:1 D4@3:1 C4@4:1 A3@5:1 A3@6:1 A3@7:1"),
+    bar("C","E4@0:1 G4@1:1 E4@2:1 D4@3:1 C4@4:1 E4@5:1 D4@6:1 C4@7:1"),
+    bar("Am/C","C4@0:1 E4@1:1 D4@2:1 C4@3:1 A3@4:1 G3@5:1 A3@6:1 G3@7:1")
+  ]
 }));
 
 SONGS.push(charted({
   id:"soldiersjoy", n:21, week:10, world:"Old-time",
-  title:"Soldier's Joy", tuning:"doubleC", target:116, capo:2, chords:["C","G"],
+  title:"Soldier's Joy", meter:"4/4", tuning:"doubleC", target:116, capo:2, chords:["C", "Dm", "G"],
   teach:"Arguably the most-played fiddle tune in English for two hundred years. Almost every note lands on a beat, which makes it a fair speed test.",
   lyric:"Twenty-five cents for the morphine, fifteen cents for the beer.",
-  bars:chart("C C C G C C C/G C C C C G C C C/G C")
+  src:"thesession.org, tune 1356, setting 1356, notated in D and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("C","G3@0:1 E3@1:1 C3@2:1 E3@3:1 G3@4:1 E3@5:1 C3@6:1 E3@7:1",{section:"Part A"}),
+    bar("C","G3@0:2 C4@2:2 C4@4:2 B3@6:1 A3@7:1"),
+    bar("C","G3@0:1 E3@1:1 C3@2:1 E3@3:1 G3@4:1 E3@5:1 C3@6:1 E3@7:1"),
+    bar("Dm","F3@0:2 D3@2:2 D3@4:2 E3@6:1 F3@7:1"),
+    bar("C","G3@0:1 E3@1:1 C3@2:1 E3@3:1 G3@4:1 E3@5:1 C3@6:1 E3@7:1"),
+    bar("C","G3@0:2 C4@2:2 C4@4:2 C4@6:1 D4@7:1"),
+    bar("C/G","E4@0:1 G4@1:1 E4@2:1 C4@3:1 D4@4:1 F4@5:1 D4@6:1 B3@7:1"),
+    bar("C","C4@0:2 C4@2:2 C4@4:4"),
+    bar("C","E4@0:1 C4@1:1 E4@2:1 C4@3:1 E4@4:1 G4@5:1 F4@6:1 E4@7:1",{section:"Part B"}),
+    bar("G/Dm","D4@0:1 C4@1:1 B3@2:1 C4@3:1 D4@4:1 E4@5:1 F4@6:1 D4@7:1"),
+    bar("C","E4@0:1 C4@1:1 E4@2:1 C4@3:1 E4@4:1 G4@5:1 F4@6:1 E4@7:1"),
+    bar("G/C","D4@0:1 C4@1:1 B3@2:1 A3@3:1 G3@4:2 C4@6:1 D4@7:1"),
+    bar("C","E4@0:1 C4@1:1 E4@2:1 C4@3:1 E4@4:1 G4@5:1 F4@6:1 E4@7:1"),
+    bar("G/Dm","D4@0:1 B3@1:1 G3@2:1 B3@3:1 D4@4:1 E4@5:1 F4@6:1 D4@7:1"),
+    bar("C/G","E4@0:1 G4@1:1 E4@2:1 C4@3:1 D4@4:1 F4@5:1 D4@6:1 B3@7:1"),
+    bar("C","C4@0:2 C4@2:2 C4@4:4")
+  ]
 }));
 
 SONGS.push(charted({
   id:"whiskeybreakfast", n:22, week:10, world:"Old-time",
-  title:"Whiskey Before Breakfast", tuning:"doubleC", target:112, capo:2, chords:["C","F","G"],
+  title:"Whiskey Before Breakfast", meter:"4/4", tuning:"doubleC", target:112, capo:2, chords:["C", "F", "G", "Dm", "Am"],
   teach:"A full octave of melody and a B part that climbs. The first tune that needs more than the first five frets.",
   lyric:"Instrumental. There are words, but nobody agrees on them.",
-  bars:chart("C C F C C G C C C C F C C G C C")
+  src:"thesession.org, tune 602, setting 602, notated in D and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("C","G3@0:1 C3@1:1 E3@2:1 F3@3:1 G3@4:2 G3@6:2",{section:"Part A"}),
+    bar("C","G3@0:1 A3@1:1 G3@2:1 F3@3:1 E3@4:1 D3@5:1 C3@6:1 E3@7:1"),
+    bar("F/C","F3@0:2 A3@2:1 F3@3:1 E3@4:2 G3@6:1 E3@7:1"),
+    bar("G","D3@0:1 C3@1:1 D3@2:1 E3@3:1 D3@4:1 C3@5:1 B3@6:1 A3@7:1"),
+    bar("C","G3@0:1 C3@1:1 E3@2:1 F3@3:1 G3@4:2 G3@6:2"),
+    bar("C","G3@0:1 A3@1:1 G3@2:1 F3@3:1 E3@4:1 D3@5:1 C3@6:1 E3@7:1"),
+    bar("F/C","F3@0:2 A3@2:1 F3@3:1 E3@4:2 G3@6:1 E3@7:1"),
+    bar("G/C","D3@0:1 C3@1:1 D3@2:1 E3@3:1 C3@4:4"),
+    bar("C","G3@0:1 C4@1:2 G3@3:1 C4@4:2 C4@6:2",{section:"Part B"}),
+    bar("G","B3@0:1 C4@1:1 D4@2:1 C4@3:1 B3@4:1 A3@5:1 G3@6:2"),
+    bar("Dm","A3@0:1 D4@1:2 A3@3:1 D4@4:2 D4@6:1 E4@7:1"),
+    bar("Dm/G","F4@0:1 E4@1:1 D4@2:1 C4@3:1 B3@4:1 G3@5:1 A3@6:1 B3@7:1"),
+    bar("C/G","C4@0:2 E4@2:1 C4@3:1 B3@4:2 D4@6:1 B3@7:1"),
+    bar("Am","A3@0:1 G3@1:1 A3@2:1 B3@3:1 A3@4:1 G3@5:1 E3@6:1 G3@7:1"),
+    bar("F/C","F3@0:2 A3@2:1 F3@3:1 E3@4:2 G3@6:1 E3@7:1"),
+    bar("G/C","D3@0:1 C3@1:1 D3@2:1 E3@3:1 C3@4:4")
+  ]
 }));
 
 SONGS.push(charted({
   id:"swallowtail", n:23, week:11, world:"Irish",
-  title:"Swallowtail Jig", target:72, meter:"6/8", chords:["Em","D","G"],
-  teach:"Your first real jig. The bum-ditty flattens into three even strokes per beat. Count one-two-three out loud for a week.",
+  title:"Swallowtail Jig", meter:"6/8", target:72, chords:["Am", "G"],
+  teach:"Your first real jig, in A dorian: two chords, Am and G, and the bum-ditty flattens into three even strokes per beat. Count one-two-three out loud for a week.",
   lyric:"Instrumental. Tempo shown is dotted-quarter, one group of three per beat.",
-  bars:chart("Em Em Em D Em Em D Em G D Em Em G D Em Em")
+  src:"thesession.org, tune 106, setting 106. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("Am","C4@0:1 B3@1:1 A3@2:1 E4@3:1 A3@4:1 A3@5:1",{section:"Part A"}),
+    bar("Am","C4@0:1 B3@1:1 A3@2:1 E4@3:1 D4@4:1 C4@5:1"),
+    bar("G","B3@0:1 G3@1:1 G3@2:1 D4@3:1 G3@4:1 G3@5:1"),
+    bar("G","G4@0:1 F#4@1:1 E4@2:1 D4@3:1 C4@4:1 B3@5:1"),
+    bar("Am","C4@0:1 B3@1:1 A3@2:1 E4@3:1 A3@4:1 A3@5:1"),
+    bar("Am","C4@0:1 B3@1:1 A3@2:1 E4@3:2 F#4@5:1"),
+    bar("G","G4@0:1 F#4@1:1 E4@2:1 D4@3:1 C4@4:1 B3@5:1"),
+    bar("Am","C4@0:1 B3@1:1 A3@2:1 A3@3:2 D4@5:1"),
+    bar("Am","E4@0:1 F#4@1:1 G4@2:1 A4@3:2 B4@5:1",{section:"Part B"}),
+    bar("Am","A4@0:2 B4@2:1 A4@3:1 G4@4:1 E4@5:1"),
+    bar("Am","E4@0:1 F#4@1:1 G4@2:1 A4@3:2 B4@5:1"),
+    bar("Am/G","A4@0:1 G4@1:1 E4@2:1 G4@3:2 D4@5:1"),
+    bar("Am","E4@0:1 F#4@1:1 G4@2:1 A4@3:2 B4@5:1"),
+    bar("Am","A4@0:2 B4@2:1 A4@3:1 G4@4:1 E4@5:1"),
+    bar("G","G4@0:1 F#4@1:1 E4@2:1 D4@3:1 C4@4:1 B3@5:1"),
+    bar("Am","C4@0:1 B3@1:1 A3@2:1 A3@3:2 D4@5:1")
+  ]
 }));
 
 SONGS.push(charted({
   id:"keshjig", n:24, week:11, world:"Irish",
-  title:"The Kesh Jig", target:76, meter:"6/8", chords:["G","C","D7","Em"],
+  title:"The Kesh Jig", meter:"6/8", target:76, chords:["G", "D7", "Em"],
   teach:"The friendliest jig in the session canon. Play this at speed and you can hold your own corner of an Irish session.",
   lyric:"Instrumental. Tempo shown is dotted-quarter.",
-  bars:chart("G G C G G G D7 G G G C G G Em D7 G")
+  src:"thesession.org, tune 55, setting 55. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","G3@0:3 G3@3:1 A3@4:1 B3@5:1",{section:"Part A"}),
+    bar("D7","A3@0:3 A3@3:1 B3@4:1 D4@5:1"),
+    bar("G","E4@0:1 D4@1:1 D4@2:1 G4@3:1 D4@4:1 D4@5:1"),
+    bar("G","E4@0:1 D4@1:1 B3@2:1 D4@3:1 B3@4:1 A3@5:1"),
+    bar("G","G3@0:1 A3@1:1 G3@2:1 G3@3:1 A3@4:1 B3@5:1"),
+    bar("D7","A3@0:1 B3@1:1 A3@2:1 A3@3:1 B3@4:1 D4@5:1"),
+    bar("G","E4@0:1 D4@1:1 D4@2:1 G4@3:1 D4@4:1 D4@5:1"),
+    bar("G","B3@0:1 A3@1:1 F#3@2:1 G3@3:3"),
+    bar("G","B3@0:2 B3@2:1 D4@3:2 D4@5:1",{section:"Part B"}),
+    bar("Em/G","E4@0:1 G4@1:1 E4@2:1 D4@3:1 B3@4:1 A3@5:1"),
+    bar("G","B3@0:2 B3@2:1 D4@3:1 B3@4:1 G3@5:1"),
+    bar("D7","A3@0:1 B3@1:1 A3@2:1 A3@3:1 G3@4:1 A3@5:1"),
+    bar("G","B3@0:1 A3@1:1 B3@2:1 D4@3:1 C#4@4:1 D4@5:1"),
+    bar("Em/G","E4@0:1 G4@1:1 E4@2:1 D4@3:1 B3@4:1 D4@5:1"),
+    bar("G/D7","G4@0:1 F#4@1:1 G4@2:1 A4@3:1 G4@4:1 A4@5:1"),
+    bar("G","B4@0:1 G4@1:1 G4@2:1 G4@3:3")
+  ]
 }));
 
 SONGS.push(charted({
   id:"partingglass", n:25, week:12, world:"Irish",
-  title:"The Parting Glass", target:72, chords:["Em","D","G"],
-  teach:"The closer. Played nearly free of strict time, so it forces you to hold a tune together without a metronome underneath.",
+  title:"The Parting Glass", meter:"4/4", target:72, chords:["Em", "C", "G", "D"],
+  teach:"The closer. Minor and slow, and it is usually sung nearly free of strict time, so once the tab is in your hands, try it without the click.",
   lyric:"Good night and joy be with you all.",
-  bars:chart("Em D Em D G D Em Em G D Em D G D Em Em")
+  src:"thesession.org, tune 6275, setting 6275, notated in A minor and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("Em","B3@0:1 A3@1:1 G3@2:2 F#3@4:1 G3@5:1 E3@6:2"),
+    bar("Em","E3@0:1 F#3@1:1 G3@2:1 A3@3:1 B3@4:1 G3@5:1 A3@6:2"),
+    bar("Em","G3@0:1 A3@1:1 B3@2:2 E4@4:1 C#4@5:1 D4@6:1 C4@7:1"),
+    bar("Em","B3@0:1 A3@1:1 G3@2:2 E4@4:2 D4@6:2"),
+    bar("Em","B3@0:1 A3@1:1 G3@2:2 F#3@4:1 G3@5:1 E3@6:2"),
+    bar("Em","E3@0:1 F#3@1:1 G3@2:1 A3@3:1 B3@4:1 G3@5:1 A3@6:2"),
+    bar("Em/C","G3@0:1 A3@1:1 B3@2:2 E4@4:1 C4@5:1 D4@6:1 C4@7:1"),
+    bar("Em","B3@0:1 A3@1:1 G3@2:2 E3@4:2 E3@6:2"),
+    bar("G","B3@0:1 C4@1:1 D4@2:1 C4@3:1 D4@4:1 E4@5:1 D4@6:1 C4@7:1"),
+    bar("Em","B3@0:1 A3@1:1 B3@2:2 E3@4:2 E3@6:2"),
+    bar("D/Em","F#3@0:1 E3@1:1 D4@2:1 C4@3:1 B3@4:1 A3@5:1 G3@6:1 F#3@7:1"),
+    bar("G","G3@0:1 A3@1:1 B3@2:2 D3@4:2 D3@6:2"),
+    bar("Em","B3@0:1 A3@1:1 G3@2:2 F#3@4:1 G3@5:1 E3@6:2"),
+    bar("Em","E3@0:1 F#3@1:1 G3@2:1 A3@3:1 B3@4:1 G3@5:1 A3@6:2"),
+    bar("Em/C","G3@0:1 A3@1:1 B3@2:2 E4@4:1 C4@5:1 D4@6:1 C4@7:1"),
+    bar("Em","B3@0:1 A3@1:1 G3@2:2 E3@4:2 E3@6:2")
+  ]
 }));
 
 /* ---- the wider book: everything off the twelve-week plan ---- */
@@ -1535,22 +1880,69 @@ function book(o){ return charted(Object.assign({week:99, book:true}, o)); }
 
 /* Old-time */
 SONGS.push(book({
-  id:"cindy", n:201, world:"Old-time", title:"Cindy", target:112, chords:["G","C","D7"],
+  id:"cindy", n:201, world:"Old-time", title:"Cindy", meter:"4/4", target:112, chords:["G", "Em", "D7"],
   teach:"Three chords, a chorus everybody joins in on, and a tempo you can push without it falling apart.",
   lyric:"Get along home, Cindy Cindy, I'll marry you some day.",
-  bars:chart("G G G D7 G G D7 G G C G D7 G G D7 G")
+  src:"Digital Tradition collection. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D4@6:2",{pickup:true}),
+    bar("G","E4@0:2 D4@2:2 D4@4:2 B3@6:2"),
+    bar("G","A3@0:2 G3@2:4 D4@6:2"),
+    bar("G","E4@0:2 D4@2:2 D4@4:2 B3@6:2"),
+    bar("G","D4@0:6"),
+    bar("G","E4@0:2 D4@2:2 D4@4:2 B3@6:2"),
+    bar("G","B3@0:2 A3@2:2 G3@4:4"),
+    bar("Em","B3@0:2 G3@2:2 G3@4:2 E3@6:2"),
+    bar("Em","G3@0:2 B3@4:1 A3@5:1 G3@6:2"),
+    bar("Em","E3@0:4 G3@4:2 G3@6:2"),
+    bar("Em","A3@0:2 G3@2:2 B3@4:1 A3@5:1 G3@6:2"),
+    bar("G","D3@0:8"),
+    bar("G","D3@0:2 B3@4:1 A3@5:1 G3@6:2"),
+    bar("Em","E3@0:4 G3@4:2 G3@6:2"),
+    bar("Em/D7","A3@0:2 G3@2:4 A3@6:2"),
+    bar("G","B3@0:2 B3@2:2 B3@4:2 A3@6:2"),
+    bar("G","G3@0:4")
+  ]
 }));
 SONGS.push(book({
-  id:"buffalogals", n:202, world:"Old-time", title:"Buffalo Gals", target:110, chords:["G","D7"],
+  id:"buffalogals", n:202, world:"Old-time", title:"Buffalo Gals", meter:"4/4", target:110, chords:["G", "D"],
   teach:"Two chords and a melody almost everyone can already hum. A good one for testing whether a new tempo is really solid.",
   lyric:"Buffalo gals, won't you come out tonight, and dance by the light of the moon.",
-  bars:chart("G G G D7 G G D7 G")
+  src:"thesession.org, tune 24492, setting 51040.",
+  bars:[
+    bar("G","D3@0:1 G3@1:1 A3@2:1 B3@3:1 C4@4:1 E4@5:1 D4@6:1 B3@7:1",{section:"Part A"}),
+    bar("D/G","B3@0:1 D4@1:1 C4@2:1 A3@3:1 A3@4:1 C4@5:1 B3@6:1 G3@7:1"),
+    bar("G","E3@0:1 G3@1:1 A3@2:1 B3@3:1 C4@4:1 E4@5:1 D4@6:1 B3@7:1"),
+    bar("D/G","G4@0:1 F#4@1:1 D4@2:1 C4@3:1 A3@4:1 G3@5:1 B3@6:1 G3@7:1"),
+    bar("G","D3@0:1 B3@1:1 B3@2:1 C4@3:1 B3@4:1 E4@5:1 D4@6:1 B3@7:1",{section:"Part B"}),
+    bar("D/G","B3@0:1 D4@1:1 C4@2:1 A3@3:1 A3@4:1 C4@5:1 B3@6:1 G3@7:1"),
+    bar("G","D3@0:1 B3@1:1 B3@2:1 C4@3:1 C4@4:1 E4@5:1 D4@6:1 B3@7:1"),
+    bar("D/G","G4@0:1 F#4@1:1 D4@2:1 C4@3:1 A3@4:1 G3@5:1 B3@6:1 G3@7:1")
+  ]
 }));
 SONGS.push(book({
-  id:"turkeystraw", n:203, world:"Old-time", title:"Turkey in the Straw", target:116, chords:["G","C","D7"],
+  id:"turkeystraw", n:203, world:"Old-time", title:"Turkey in the Straw", meter:"4/4", target:116, chords:["G", "D7", "C"],
   teach:"The B part climbs onto the C chord and stays there, which is where you find out how clean your changes are at speed.",
   lyric:"Instrumental, mostly. The words change with whoever is singing.",
-  bars:chart("G G G D7 G G D7 G C C G G G D7 G G")
+  src:"thesession.org, tune 2638, setting 2638. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","B3@0:1 A3@1:1 G3@2:1 F#3@3:1 G3@4:1 A3@5:1 G3@6:2",{section:"Part A"}),
+    bar("G","B3@0:1 C4@1:1 D3@2:1 E3@3:1 D3@4:1 B3@5:1 D3@6:2"),
+    bar("G","G3@0:1 A3@1:1 B3@2:2 B3@4:2 B3@6:1 A3@7:1"),
+    bar("G/D7","G3@0:1 A3@1:1 B3@2:2 A3@4:2 A3@6:2"),
+    bar("G","B3@0:1 A3@1:1 G3@2:1 F#3@3:1 G3@4:1 A3@5:1 G3@6:2"),
+    bar("G","B3@0:1 C4@1:1 D3@2:1 E3@3:1 D3@4:1 B3@5:1 D3@6:2"),
+    bar("G","G3@0:1 A3@1:1 B3@2:1 D4@3:2 E4@5:1 D4@6:1 B3@7:1"),
+    bar("G","G3@0:1 A3@1:1 B3@2:2 A3@4:2 G3@6:2"),
+    bar("G","D4@0:2 B3@2:1 D4@3:2 B3@5:1 D4@6:2",{section:"Part B"}),
+    bar("G","D4@0:2 B3@2:1 D4@3:2 B3@5:1 D4@6:2"),
+    bar("D7/C","D4@0:2 C4@2:1 E4@3:2 C4@5:1 E4@6:2"),
+    bar("C","E4@0:2 C4@2:1 E4@3:2 C4@5:1 E4@6:2"),
+    bar("C/G","E4@0:2 G4@2:2 G4@4:2 D4@6:2"),
+    bar("G","D4@0:2 B3@2:2 B3@4:2 A3@6:2"),
+    bar("G","G3@0:1 A3@1:1 B3@2:1 D4@3:2 E4@5:1 D4@6:1 B3@7:1"),
+    bar("G","G3@0:1 A3@1:1 B3@2:2 A3@4:2 G3@6:2")
+  ]
 }));
 SONGS.push(book({
   id:"johnhenry", n:204, world:"Old-time", title:"John Henry", target:100, chords:["G","C","D7"],
@@ -1559,154 +1951,973 @@ SONGS.push(book({
   bars:chart("G G C G G D7 G G")
 }));
 SONGS.push(book({
-  id:"ninepound", n:205, world:"Old-time", title:"Nine Pound Hammer", target:108, chords:["G","C","D"],
+  id:"ninepound", n:205, world:"Old-time", title:"Nine Pound Hammer", meter:"4/4", target:108, chords:["G", "Em"],
   teach:"A work song with a hard, even pulse. Play it like something is being hit on the beat, because it is.",
   lyric:"This nine pound hammer is a little too heavy for my size.",
-  bars:chart("G G C G G D G G")
+  src:"Digital Tradition collection. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D3@2:2 D3@4:2 E3@6:2"),
+    bar("G","G3@0:1 G3@1:1 G3@2:6"),
+    bar("G","B3@2:1 B3@3:1 B3@4:1 B3@5:1 A3@6:2"),
+    bar("Em","G3@0:1 E3@1:1 E3@2:6"),
+    bar("Em","G3@2:1 G3@3:1 A3@4:2 G3@6:2"),
+    bar("G","E3@0:1 D3@1:1 D3@2:6"),
+    bar("G/Em","D3@2:1 D3@3:1 E3@4:2 G3@6:2"),
+    bar("Em","G3@0:8"),
+    bar("G","D4@2:2 D4@4:2 E4@6:2"),
+    bar("G","B3@0:1 G3@1:1 G3@2:6"),
+    bar("G","B3@2:1 B3@3:1 B3@4:1 A3@5:1 G3@6:2"),
+    bar("Em","E3@0:8"),
+    bar("Em","A#3@4:1 G3@5:1 G3@6:2"),
+    bar("G","E3@0:1 D3@1:1 D3@2:6"),
+    bar("G/Em","D3@2:1 D3@3:1 E3@4:2 G3@6:2"),
+    bar("Em/G","G3@0:8")
+  ]
 }));
 SONGS.push(book({
-  id:"lizajane", n:206, world:"Old-time", title:"Little Liza Jane", target:118, chords:["G","C","D7"],
+  id:"lizajane", n:206, world:"Old-time", title:"Little Liza Jane", meter:"4/4", target:118, chords:["G", "Em"],
   teach:"Call and response, four bars each way. The fastest way to get a room singing back at you.",
   lyric:"Oh Eliza, little Liza Jane.",
-  bars:chart("G G C G G D7 G G")
+  src:"thesession.org, tune 14418, setting 26479. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","G3@0:1 B3@1:1 B3@2:1 A3@3:1 G3@4:1 B3@5:1 D4@6:1 D4@7:1",{section:"Part A"}),
+    bar("G","D4@0:1 E4@1:1 D4@2:2 B3@4:1 D4@5:2 D4@7:1"),
+    bar("G","G3@0:1 B3@1:1 B3@2:1 A3@3:1 G3@4:1 B3@5:1 D4@6:1 D4@7:1"),
+    bar("G","D4@0:1 B3@1:1 B3@2:2 A3@4:1 G3@5:2 G3@7:1"),
+    bar("Em/G","E4@0:1 G4@1:1 G4@2:2 D4@4:1 E4@5:2 D4@7:1",{section:"Part B"}),
+    bar("G","D4@0:1 E4@1:1 D4@2:2 B3@4:1 D4@5:2"),
+    bar("Em/G","E4@0:1 G4@1:1 G4@2:2 D4@4:1 E4@5:2 D4@7:1"),
+    bar("G","D4@0:1 B3@1:1 B3@2:1 B3@3:1 A3@4:1 G3@5:3")
+  ]
 }));
 SONGS.push(book({
-  id:"sourwood", n:207, world:"Old-time", title:"Sourwood Mountain", target:114, chords:["G","D"],
+  id:"sourwood", n:207, world:"Old-time", title:"Sourwood Mountain", meter:"4/4", target:114, chords:["G"],
   teach:"Two chords, all drive. Traditionally sung in nonsense syllables, so there is nothing to remember but the rhythm.",
   lyric:"Chickens crowing on Sourwood Mountain, hey de ing dang doodle all day.",
-  bars:chart("G G G D G G D G")
+  src:"Traditional Tune Archive, notated in A and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","G3@6:2",{pickup:true}),
+    bar("G","G3@0:1 B3@1:1 G3@2:2 B3@4:1 G3@5:1 G3@6:1 E3@7:1"),
+    bar("G","D3@0:1 G3@1:1 G3@2:1 G4@3:1 D4@4:1 A3@5:1 G3@6:1 D3@7:1"),
+    bar("G","D3@0:1 D3@1:1 G3@2:2 B3@4:1 G3@5:1 G3@6:1 E3@7:1"),
+    bar("G","D3@0:1 G3@1:1 G3@2:1 G4@3:1 D4@4:1 A3@5:1 G3@6:1 D3@7:1"),
+    bar("G","D3@0:1 A3@1:1 D4@2:1 D4@3:1 E4@4:1 E4@5:1 D4@6:1 B3@7:1"),
+    bar("G","B3@0:1 D4@1:1 D4@2:1 G4@3:1 D4@4:1 A3@5:1 G3@6:1 G3@7:1"),
+    bar("G","G3@0:1 A3@1:1 D4@2:1 D4@3:1 G4@4:1 G4@5:1 D4@6:1 A3@7:1"),
+    bar("G","B3@0:1 D4@1:1 D4@2:1 G4@3:1 D4@4:1 A3@5:1 G3@6:1 G3@7:1")
+  ]
 }));
 SONGS.push(book({
-  id:"groundhog", n:208, world:"Old-time", tuning:"sawmill", title:"Groundhog", target:104, chords:["G","F"],
+  id:"groundhog", n:208, world:"Old-time", tuning:"sawmill", title:"Groundhog", meter:"4/4", target:104, chords:["G", "F"],
   teach:"Sawmill tuning, two chords, and a flat seventh doing all the work. Sits next to Cluck Old Hen, so learn them the same week.",
   lyric:"Shoulder up your gun and whistle up your dog.",
-  bars:chart("G G F G G G F G")
+  src:"Digital Tradition collection, notated in A and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G/F","G3@0:2 G3@2:2 F3@4:2 A3@6:2"),
+    bar("G","G3@0:2 F3@2:2 D3@4:4"),
+    bar("G/F","D4@0:2 D4@2:2 C4@4:2 D#4@6:2"),
+    bar("G/F","D4@0:2 D4@2:1 C4@3:1 A3@4:3 A3@7:1"),
+    bar("G/F","A#3@0:2 G3@2:1 G3@3:1 A3@4:2 F3@6:2"),
+    bar("G","G3@0:1 G3@1:1 G3@2:1 G3@3:1 D3@4:4"),
+    bar("G","G3@0:2 G3@2:6")
+  ]
 }));
 SONGS.push(book({
-  id:"shortnin", n:209, world:"Old-time", title:"Shortnin' Bread", target:112, chords:["G","D7"],
+  id:"shortnin", n:209, world:"Old-time", title:"Shortnin' Bread", meter:"4/4", target:112, chords:["G", "D7"],
   teach:"Two chords and a melody that lands squarely on the beat every time. A fair place to try the drop-thumb rung.",
   lyric:"Mama's little baby loves shortnin', shortnin'.",
-  bars:chart("G G D7 G G G D7 G")
+  src:"Traditional Tune Archive, notated in B flat and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D3@6:1 F#3@7:1",{pickup:true}),
+    bar("G","G3@0:1 F#3@1:1 G3@2:1 D3@3:1 E3@4:1 G3@5:1 D3@6:1 E3@7:1"),
+    bar("G","G3@0:2 B3@2:2 B3@4:1 C4@5:1 D4@6:1 B3@7:1"),
+    bar("D7/G","C4@0:1 B3@1:1 C4@2:1 A3@3:1 B3@4:1 C4@5:1 B3@6:1 G3@7:1"),
+    bar("D7","A3@0:1 B3@1:1 C4@2:1 A3@3:1 F#3@4:1 D3@5:1 E3@6:1 F#3@7:1"),
+    bar("G","G3@0:1 F#3@1:1 G3@2:1 D3@3:1 E3@4:1 G3@5:1 D3@6:1 F#3@7:1"),
+    bar("G","G3@0:2 G3@2:2 B3@4:1 C4@5:1 D4@6:1 B3@7:1"),
+    bar("D7/G","C4@0:1 B3@1:1 C4@2:1 A3@3:1 B3@4:1 C4@5:1 B3@6:1 G3@7:1"),
+    bar("D7/G","A3@0:1 B3@1:1 A3@2:1 F#3@3:1 G3@4:2 D3@6:1 F#3@7:1"),
+    bar("G","G3@0:2 F#3@2:2 E3@4:1 E3@5:1 D3@6:2"),
+    bar("G","G3@0:1 F#3@1:1 G3@2:1 A3@3:1 B3@4:1 C4@5:1 D4@6:1 B3@7:1"),
+    bar("D7/G","C4@0:1 B3@1:1 C4@2:1 A3@3:1 B3@4:1 C4@5:1 B3@6:1 G3@7:1"),
+    bar("D7","A3@0:1 B3@1:1 A3@2:1 G3@3:1 F#3@4:1 D3@5:1 E3@6:1 F#3@7:1"),
+    bar("G","G3@0:1 F#3@1:1 G3@2:1 D3@3:1 E3@4:1 G3@5:1 D3@6:1 F#3@7:1"),
+    bar("G","G3@0:2 G3@2:2 B3@4:1 C4@5:1 D4@6:1 B3@7:1"),
+    bar("D7/G","C4@0:1 B3@1:1 C4@2:1 A3@3:1 B3@4:1 C4@5:1 B3@6:1 G3@7:1"),
+    bar("D7/G","F#3@0:2 A3@2:1 F#3@3:1 G3@4:2 B3@6:1 C4@7:1")
+  ]
 }));
 SONGS.push(book({
-  id:"arkansas", n:210, world:"Old-time", title:"Arkansas Traveler", target:120, chords:["G","C","D7"],
+  id:"arkansas", n:210, world:"Old-time", title:"Arkansas Traveler", meter:"4/4", target:120, chords:["Em", "G", "D7", "C"],
   teach:"A fiddle tune first and a banjo tune second, which means the melody moves faster than you want it to. Take the B part alone for a week.",
   lyric:"Instrumental. The words are a comedy routine, and not a short one.",
-  bars:chart("G G G D7 G G D7 G C C G G G D7 G G")
+  src:"thesession.org, tune 5583, setting 5583, notated in D and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("Em","E3@6:1 F#3@7:1",{pickup:true}),
+    bar("Em","G3@0:1 B3@1:1 A3@2:1 G3@3:1 E3@4:2 E3@6:2",{section:"Part A"}),
+    bar("G","D3@0:2 D3@2:2 G3@4:4"),
+    bar("D7/G","A3@0:2 A3@2:2 B3@4:2 B3@6:2"),
+    bar("Em","G3@0:1 B3@1:1 A3@2:1 G3@3:1 E3@4:2 D3@6:2"),
+    bar("Em","G3@0:1 B3@1:1 A3@2:1 G3@3:1 E3@4:2 E3@6:2"),
+    bar("G","D3@0:2 D3@2:2 G3@4:4"),
+    bar("G","G4@0:1 F#4@1:1 G4@2:1 D4@3:1 E4@4:1 G4@5:1 D4@6:1 C4@7:1"),
+    bar("G","B3@0:1 G3@1:1 A3@2:1 F#3@3:1 G3@4:2 B4@6:1 C5@7:1"),
+    bar("G/D7","D5@0:1 C5@1:1 B4@2:1 D5@3:1 C5@4:1 B4@5:1 A4@6:1 C5@7:1",{section:"Part B"}),
+    bar("G/D7","B4@0:1 A4@1:1 G4@2:1 B4@3:1 A4@4:1 G4@5:1 F#4@6:1 A4@7:1"),
+    bar("G/D7","G4@0:1 F#4@1:1 G4@2:1 B4@3:1 A4@4:1 G4@5:1 A4@6:1 C5@7:1"),
+    bar("G/D7","B4@0:1 A4@1:1 G4@2:1 B4@3:1 A4@4:2 B4@6:1 C5@7:1"),
+    bar("D7","D5@0:1 C5@1:1 B4@2:1 D5@3:1 C5@4:1 B4@5:1 A4@6:1 C5@7:1"),
+    bar("G/D7","B4@0:1 A4@1:1 G4@2:1 B4@3:1 A4@4:1 G4@5:1 F#4@6:1 A4@7:1"),
+    bar("C","G4@0:1 F#4@1:1 G4@2:1 D4@3:1 E4@4:1 G4@5:1 D4@6:1 C4@7:1"),
+    bar("G","B3@0:1 G3@1:1 A3@2:1 F#3@3:1 G3@4:2")
+  ]
 }));
 
 /* Songs and hymns */
 SONGS.push(book({
-  id:"willow", n:221, world:"Songs and hymns", title:"Bury Me Beneath the Willow", target:88, chords:["G","C","D7"],
+  id:"willow", n:221, world:"Songs and hymns", title:"Bury Me Beneath the Willow", meter:"4/4", target:88, chords:["G", "Em", "D7"],
   teach:"Slow, sad, and built for two voices. The bum-ditty has to stay out of the way of the words.",
   lyric:"Bury me beneath the willow, under the weeping willow tree.",
-  bars:chart("G G C C G G D7 D7 G G C C G D7 G G")
+  src:"Digital Tradition collection. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D4@0:3 E4@3:1 D4@4:2 B3@6:1 A3@7:1"),
+    bar("Em","G3@0:3 A3@3:1 G3@4:2 E3@6:2"),
+    bar("G","D3@0:2 G3@2:1 A3@3:1 B3@4:1 B3@5:1 C4@6:1 B3@7:1"),
+    bar("D7","A3@0:8"),
+    bar("G","D4@0:3 E4@3:1 D4@4:2 B3@6:1 A3@7:1"),
+    bar("Em","G3@0:3 A3@3:1 G3@4:2 E3@6:2"),
+    bar("G","B3@0:3 C4@3:1 B3@4:1 D3@5:1 A3@6:1 A3@7:1"),
+    bar("G","G3@0:8")
+  ]
 }));
 SONGS.push(book({
-  id:"constantsorrow", n:222, world:"Songs and hymns", title:"Man of Constant Sorrow", target:96, chords:["G","C","D7"],
+  id:"constantsorrow", n:222, world:"Songs and hymns", title:"Man of Constant Sorrow", meter:"4/4", target:96, chords:["G", "D7", "C"],
   teach:"Everyone in the room knows this one, which makes it the safest tune to lead badly the first time.",
   lyric:"I am a man of constant sorrow, I've seen trouble all my days.",
-  bars:chart("G G C G G C G D7 G G C G G D7 G G")
+  src:"Digital Tradition collection, notated in C and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","B3@5:1 A3@6:1 G3@7:1",{pickup:true}),
+    bar("D7","A3@0:4 A3@4:1 B3@5:1 A3@6:1 G3@7:1"),
+    bar("G","B3@0:1 D4@1:3 D4@4:1 D4@5:1 G4@6:1 F#4@7:1"),
+    bar("C","E4@0:4 E4@4:1 D4@5:1 C4@6:1 B3@7:1"),
+    bar("D7/G","A3@0:4 B3@5:1 B3@6:1 A3@7:1"),
+    bar("D7","A3@0:4 A3@4:1 B3@5:1 A3@6:1 G3@7:1"),
+    bar("G","B3@0:1 D4@1:3 D4@4:1 G4@5:1 G4@6:1 F#4@7:1"),
+    bar("C","E4@0:4 E4@4:1 D4@5:1 C4@6:1 B3@7:1"),
+    bar("D7/G","A3@0:4 A3@4:1")
+  ]
 }));
 SONGS.push(book({
-  id:"wayfaring", n:223, world:"Songs and hymns", title:"Wayfaring Stranger", target:80, chords:["Em","Am","D"],
+  id:"wayfaring", n:223, world:"Songs and hymns", title:"Wayfaring Stranger", meter:"4/4", target:80, chords:["D7", "G", "Em", "Am"],
   teach:"Minor and unhurried. Play it with almost nothing in it and let the gaps do the work.",
   lyric:"I am a poor wayfaring stranger, travelling through this world of woe.",
-  bars:chart("Em Em Am Em Em D Em Em Em Em Am Em Em D Em Em")
+  src:"Digital Tradition collection, notated in F and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("D7","E3@5:1 F#3@6:1 E3@7:1"),
+    bar("G","B3@0:4 B3@4:1 G3@5:1 A3@6:1 B3@7:1"),
+    bar("Em","G3@0:1 E3@1:3 E3@4:1 E3@5:1 E3@6:1 B3@7:1"),
+    bar("Am","A3@0:4 A3@4:1 E3@5:1 G3@6:1 A3@7:1"),
+    bar("Em","B3@0:4 B3@4:1 E3@5:1 E3@6:1 E3@7:1"),
+    bar("Em","B3@0:4 B3@4:1 G3@5:1 A3@6:1 B3@7:1"),
+    bar("Em","G3@0:1 E3@1:3 E3@4:1 E3@5:1 E3@6:1 B3@7:1"),
+    bar("Am","A3@0:3 G3@3:1 E3@4:2 D3@6:2"),
+    bar("Em","E3@0:4 E3@4:1 B3@5:1 B3@6:1 D4@7:1"),
+    bar("Em/G","E4@0:3 B3@3:1 D4@4:2 B3@6:2"),
+    bar("Am/Em","A3@0:1 E3@1:3 E3@4:1 B3@5:1 B3@6:1 D4@7:1"),
+    bar("Em","E4@0:3 D4@3:1 B3@4:2 A3@6:2"),
+    bar("Em","B3@0:4 B3@4:1 B3@5:1 E4@6:1 D4@7:1"),
+    bar("Em/D7","B3@0:3 G3@3:1 A3@4:2 B3@6:1 A3@7:1"),
+    bar("Em","G3@0:2 E3@2:3 E3@5:1 E3@6:1 B3@7:1"),
+    bar("Am","A3@0:3 G3@3:1 E3@4:2 D3@6:2"),
+    bar("Am/G","E3@0:4 E3@4:1")
+  ]
 }));
 SONGS.push(book({
-  id:"sunnyside", n:224, world:"Songs and hymns", title:"Keep on the Sunny Side", target:104, chords:["G","C","D7"],
+  id:"sunnyside", n:224, world:"Songs and hymns", title:"Keep on the Sunny Side", meter:"4/4", target:104, chords:["G", "C", "D"],
   teach:"The Carter Family standard. Straight-ahead changes, and a chorus that is impossible to sing quietly.",
   lyric:"Keep on the sunny side, always on the sunny side.",
-  bars:chart("G G C G G G D7 D7 G G C G G D7 G G")
+  src:"Thornton Rose's collection.",
+  bars:[
+    bar("G","G3@4:2 G3@6:2",{pickup:true}),
+    bar("G","G3@0:4 A3@4:2 B3@6:2",{section:"Verse"}),
+    bar("C","A3@0:2 G3@2:2 F#3@4:2 E3@6:2"),
+    bar("G","D3@0:8"),
+    bar("G","G3@4:2 B3@6:2"),
+    bar("G","D4@0:4 D4@4:2 E4@6:2"),
+    bar("G","D4@0:2 B3@2:2 A3@4:2 G3@6:2"),
+    bar("D","A3@0:8"),
+    bar("D","A3@4:2 B3@6:2"),
+    bar("D","C4@0:4 B3@4:2 A3@6:2"),
+    bar("D","D4@0:6 B3@6:2"),
+    bar("G","A3@0:4 G3@4:4"),
+    bar("G","G3@6:2"),
+    bar("D","A3@0:4 A3@4:2 G3@6:2"),
+    bar("D","F#3@0:2 D3@2:2 E3@4:2 F#3@6:2"),
+    bar("G","G3@0:6"),
+    bar("G","D4@0:4 D4@4:2 E4@6:2",{section:"Chorus"}),
+    bar("G","D4@0:2 B3@2:2 A3@4:4"),
+    bar("C","G3@0:2 G3@2:2 G3@4:2 A3@6:2"),
+    bar("G","G3@0:2 G3@2:2 F#3@4:2 E3@6:2"),
+    bar("G","D3@0:4 G3@4:2 A3@6:2"),
+    bar("G","B3@0:2 B3@2:2 C4@4:2 B3@6:2"),
+    bar("D","A3@0:8"),
+    bar("D","B3@4:2 D4@6:2"),
+    bar("G","E4@0:2 D4@2:2 D4@4:2 E4@6:2"),
+    bar("G","B3@0:4 A3@4:2 G3@6:2"),
+    bar("C","A3@0:2 G3@2:2 G3@4:2 E3@6:2"),
+    bar("G","D3@0:4 G3@4:2 A3@6:2"),
+    bar("G/C","B3@0:4 C4@4:2 C4@6:2"),
+    bar("G/D","B3@0:2 B3@2:2 A3@4:2 F#3@6:2"),
+    bar("G","G3@0:6")
+  ]
 }));
 SONGS.push(book({
-  id:"swinglow", n:225, world:"Songs and hymns", title:"Swing Low, Sweet Chariot", target:80, chords:["G","C","D7"],
+  id:"swinglow", n:225, world:"Songs and hymns", title:"Swing Low, Sweet Chariot", meter:"4/4", target:80, chords:["G", "Em"],
   teach:"Long held notes and four bars of nothing to do, which is exactly when a beginner speeds up. Watch for it.",
   lyric:"Swing low, sweet chariot, coming for to carry me home.",
-  bars:chart("G C G D7 G C G/D7 G")
+  src:"Digital Tradition collection, notated in E and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","B3@0:2 G3@2:4 B3@6:2"),
+    bar("G","G3@0:4 G3@4:1 E3@5:1 D3@6:2"),
+    bar("G","G3@0:1 G3@1:1 G3@2:1 G3@3:1 B3@4:1 B3@5:1 D4@6:2"),
+    bar("G","D4@0:8"),
+    bar("G","E4@0:1 D4@1:1 B3@2:4 D4@6:2"),
+    bar("G","G3@0:4 G3@4:1 E3@5:1 D3@6:2"),
+    bar("G","G3@0:1 G3@1:1 G3@2:1 G3@3:1 B3@4:1 B3@5:1 A3@6:2"),
+    bar("G","G3@0:6 B3@6:2"),
+    bar("G","D4@0:2 G3@2:1 E3@3:2 G3@5:1 G3@6:1 G3@7:1"),
+    bar("G","G3@0:1 G3@1:1 G3@2:2 E3@4:1 D3@5:3"),
+    bar("G","G3@0:1 G3@1:1 G3@2:1 G3@3:1 B3@4:1 B3@5:1 D4@6:2"),
+    bar("G","D4@0:6 D4@6:2"),
+    bar("Em","E4@0:1 D4@1:1 B3@2:2 B3@4:2 G3@6:2"),
+    bar("Em","G3@0:1 G3@1:1 G3@2:1 G3@3:1 E3@4:1 D3@5:3"),
+    bar("Em","G3@0:1 G3@1:1 G3@2:1 G3@3:1 B3@4:1 B3@5:1 A3@6:2"),
+    bar("Em/G","G3@0:8")
+  ]
 }));
 SONGS.push(book({
-  id:"rivertopray", n:226, world:"Songs and hymns", title:"Down to the River to Pray", target:84, chords:["G","C","D"],
+  id:"rivertopray", n:226, world:"Songs and hymns", title:"Down to the River to Pray", meter:"4/4", target:84, chords:["G", "C", "D7"],
   teach:"Nearly a round. Sing it once through unaccompanied, then add the banjo underneath and see if you can keep it that quiet.",
   lyric:"As I went down to the river to pray, studying about that good old way.",
-  bars:chart("G G C G G G D G")
+  src:"First line after the traditional setting printed on Wikipedia (Every Note score, in A, moved to G and down an octave). The second line is written out by ear, so check it against a recording.",
+  bars:[
+    bar("G","D3@7:1",{pickup:true}),
+    bar("G","D3@0:2 E3@2:2 G3@4:2 G3@6:1 G3@7:1"),
+    bar("G","G3@0:1 G3@1:1 G3@2:2 G3@4:4"),
+    bar("C","A3@0:1 A3@1:1 A3@2:1 B3@3:1 A3@4:2 G3@6:2"),
+    bar("G","B3@0:2 A3@2:2 G3@4:3 D3@7:1"),
+    bar("G","B3@0:2 B3@2:2 B3@4:2 B3@6:1 B3@7:1"),
+    bar("G/D7","D4@0:2 B3@2:2 A3@4:4"),
+    bar("C/G","A3@0:2 G3@2:2 E3@4:1 D3@5:1 E3@6:2"),
+    bar("G","G3@0:8")
+  ]
 }));
 SONGS.push(book({
-  id:"amazinggrace", n:227, world:"Songs and hymns", title:"Amazing Grace", meter:"3/4", target:76, chords:["G","C","D7"],
+  id:"amazinggrace", n:227, world:"Songs and hymns", title:"Amazing Grace", meter:"3/4", target:76, chords:["G", "D7"],
   teach:"A waltz, so the right hand changes shape: one melody note, one brush, one thumb, and around again. The best tune to learn 3/4 on.",
   lyric:"Amazing grace, how sweet the sound.",
-  bars:chart("G G C G G G D7 D7 G C G G D7 G G G")
+  src:"thesession.org, tune 2749, setting 2749. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D3@0:1 A3@1:1 B3@2:1 A3@3:1 B3@4:2"),
+    bar("D7","A3@0:1 G3@1:2 E3@3:1 D3@4:2"),
+    bar("G","D3@0:1 G3@1:1 B3@2:1 A3@3:1 B3@4:2"),
+    bar("D7","A3@0:1 D4@1:3 D4@4:2"),
+    bar("G","B3@0:1 D4@1:1 B3@2:1 A3@3:1 B3@4:2"),
+    bar("D7","A3@0:1 G3@1:2 E3@3:1 D3@4:2"),
+    bar("G","D3@0:1 G3@1:1 B3@2:1 A3@3:1 B3@4:2"),
+    bar("G","A3@0:1 G3@1:3 G3@4:2")
+  ]
 }));
 SONGS.push(book({
-  id:"downinvalley", n:228, world:"Songs and hymns", title:"Down in the Valley", meter:"3/4", target:72, chords:["G","D7"],
+  id:"downinvalley", n:228, world:"Songs and hymns", title:"Down in the Valley", meter:"3/4", target:72, chords:["G", "D7"],
   teach:"Two chords, four bars each, in waltz time. There is nothing to think about but the rhythm, which is the point.",
   lyric:"Down in the valley, valley so low, hang your head over, hear the wind blow.",
-  bars:chart("G G G G D7 D7 D7 D7 G G G G")
+  src:"musicaviva.com, transcribed by Frank Nordberg, notated in F and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G/D7","D3@0:2 G3@2:2 A3@4:2"),
+    bar("G","B3@0:6"),
+    bar("G","G3@0:6"),
+    bar("G","G3@0:2"),
+    bar("G","B3@0:2 A3@2:2 G3@4:2"),
+    bar("D7","A3@0:6"),
+    bar("D7","A3@0:6"),
+    bar("D7","A3@0:2"),
+    bar("D7","D3@0:2 F#3@2:2 A3@4:2"),
+    bar("D7","C4@0:6"),
+    bar("D7","A3@0:6"),
+    bar("D7","A3@0:2"),
+    bar("D7","F#3@0:2 G3@2:2 A3@4:2"),
+    bar("G","G3@0:6"),
+    bar("G","G3@0:6"),
+    bar("G","G3@0:2")
+  ]
 }));
 SONGS.push(book({
-  id:"redriver", n:229, world:"Songs and hymns", title:"Red River Valley", target:92, chords:["G","C","D7"],
+  id:"redriver", n:229, world:"Songs and hymns", title:"Red River Valley", meter:"4/4", target:92, chords:["G", "Em", "D7"],
   teach:"A parlour song that ended up in every jam in North America. Slow changes, and a melody that wants to be sung rather than picked.",
   lyric:"Come and sit by my side if you love me, do not hasten to bid me adieu.",
-  bars:chart("G G D7 D7 G C G/D7 G")
+  src:"Digital Tradition collection. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D3@6:1 G3@7:1"),
+    bar("G","B3@0:2 B3@2:1 A3@3:1 G3@4:2 A3@6:1 G3@7:1"),
+    bar("Em/G","E3@0:1 G3@1:1 G3@2:4 D3@6:1 G3@7:1"),
+    bar("G/D7","B3@0:2 G3@2:1 B3@3:1 D4@4:2 C4@6:1 B3@7:1"),
+    bar("D7","A3@0:6 D4@6:1 C4@7:1"),
+    bar("G","B3@0:2 B3@2:1 A3@3:1 G3@4:2 A3@6:1 B3@7:1"),
+    bar("D7/Em","D4@0:1 C4@1:1 C4@2:4 E3@6:1 D#3@7:1"),
+    bar("D7","D3@0:2 F#3@2:1 G3@3:1 A3@4:2 B3@6:1 A3@7:1"),
+    bar("G","G3@0:6")
+  ]
 }));
 
 /* Shanty */
 SONGS.push(book({
-  id:"haulaway", n:241, world:"Shanty", title:"Haul Away Joe", target:92, chords:["G","C","D7"],
+  id:"haulaway", n:241, world:"Shanty", title:"Haul Away Joe", meter:"6/8", target:92, chords:["G", "D7"],
   teach:"A hauling shanty, so it is built around one hard pull per line. Land the chord change where the pull goes.",
   lyric:"Way, haul away, we'll haul away Joe.",
-  bars:chart("G G C G G D7 G G")
+  src:"Digital Tradition collection, notated in E flat and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","A3@5:1",{pickup:true}),
+    bar("G","D4@0:3 D4@3:2 C4@5:1"),
+    bar("D7","A3@0:3 A3@3:2 F#3@5:1"),
+    bar("G/D7","G3@0:2 G3@2:1 F#3@3:2 G3@5:1"),
+    bar("D7","A3@0:2 B3@2:1 C4@3:2 A3@5:1"),
+    bar("D7","D4@0:3 D4@3:2 C4@5:1"),
+    bar("D7","A3@0:3 A3@3:2"),
+    bar("G/D7","G3@0:2 G3@2:1 A3@3:3"),
+    bar("D7/G","D3@0:1")
+  ]
 }));
 SONGS.push(book({
-  id:"randydandy", n:242, world:"Shanty", title:"Randy Dandy-O", target:104, chords:["G","C","D7"],
+  id:"randydandy", n:242, world:"Shanty", title:"Randy Dandy-O", meter:"6/8", target:104, chords:["G", "D7", "Em"],
   teach:"A capstan shanty that walks. Steady enough to play for five minutes without noticing, which is what it was for.",
   lyric:"Way, ay, roll and go, my dear Annie.",
-  bars:chart("G G C G G D7 G G")
+  src:"Digital Tradition collection, notated in F and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G/D7","G4@0:2 G4@2:1 F#4@3:1 G4@4:1 F#4@5:1"),
+    bar("Em","E4@0:1 F#4@1:1 E4@2:1 B3@3:3"),
+    bar("Em/D7","E4@0:3 F#4@3:3"),
+    bar("Em","E4@0:2 D4@2:1 B3@3:2 B3@5:1"),
+    bar("G","D4@0:1 E4@1:1 D4@2:1 D4@3:1 C4@4:1 B3@5:1"),
+    bar("D7","A3@0:1 A3@1:1 A3@2:1 D3@3:2 G3@5:1"),
+    bar("G","B3@0:1 C4@1:1 B3@2:1 B3@3:2 A3@5:1"),
+    bar("Em","G3@0:2 E3@2:1 E3@3:3"),
+    bar("Em/D7","G4@0:2 G4@2:1 F#4@3:2 F#4@5:1"),
+    bar("Em","E4@0:2 E4@2:1 B3@3:3"),
+    bar("Em/D7","E4@0:3 F#4@3:3"),
+    bar("Em","E4@0:2 D4@2:1 B3@3:2 B3@5:1"),
+    bar("G","D4@0:1 E4@1:1 D4@2:1 D4@3:1 C4@4:1 B3@5:1"),
+    bar("D7","A3@0:1 A3@1:1 A3@2:1 D3@3:2 G3@5:1"),
+    bar("G","B3@0:1 C4@1:1 B3@2:1 B3@3:2 A3@5:1"),
+    bar("Em/G","G3@0:2 E3@2:1 E3@3:2")
+  ]
 }));
 SONGS.push(book({
-  id:"johnkanaka", n:243, world:"Shanty", title:"John Kanaka", target:100, chords:["G","C","D7"],
+  id:"johnkanaka", n:243, world:"Shanty", title:"John Kanaka", meter:"4/4", target:100, chords:["G", "D7", "Em"],
   teach:"Two words of chorus and a room that answers on both of them. If you only ever learn one call-and-response, learn this one.",
   lyric:"John Kanaka-naka, too-li-ay.",
-  bars:chart("G G C G G D7 G G")
+  src:"Digital Tradition collection, notated in F and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D4@2:1 D4@3:3 B3@6:2",{pickup:true}),
+    bar("G","D4@0:3 B3@3:1 G3@4:2 A3@6:2"),
+    bar("G","B3@0:4 G3@4:2 A3@7:1"),
+    bar("G/D7","B3@0:1 B3@1:1 B3@2:1 B3@3:1 A3@4:2 D3@6:2"),
+    bar("G","G3@0:3 D4@3:1 D4@4:3 B3@7:1"),
+    bar("G","D4@0:3 B3@3:1 B3@4:1 G3@5:2 A3@7:1"),
+    bar("G","B3@0:4 G3@4:2 A3@7:1"),
+    bar("G/D7","B3@0:1 B3@1:1 B3@2:1 B3@3:1 A3@4:2 D3@6:2"),
+    bar("G","G3@0:3 D4@4:2 B3@6:2"),
+    bar("G/Em","D4@0:2 G4@2:2 E4@4:2 B3@6:2"),
+    bar("G","D4@0:4 G3@4:2 A3@7:1"),
+    bar("G/D7","B3@0:1 B3@1:1 B3@2:1 B3@3:1 A3@4:2 D3@6:2"),
+    bar("G","G3@0:2")
+  ]
 }));
 SONGS.push(book({
-  id:"bullyalley", n:244, world:"Shanty", title:"Bully in the Alley", target:96, chords:["Em","D"],
+  id:"bullyalley", n:244, world:"Shanty", title:"Bully in the Alley", meter:"4/4", target:96, chords:["G", "D7", "Em"],
   teach:"Minor, two chords, and heavier than it looks on paper. The drone carries most of it, so play fewer notes than you think.",
   lyric:"Help me, Bob, I'm bully in the alley.",
-  bars:chart("Em Em D Em Em Em D Em")
+  src:"Digital Tradition collection. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D3@6:2",{pickup:true}),
+    bar("G","G3@0:2 G3@2:2 G3@4:2 G3@6:2"),
+    bar("G","B3@0:1 B3@1:1 D4@2:1 D4@3:1 B3@4:2 G3@6:2"),
+    bar("D7/G","C4@0:3 B3@3:1 B3@4:3 A3@7:1"),
+    bar("D7/Em","A3@0:1 A3@1:1 A3@2:1 G3@3:1 E3@4:2 G3@6:1 D3@7:1"),
+    bar("Em","G3@0:2 G3@2:2 G3@4:2 G3@6:2"),
+    bar("G","B3@0:1 B3@1:1 D4@2:1 D4@3:1 B3@4:2 G3@6:2"),
+    bar("G/Em","D3@0:1 D3@1:1 D3@2:1 D3@3:1 E3@4:2 F#3@6:2"),
+    bar("Em/G","G3@0:6")
+  ]
 }));
 
 /* Irish */
 SONGS.push(book({
-  id:"irishrover", n:261, world:"Irish", title:"The Irish Rover", target:108, chords:["G","C","D7"],
+  id:"irishrover", n:261, world:"Irish", title:"The Irish Rover", meter:"4/4", target:108, chords:["G", "D7", "Em"],
   teach:"A list song that gets faster as the list gets sillier. Keep the bum-ditty honest and let the words run.",
   lyric:"We had one million bags of the best Sligo rags.",
-  bars:chart("G G C G G C G/D7 G G G C G G D7 G G")
+  src:"Digital Tradition collection, notated in A and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D4@6:1 B3@7:1",{pickup:true}),
+    bar("G","G3@0:2 B3@2:1 C4@3:1 D4@4:2 G4@6:1 A4@7:1"),
+    bar("G/D7","B4@0:2 A4@2:1 G4@3:1 F#4@4:2 F#4@6:1 E4@7:1"),
+    bar("G","D4@0:2 E4@2:1 D4@3:1 B3@4:2 C4@6:1 B3@7:1"),
+    bar("D7","A3@0:6 D4@6:1 B3@7:1"),
+    bar("G","G3@0:2 B3@2:1 C4@3:1 D4@4:2 G4@6:1 A4@7:1"),
+    bar("G/D7","B4@0:2 A4@2:1 G4@3:1 F#4@4:2 F#4@6:1 E4@7:1"),
+    bar("G","D4@0:2 E4@2:1 C4@3:1 B3@4:2 C4@6:1 A3@7:1"),
+    bar("G","G3@0:6 D4@6:1 D4@7:1"),
+    bar("G","G4@0:2 G4@2:1 A4@3:1 B4@4:2 A4@6:1 G4@7:1"),
+    bar("D7","A4@0:1 A4@1:2 F#4@3:1 D4@4:3 D4@7:1"),
+    bar("G","G4@0:3 A4@3:1 B4@4:2 G4@6:2"),
+    bar("D7","A4@0:1 B4@1:1 A4@2:1 F#4@3:1 D4@4:2 D4@6:1 B3@7:1"),
+    bar("G","G3@0:2 B3@2:1 C4@3:1 D4@4:2 G4@6:1 A4@7:1"),
+    bar("Em","B4@0:2 A4@2:1 G4@3:1 E4@4:2 B3@6:1 A3@7:1"),
+    bar("G","G3@0:2 B3@2:1 D4@3:1 G4@4:2 B4@6:2"),
+    bar("D7/G","A4@0:4 G4@4:2")
+  ]
 }));
 SONGS.push(book({
-  id:"foggydew", n:262, world:"Irish", title:"The Foggy Dew", target:80, chords:["Em","D","G"],
+  id:"foggydew", n:262, world:"Irish", title:"The Foggy Dew", meter:"4/4", target:80, chords:["Em", "D", "G"],
   teach:"Modal and slow, and it needs space more than it needs notes. Try it on the melody-and-drone rung and stop there.",
   lyric:"As down the glen one Easter morn to a city fair rode I.",
-  bars:chart("Em Em D Em Em G D Em Em Em D Em G D Em Em")
+  src:"thesession.org, tune 2516, setting 2516. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("Em","B3@6:1 D4@7:1",{pickup:true}),
+    bar("Em","E4@0:2 D4@2:1 B3@3:1 E4@4:2 D4@6:1 B3@7:1"),
+    bar("D","A3@0:2 B3@2:2 D3@4:2 E3@6:1 F#3@7:1"),
+    bar("Em","G3@0:1 B3@1:1 A3@2:1 G3@3:1 E3@4:2 D3@6:2"),
+    bar("Em","E3@0:4 E3@4:2 B3@6:1 D4@7:1"),
+    bar("Em","E4@0:2 D4@2:1 B3@3:1 E4@4:2 D4@6:1 B3@7:1"),
+    bar("D","A3@0:2 B3@2:2 D3@4:2 E3@6:1 F#3@7:1"),
+    bar("Em","G3@0:1 B3@1:1 A3@2:1 G3@3:1 E3@4:2 D3@6:2"),
+    bar("Em","E3@0:4 E3@4:2 F#3@6:2"),
+    bar("G","G3@0:2 B3@2:2 D4@4:2 C4@6:1 B3@7:1"),
+    bar("D/Em","A3@0:2 A3@2:2 B3@4:2 G3@6:1 A3@7:1"),
+    bar("Em","B3@0:2 G4@2:1 F#4@3:1 E4@4:1 D4@5:1 B3@6:1 D4@7:1"),
+    bar("Em","E4@0:4 E4@4:2 B3@6:1 D4@7:1"),
+    bar("Em","E4@0:2 D4@2:1 B3@3:1 E4@4:2 D4@6:1 B3@7:1"),
+    bar("D","A3@0:2 B3@2:2 D3@4:2 E3@6:1 F#3@7:1"),
+    bar("Em","G3@0:1 B3@1:1 A3@2:1 G3@3:1 E3@4:2 D3@6:2"),
+    bar("Em","E3@0:2")
+  ]
 }));
 SONGS.push(book({
-  id:"mollymalone", n:263, world:"Irish", title:"Molly Malone", meter:"3/4", target:84, chords:["G","Em","C","D7"],
+  id:"mollymalone", n:263, world:"Irish", title:"Molly Malone", meter:"3/4", target:84, chords:["G", "D7"],
   teach:"A waltz with four chords, one to a bar. Nobody will let you stop after one verse.",
   lyric:"Alive, alive-o, alive, alive-o.",
-  bars:chart("G Em C D7 G Em C/D7 G")
+  src:"thesession.org, tune 12844, setting 21938. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D3@0:2 G3@2:4"),
+    bar("G","G3@0:2 G3@2:1 B3@3:3"),
+    bar("D7","G3@0:2 A3@2:4"),
+    bar("D7","A3@0:2 A3@2:1 C4@3:3"),
+    bar("D7","A3@0:2 B3@2:2 A3@4:2"),
+    bar("G/D7","G3@0:2 D4@2:2 C4@4:2"),
+    bar("G/D7","B3@0:2 B3@2:1 A3@3:3"),
+    bar("D7","G3@0:2 A3@2:4"),
+    bar("G","D3@0:2 G3@2:4"),
+    bar("G","G3@0:2 G3@2:1 B3@3:3"),
+    bar("D7","G3@0:2 A3@2:4"),
+    bar("D7","A3@0:2 A3@2:1 C4@3:3"),
+    bar("G","B3@0:1 A3@1:1 B3@2:1 D4@3:3"),
+    bar("D7","C4@0:2 B3@2:1 D4@3:3"),
+    bar("G","C4@0:2 B3@2:3 G3@5:1"),
+    bar("G","A3@0:2 G3@2:4")
+  ]
 }));
 SONGS.push(book({
-  id:"rattlinbog", n:264, world:"Irish", title:"The Rattlin' Bog", target:112, chords:["G","C","D7"],
+  id:"rattlinbog", n:264, world:"Irish", title:"The Rattlin' Bog", meter:"4/4", target:112, chords:["G", "C", "D7"],
   teach:"The chorus grows by one line every verse, so the tune has to be automatic before the words get long. Play it until you can hold a conversation over it.",
   lyric:"And the green grass grew all around, all around.",
-  bars:chart("G G C G G G D7 G")
+  src:"thesession.org, tune 583, setting 583, notated in D and moved for the banjo.",
+  bars:[
+    bar("G/C","B3@0:2 B3@2:1 A3@3:1 G3@4:1 E3@5:1 E3@6:1 E3@7:1",{section:"Verse"}),
+    bar("G/D7","D3@0:1 G3@1:1 G3@2:1 A3@3:1 B3@4:1 A3@5:1 A3@6:2"),
+    bar("G/C","B3@0:2 B3@2:1 A3@3:1 G3@4:1 E3@5:1 E3@6:1 E3@7:1"),
+    bar("G","D3@0:1 D4@1:1 D4@2:1 B3@3:1 B3@4:1 A3@5:1 G3@6:2"),
+    bar("G","B3@0:1 G3@1:1 A3@2:1 G3@3:1 B3@4:1 G3@5:1 A3@6:1 G3@7:1",{section:"Chorus"}),
+    bar("G/D7","B3@0:2 D4@2:1 B3@3:1 B3@4:1 A3@5:1 A3@6:1 A3@7:1"),
+    bar("G","B3@0:1 G3@1:1 A3@2:1 G3@3:1 B3@4:1 D4@5:1 D4@6:1 B3@7:1"),
+    bar("G","B3@0:1 A3@1:1 G3@2:2")
+  ]
 }));
 SONGS.push(book({
-  id:"morrisons", n:265, world:"Irish", title:"Morrison's Jig", meter:"6/8", target:76, chords:["Em","D"],
+  id:"morrisons", n:265, world:"Irish", title:"Morrison's Jig", meter:"6/8", target:76, chords:["Am", "G", "D", "C", "Em"],
   teach:"A jig in a minor key, and the best-known one in the session canon after the Kesh. Count one-two-three out loud until you stop having to.",
   lyric:"Instrumental. Tempo shown is dotted-quarter.",
-  bars:chart("Em Em Em D Em Em D Em")
+  src:"thesession.org, tune 71, setting 71, notated in E dorian and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("Am","A3@0:3 E4@3:3",{section:"Part A"}),
+    bar("Am/G","A3@0:1 E4@1:1 A3@2:1 D4@3:1 B3@4:1 G3@5:1"),
+    bar("Am","A3@0:1 G3@1:1 A3@2:1 E4@3:3"),
+    bar("G","G4@0:1 F#4@1:1 E4@2:1 D4@3:1 B3@4:1 G3@5:1"),
+    bar("Am","A3@0:3 E4@3:3"),
+    bar("Am/G","A3@0:1 E4@1:1 A3@2:1 D4@3:1 B3@4:1 G3@5:1"),
+    bar("Am/G","C4@0:3 B3@3:1 C4@4:1 D4@5:1"),
+    bar("G","G4@0:1 D4@1:1 C4@2:1 B3@3:1 A3@4:1 G3@5:1"),
+    bar("Am","E4@0:1 A4@1:1 A4@2:1 B4@3:1 A4@4:1 A4@5:1"),
+    bar("D","D5@0:1 A4@1:1 A4@2:1 B4@3:1 A4@4:1 A4@5:1"),
+    bar("Am","E4@0:1 A4@1:1 A4@2:1 B4@3:1 A4@4:1 A4@5:1"),
+    bar("G","D5@0:2 C5@2:1 B4@3:1 A4@4:1 G4@5:1"),
+    bar("Am","E4@0:1 A4@1:1 A4@2:1 B4@3:1 A4@4:1 A4@5:1"),
+    bar("D","D5@0:1 A4@1:1 A4@2:1 B4@3:1 A4@4:1 A4@5:1"),
+    bar("Am/G","C5@0:1 B4@1:1 A4@2:1 G4@3:2 D4@5:1"),
+    bar("Am/G","E4@0:1 D4@1:1 C4@2:1 B3@3:1 C4@4:1 D4@5:1"),
+    bar("Am","E4@0:1 A4@1:1 A4@2:1 B4@3:1 A4@4:1 A4@5:1"),
+    bar("D","D5@0:1 A4@1:1 A4@2:1 B4@3:1 A4@4:1 A4@5:1"),
+    bar("Am","E4@0:1 A4@1:1 A4@2:1 B4@3:1 A4@4:1 A4@5:1"),
+    bar("G","B4@0:1 D5@1:1 B4@2:1 G4@3:1 A4@4:1 B4@5:1"),
+    bar("Am","C5@0:3 C5@3:1 B4@4:1 A4@5:1"),
+    bar("C","G4@0:1 A4@1:1 B4@2:1 C5@3:2 G4@5:1"),
+    bar("D/G","A4@0:1 G4@1:1 F#4@2:1 G4@3:2 D4@5:1"),
+    bar("Em/Am","E4@0:1 D4@1:1 C4@2:1 B3@3:1 A3@4:1 G3@5:1")
+  ]
+}));
+
+
+/* Folk and slow airs: slow airs, ballads and picked tunes, mostly single notes */
+SONGS.push(book({
+  id:"salleygardens", n:281, world:"Folk and slow airs", title:"Down by the Salley Gardens", meter:"4/4", target:72, chords:["G", "D", "C", "Em"],
+  teach:"A slow air that sits almost entirely on the top three strings. Play it melody-only first and let each note ring into the next.",
+  lyric:"Down by the salley gardens my love and I did meet.",
+  src:"Liz Milner's collection, notated in C and moved for the banjo.",
+  bars:[
+    bar("G","G3@6:1 A3@7:1",{pickup:true}),
+    bar("G/D","B3@0:2 A3@2:1 G3@3:1 A3@4:2 B3@6:1 D4@7:1"),
+    bar("C/G","E4@0:4 D4@4:2 G4@6:1 D4@7:1"),
+    bar("C/D","E4@0:2 D4@2:1 B3@3:1 A3@4:3 G3@7:1"),
+    bar("G","G3@0:6 G3@6:1 A3@7:1"),
+    bar("G/D","B3@0:2 A3@2:1 G3@3:1 A3@4:2 B3@6:1 D4@7:1"),
+    bar("Em/G","E4@0:4 D4@4:2 G4@6:1 D4@7:1"),
+    bar("C/D","E4@0:2 D4@2:1 B3@3:1 A3@4:3 G3@7:1"),
+    bar("G","G3@0:6 D4@6:2"),
+    bar("Em","G4@0:2 F#4@2:1 D4@3:1 E4@4:2 G4@6:2"),
+    bar("Em","F#4@0:4 D4@4:2 B3@6:1 D4@7:1"),
+    bar("C/D","E4@0:2 D4@2:1 B3@3:1 D4@4:1 E4@5:1 G4@6:1 A4@7:1"),
+    bar("G","G4@0:6 G3@6:1 A3@7:1"),
+    bar("G/D","B3@0:2 A3@2:1 G3@3:1 A3@4:2 B3@6:1 D4@7:1"),
+    bar("C/G","E4@0:4 D4@4:2 G4@6:1 D4@7:1"),
+    bar("C/D","E4@0:2 D4@2:1 B3@3:1 A3@4:3 G3@7:1"),
+    bar("G","G3@0:6")
+  ]
+}));
+SONGS.push(book({
+  id:"shemoved", n:282, world:"Folk and slow airs", title:"She Moved Through the Fair", meter:"3/4", target:66, chords:["C", "G", "F"],
+  teach:"Mixolydian and slow, with long notes that a banjo has to work to sustain. Use the melody-and-drone rung and let the 5th string fill the gaps.",
+  lyric:"It will not be long, love, till our wedding day.",
+  src:"thesession.org, tune 4735, setting 4735, notated in D mixolydian and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("C","G3@0:1 B3@1:1 C4@2:4"),
+    bar("G","B3@0:1 C4@1:1 D4@2:2 D4@4:2"),
+    bar("G","D4@0:2 D4@2:4"),
+    bar("F/G","C4@0:1 A3@1:1 F3@2:2 G3@4:2"),
+    bar("G","G3@0:2 G3@2:4"),
+    bar("G","G3@0:2 G3@2:2"),
+    bar("G","D4@0:1 E4@1:1 F4@2:2 G4@4:2"),
+    bar("G","G4@0:1 D4@1:1 E4@2:1 D4@3:3"),
+    bar("F","B3@0:2 C4@2:4"),
+    bar("G","B3@0:1 C4@1:1 D4@2:4"),
+    bar("G","D4@0:2 D4@2:2"),
+    bar("G","D4@0:1 E4@1:1 F4@2:2 G4@4:2"),
+    bar("G","G4@0:1 D4@1:1 E4@2:1 D4@3:3"),
+    bar("F","B3@0:2 C4@2:4"),
+    bar("G","B3@0:1 C4@1:1 D4@2:4"),
+    bar("G","D4@0:2 D4@2:2"),
+    bar("C","G3@0:1 B3@1:1 C4@2:4"),
+    bar("C","C4@0:2 C4@2:4"),
+    bar("G","B3@0:1 C4@1:1 D4@2:4"),
+    bar("G","D4@0:2 D4@2:2"),
+    bar("F/G","C4@0:1 A3@1:1 F3@2:2 G3@4:2"),
+    bar("G","G3@0:2 G3@2:4"),
+    bar("G","G3@0:2 G3@2:4")
+  ]
+}));
+SONGS.push(book({
+  id:"waterwide", n:283, world:"Folk and slow airs", title:"The Water Is Wide", meter:"3/4", target:72, chords:["G", "D7", "Em", "Am"],
+  teach:"A waltz with a wide, singable line and nothing fast in it. The best tune here for slow single-note picking.",
+  lyric:"The water is wide, I cannot get o'er.",
+  src:"thesession.org, tune 16776, setting 31954. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D3@0:2 G3@2:2 G3@4:1 A3@5:1"),
+    bar("G/D7","B3@0:4 A3@4:1 A3@5:1"),
+    bar("Em/G","G3@0:2 E3@2:2 D3@4:2"),
+    bar("G/D7","D3@0:2 G3@2:2 F#3@4:2"),
+    bar("G","G3@0:6"),
+    bar("D7","A3@0:2 B3@2:2 C4@4:1 B3@5:1"),
+    bar("D7","A3@0:6"),
+    bar("G","G3@0:2 A3@2:2 B3@4:1 C4@5:1"),
+    bar("D7","D4@0:4 C4@4:2"),
+    bar("G/D7","B3@0:4 A3@4:1 G3@5:1"),
+    bar("G","B3@0:6"),
+    bar("Am","A3@0:2 G3@2:2 E3@4:2"),
+    bar("G","D3@0:4 D3@4:2"),
+    bar("G/Em","D3@0:4 E3@4:1 F#3@5:1"),
+    bar("Em/G","G3@0:6")
+  ]
+}));
+SONGS.push(book({
+  id:"blackcolour", n:284, world:"Folk and slow airs", title:"Black Is the Colour", meter:"4/4", target:76, chords:["Em", "D7", "G", "Am"],
+  teach:"An Appalachian setting of a Scottish song. Minor-sounding and plain, so every note is exposed. Slow it down until each one is clean.",
+  lyric:"Black is the colour of my true love's hair.",
+  src:"Digital Tradition collection. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("Em","E3@0:4 G3@4:4"),
+    bar("Em/D7","B3@0:6 A3@6:1 B3@7:1"),
+    bar("Em","E3@0:1 E3@1:3 E3@4:2 D3@6:1 E3@7:1"),
+    bar("D7","F#3@0:4 D3@4:4"),
+    bar("G","B3@0:8"),
+    bar("G","E3@1:1 B3@2:6"),
+    bar("G","B3@0:1 E3@1:1 G3@2:1 B3@3:1 B3@4:4"),
+    bar("Em/D7","E3@0:2 G3@2:1 A3@3:1 A3@4:4"),
+    bar("Am","A3@0:6 C4@6:1 E4@7:1"),
+    bar("Am","E4@0:4 E4@4:3 D4@7:1"),
+    bar("Am/G","A3@0:6 G3@6:1 A3@7:1"),
+    bar("G/D7","C4@0:1 B3@1:1 B3@2:4 A3@6:1 G3@7:1"),
+    bar("Em","E3@0:8"),
+    bar("Em","E3@0:6 E3@7:1"),
+    bar("Em","B3@0:6 B3@6:1 E3@7:1"),
+    bar("Em","G3@0:6 G3@6:1 B3@7:1"),
+    bar("Em/D7","E3@0:2 G3@2:1 A3@3:1 A3@4:4"),
+    bar("D7/G","A3@0:8")
+  ]
+}));
+SONGS.push(book({
+  id:"carrickfergus", n:285, world:"Folk and slow airs", title:"Carrickfergus", meter:"4/4", target:70, chords:["G", "D7", "Am", "Em"],
+  teach:"A long, slow Irish song that climbs high in the second half. Learn the first eight bars by memory before you look at the rest.",
+  lyric:"I wish I was in Carrickfergus.",
+  src:"Digital Tradition collection, notated in C and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G/D7","G4@0:3 G4@3:3 F#4@6:2"),
+    bar("D7","F#4@0:1 E4@1:1 A3@2:3 A3@5:1 B3@6:1 C4@7:1"),
+    bar("D7","D4@0:1 B3@1:1 A3@2:1 G3@3:4 A3@7:1"),
+    bar("D7","A3@0:2 B3@2:3 C4@5:3"),
+    bar("D7/G","C4@0:1 B3@1:1 A3@2:4 G3@6:2"),
+    bar("G","G3@0:1 G3@1:3 G3@4:3 G3@7:1"),
+    bar("G","G3@0:3 G4@5:3"),
+    bar("G/Am","G4@0:3 F#4@3:3 E4@6:1 A3@7:1"),
+    bar("D7","A3@0:2 A3@2:1 B3@3:1 C4@4:1 D4@5:1 B3@6:1 A3@7:1"),
+    bar("G/D7","G3@0:4 A3@4:3 B3@7:1"),
+    bar("D7","B3@0:2 C4@2:3 C4@5:1 B3@6:1 A3@7:1"),
+    bar("D7/G","A3@0:3 G3@3:3 G3@6:2"),
+    bar("G","G3@0:1 G3@1:3 G3@4:4"),
+    bar("G","D4@0:3 D4@3:3 D4@6:2"),
+    bar("G","D4@0:1 D4@1:1 D4@2:1 G4@3:4 G4@7:1"),
+    bar("G/D7","G4@0:2 G4@2:3 A4@5:3"),
+    bar("G","B4@0:3 A4@3:3 G4@6:2"),
+    bar("G","G4@0:1 A4@1:1 F#4@2:1 D4@3:2 D4@5:1 D4@6:1 D4@7:1"),
+    bar("G","D4@0:1 G4@1:1 A4@2:1 B4@3:3 G4@6:1 C5@7:1"),
+    bar("G","B4@0:1 A4@1:4 G4@6:1 G4@7:1"),
+    bar("Em","G4@0:2 F#4@2:3 E4@5:3"),
+    bar("D7","A3@0:4 A3@4:1 B3@5:1 C4@6:1 D4@7:1"),
+    bar("G","B3@0:1 A3@1:1 G3@2:2 G3@4:1 G3@5:1 A3@6:2"),
+    bar("D7","A3@0:1 B3@1:3 C4@4:3 C4@7:1"),
+    bar("G","B3@0:1 A3@1:3 G3@4:1 G3@5:1 G3@6:1 G3@7:1"),
+    bar("G","G3@0:5")
+  ]
+}));
+SONGS.push(book({
+  id:"londonderry", n:286, world:"Folk and slow airs", title:"Londonderry Air", meter:"4/4", target:66, chords:["G", "G7", "C", "Em", "D7", "Am"],
+  teach:"The tune Danny Boy is sung to, and the widest range on the page. The high section is a real reach, so practise it alone at 50%.",
+  lyric:"Instrumental here. The same air carries Danny Boy.",
+  src:"thesession.org, tune 6867, setting 6867.",
+  bars:[
+    bar("G","F#3@5:1 G3@6:1 A3@7:1",{pickup:true}),
+    bar("G/G7","B3@0:3 A3@3:1 B3@4:1 E4@5:1 D4@6:1 B3@7:1"),
+    bar("C","A3@0:1 G3@1:1 E3@2:2 G3@5:1 B3@6:1 C4@7:1"),
+    bar("C/Em","D4@0:3 E4@3:1 D4@4:1 B3@5:1 G3@6:1 B3@7:1"),
+    bar("Em/D7","A3@0:4 F#3@5:1 G3@6:1 A3@7:1"),
+    bar("G/G7","B3@0:3 A3@3:1 B3@4:1 E4@5:1 D4@6:1 B3@7:1"),
+    bar("C","A3@0:1 G3@1:1 E3@2:2 F#3@5:1 G3@6:1 A3@7:1"),
+    bar("Em/D7","B3@0:3 C4@3:1 B3@4:1 A3@5:1 G3@6:1 A3@7:1"),
+    bar("G/D7","G3@0:4 D4@5:1 E4@6:1 F#4@7:1"),
+    bar("G/C","G4@0:3 F#4@3:1 F#4@4:1 E4@5:1 D4@6:1 E4@7:1"),
+    bar("Em/Am","D4@0:1 B3@1:1 G3@2:2 D4@5:1 E4@6:1 F#4@7:1"),
+    bar("Em/C","G4@0:3 F#4@3:1 F#4@4:1 E4@5:1 D4@6:1 B3@7:1"),
+    bar("C/D7","A3@0:4 D4@5:1 D4@6:1 D4@7:1"),
+    bar("G7/C","B4@0:3 A4@3:1 A4@4:1 G4@5:1 E4@6:1 G4@7:1"),
+    bar("Em","D4@0:1 B3@1:1 G3@2:2 F#3@5:1 G3@6:1 A3@7:1"),
+    bar("Em/D7","B3@0:1 E4@1:1 D4@2:1 B3@3:1 A3@4:1 G3@5:1 E3@6:1 F#3@7:1"),
+    bar("G","G3@0:4")
+  ]
+}));
+SONGS.push(book({
+  id:"sibheag", n:287, world:"Folk and slow airs", title:"Sí Bheag, Sí Mhór", meter:"3/4", target:84, chords:["G", "Em", "D7", "Am"],
+  teach:"O'Carolan's first tune, a harp waltz, and it falls under a banjo's fingers as if it were written for one. Two parts, both worth memorising.",
+  lyric:"Instrumental. Turlough O'Carolan, about 1691.",
+  src:"thesession.org, tune 449, setting 449, notated in D and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","G4@4:1 A4@5:1",{pickup:true}),
+    bar("G","B4@0:3 A4@3:1 G4@4:2",{section:"Part A"}),
+    bar("G","G4@0:2 G4@2:1 A4@3:1 G4@4:2"),
+    bar("Em/G","E4@0:4 D4@4:2"),
+    bar("G","B3@0:4 D4@4:2"),
+    bar("Em","E4@0:1 D4@1:1 E4@2:1 F#4@3:1 G4@4:2"),
+    bar("D7/G","A4@0:4 G4@4:1 A4@5:1"),
+    bar("G/D7","B4@0:2 B4@2:2 A4@4:2"),
+    bar("G","G4@0:4 B4@4:2"),
+    bar("Am","E4@0:4 A4@4:2"),
+    bar("G","D4@0:4 G4@4:2"),
+    bar("G/D7","B3@0:4 A3@4:2"),
+    bar("G/D7","G3@0:4 A4@4:2"),
+    bar("Am","E4@0:4 A4@4:2"),
+    bar("G","D4@0:4 G4@4:1 F#4@5:1"),
+    bar("G","G4@0:6"),
+    bar("G","G4@0:4 G4@4:1 A4@5:1"),
+    bar("G","B4@0:2 B4@2:1 A4@3:1 G4@4:2",{section:"Part B"}),
+    bar("D7","A4@0:1 G4@1:1 A4@2:1 B4@3:1 D5@4:2"),
+    bar("Em/G","E4@0:4 D5@4:2"),
+    bar("G/D7","B4@0:4 A4@4:1 G4@5:1"),
+    bar("D7","A4@0:4 D5@4:2"),
+    bar("G/D7","B4@0:4 A4@4:2"),
+    bar("Em","G4@0:4 E4@4:2"),
+    bar("G/Em","D4@0:4 E4@4:1 D4@5:1"),
+    bar("Em/D7","B3@0:4 A3@4:2"),
+    bar("G","G3@0:4 B4@4:2"),
+    bar("Am","E4@0:4 A4@4:2"),
+    bar("G","D4@0:4 D5@4:2"),
+    bar("Am","E4@0:1 D5@1:1 C5@2:1 B4@3:1 A4@4:1 G4@5:1"),
+    bar("Am/G","A4@0:4 G4@4:1 F#4@5:1"),
+    bar("G","G4@0:6"),
+    bar("G","G4@0:6")
+  ]
+}));
+SONGS.push(book({
+  id:"scarborough", n:288, world:"Folk and slow airs", title:"Scarborough Fair", meter:"3/4", target:76, chords:["Am", "G", "D", "C"],
+  teach:"Dorian, waltz time, and a melody you already know. A good first tune for hearing the modal sound on a banjo.",
+  lyric:"Are you going to Scarborough Fair?",
+  src:"thesession.org, tune 7522, setting 7522, notated in E dorian and moved for the banjo.",
+  bars:[
+    bar("Am","A3@0:4 A3@4:2"),
+    bar("Am","E4@0:4 E4@4:2"),
+    bar("G","B3@0:3 C4@3:1 B3@4:2"),
+    bar("Am","A3@0:6"),
+    bar("Am","A3@0:2 E4@2:2 G4@4:2"),
+    bar("Am","A4@0:4 G4@4:2"),
+    bar("D","E4@0:2 F#4@2:2 D4@4:2"),
+    bar("Am","E4@0:6"),
+    bar("Am","E4@0:4 A4@4:2"),
+    bar("Am","A4@0:4 A4@4:2"),
+    bar("C","G4@0:4 E4@4:2"),
+    bar("C","E4@0:2 D4@2:2 C4@4:2"),
+    bar("G","B3@0:2 G3@2:4"),
+    bar("G","G3@0:6"),
+    bar("G","A3@0:4 E4@4:2"),
+    bar("G","D4@0:4 C4@4:2"),
+    bar("G","B3@0:2 A3@2:2 G3@4:2"),
+    bar("Am","A3@0:6"),
+    bar("Am","A3@0:6")
+  ]
+}));
+SONGS.push(book({
+  id:"skyeboat", n:289, world:"Folk and slow airs", title:"Skye Boat Song", meter:"3/4", target:72, chords:["G", "D", "C", "Em", "Am"],
+  teach:"A rowing song in waltz time. Keep the bum-ditty soft and even, like oars.",
+  lyric:"Speed, bonnie boat, like a bird on the wing.",
+  src:"thesession.org, tune 3690, setting 3690.",
+  bars:[
+    bar("G","D3@0:1 E3@1:1 D3@2:1 G3@3:2 G3@5:1"),
+    bar("D","A3@0:1 B3@1:1 A3@2:1 D4@3:3"),
+    bar("G/C","B3@0:1 A3@1:1 B3@2:1 E3@3:2 E3@5:1"),
+    bar("D","D3@0:3 D3@3:3"),
+    bar("G","D3@0:1 E3@1:1 D3@2:1 G3@3:2 G3@5:1"),
+    bar("D","A3@0:1 B3@1:1 A3@2:1 D4@3:3"),
+    bar("G/C","B3@0:1 A3@1:1 B3@2:1 E3@3:2 E3@5:1"),
+    bar("C/G","E3@0:1 D3@1:1 E3@2:1 G3@3:3"),
+    bar("G/Em","G3@0:3 B3@3:1 G3@4:1 B3@5:1"),
+    bar("Em/Am","B3@0:3 A3@3:1 E3@4:1 A3@5:1"),
+    bar("Am/Em","A3@0:3 G3@3:1 E3@4:1 F#3@5:1"),
+    bar("C/Am","G3@0:2 F#3@2:1 E3@3:3"),
+    bar("Em","E3@0:3 B3@3:1 G3@4:1 B3@5:1"),
+    bar("Em/Am","B3@0:3 A3@3:1 E3@4:1 A3@5:1"),
+    bar("Am/Em","A3@0:3 G3@3:1 E3@4:1 F#3@5:1"),
+    bar("C/Em","G3@0:2 F#3@2:1 E3@3:3"),
+    bar("D/G","D3@0:3 D3@3:1 E3@4:1 D3@5:1"),
+    bar("G/D","G3@0:2 G3@2:1 A3@3:1 B3@4:1 A3@5:1"),
+    bar("D/G","D4@0:3 B3@3:1 A3@4:1 B3@5:1"),
+    bar("C/D","E3@0:2 E3@2:1 D3@3:3"),
+    bar("D/G","D3@0:3 D3@3:1 E3@4:1 D3@5:1"),
+    bar("G/D","G3@0:2 G3@2:1 A3@3:1 B3@4:1 A3@5:1"),
+    bar("D/G","D4@0:3 B3@3:1 A3@4:1 B3@5:1"),
+    bar("C","E3@0:2 E3@2:1 E3@3:1 D3@4:1 E3@5:1"),
+    bar("G","G3@0:3 G3@3:3")
+  ]
+}));
+SONGS.push(book({
+  id:"arranboat", n:290, world:"Folk and slow airs", title:"The Arran Boat Song", meter:"3/4", target:72, chords:["Am", "Em", "G", "C"],
+  teach:"A Scottish slow air in dorian, two parts. Spare and modal, and it sounds older than anything else on the page.",
+  lyric:"Instrumental. A slow air from the west of Scotland.",
+  src:"thesession.org, tune 986, setting 986, notated in E dorian and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("Am","A3@0:3 B3@3:1 A3@4:2",{section:"Part A"}),
+    bar("Em","E4@0:3 F#4@3:1 G4@4:2"),
+    bar("G","D4@0:3 B3@3:1 G3@4:2"),
+    bar("G","D4@0:2 D4@2:1 B3@3:1 G3@4:2"),
+    bar("Am","A3@0:3 B3@3:1 A3@4:2"),
+    bar("Em","E4@0:3 F#4@3:1 G4@4:2"),
+    bar("G","D4@0:1 B3@1:3 G3@4:2"),
+    bar("Am","A3@0:4 E4@4:2"),
+    bar("Am","A4@0:3 B4@3:1 A4@4:2",{section:"Part B"}),
+    bar("Am","C5@0:3 B4@3:1 A4@4:2"),
+    bar("C","G4@0:2 G4@2:1 E4@3:1 C4@4:2"),
+    bar("G","D4@0:2 D4@2:1 B3@3:1 G3@4:2"),
+    bar("Am","A3@0:3 B3@3:1 A3@4:2"),
+    bar("C","G4@0:3 E4@3:1 C4@4:2"),
+    bar("G","D4@0:1 B3@1:3 G3@4:2"),
+    bar("Am","A3@0:6")
+  ]
+}));
+SONGS.push(book({
+  id:"larkclearair", n:291, world:"Folk and slow airs", title:"The Lark in the Clear Air", meter:"3/4", target:66, chords:["G", "C", "D7", "Em"],
+  teach:"An Irish slow air with almost no ornament in it. Play it melody-only and sing along, and you will hear where to breathe.",
+  lyric:"Dear thoughts are in my mind, and my soul soars enchanted.",
+  src:"thesession.org, tune 7632, setting 7632. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D4@0:4 D4@4:1 B3@5:1"),
+    bar("C","G3@0:1 F#3@1:1 F#3@2:1 G3@3:1 E3@4:1 C4@5:1"),
+    bar("D7","D3@0:4 D3@4:1 F#3@5:1"),
+    bar("G","G3@0:2 A3@2:1 C4@3:1 B3@4:2"),
+    bar("D7","A3@0:2 D4@2:2 D4@4:1 B3@5:1"),
+    bar("C","G3@0:1 F#3@1:1 F#3@2:1 G3@3:1 E3@4:1 C4@5:1"),
+    bar("G","D3@0:4 D3@4:1 E3@5:1"),
+    bar("Em/D7","G3@0:1 B3@1:1 E3@2:2 A3@4:1 F#3@5:1"),
+    bar("G","G3@0:4 D3@4:1 E3@5:1"),
+    bar("G","G3@0:3 F#3@3:1 G3@4:1 B3@5:1"),
+    bar("G/Em","D4@0:4 E4@4:1 D4@5:1"),
+    bar("G","D4@0:1 B3@1:1 G3@2:1 A3@3:1 B3@4:1 D4@5:1"),
+    bar("G","B3@0:2 A3@2:2 D4@4:1 B3@5:1"),
+    bar("C","G3@0:1 F#3@1:1 F#3@2:1 G3@3:1 E3@4:1 C4@5:1"),
+    bar("G","D3@0:4 D3@4:1 E3@5:1"),
+    bar("Em/D7","G3@0:1 B3@1:1 E3@2:2 A3@4:1 F#3@5:1"),
+    bar("G","G3@0:6")
+  ]
+}));
+SONGS.push(book({
+  id:"planxtyirwin", n:292, world:"Folk and slow airs", title:"Planxty Irwin", meter:"3/4", target:88, chords:["G", "Em", "D7"],
+  teach:"Another O'Carolan waltz, livelier than Sí Bheag. Two parts with a lot of stepwise movement, which suits drop-thumb later on.",
+  lyric:"Instrumental. O'Carolan, for Colonel John Irwin.",
+  src:"thesession.org, tune 790, setting 790. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G/Em","D4@0:1 G4@1:2 F#4@3:1 E4@4:1 F#4@5:1",{section:"Part A"}),
+    bar("G","G4@0:1 D4@1:2 C4@3:1 B3@4:1 A3@5:1"),
+    bar("G","G3@0:1 C4@1:2 A3@3:1 B3@4:1 C4@5:1"),
+    bar("D7","D4@0:1 F#3@1:2 G3@3:1 A3@4:2"),
+    bar("G/Em","D4@0:1 G4@1:2 F#4@3:1 E4@4:1 F#4@5:1"),
+    bar("G","G4@0:1 D4@1:2 C4@3:1 B3@4:1 A3@5:1"),
+    bar("G","G3@0:1 C4@1:2 A3@3:1 B3@4:1 C4@5:1"),
+    bar("G","D4@0:1 G3@1:2 F#3@3:1 G3@4:2"),
+    bar("G","D4@0:1 G4@1:2 G4@3:1 G4@4:1 F#4@5:1",{section:"Part B"}),
+    bar("G/D7","G4@0:1 A4@1:2 A4@3:1 A4@4:1 F#4@5:1"),
+    bar("D7","D4@0:1 B4@1:2 B4@3:1 A4@4:2"),
+    bar("G","G4@0:1 F#4@1:2 E4@3:1 D4@4:1 E4@5:1"),
+    bar("D7","F#4@0:1 G4@1:2 F#4@3:1 E4@4:1 F#4@5:1"),
+    bar("G","G4@0:1 D4@1:2 C4@3:1 B3@4:1 A3@5:1"),
+    bar("G","G3@0:1 C4@1:2 A3@3:1 B3@4:1 C4@5:1"),
+    bar("G","D4@0:1 G3@1:2 F#3@3:1 G3@4:2")
+  ]
+}));
+SONGS.push(book({
+  id:"southwind", n:293, world:"Folk and slow airs", title:"The South Wind", meter:"3/4", target:76, chords:["G", "D7", "Em"],
+  teach:"A slow Irish waltz, An Gaoth Aneas. Thirty-two bars, gentle the whole way, and the best tune here to play at the end of a session.",
+  lyric:"Instrumental here. The song is sung in Irish.",
+  src:"thesession.org, tune 601, setting 601. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D4@4:1 C4@5:1",{pickup:true}),
+    bar("G","B3@0:3 A3@3:1 G3@4:2"),
+    bar("G","B3@0:3 C4@3:1 D4@4:2"),
+    bar("D7/G","A3@0:4 B3@4:2"),
+    bar("D7","A3@0:4 D4@4:1 C4@5:1"),
+    bar("G","B3@0:3 A3@3:1 G3@4:2"),
+    bar("Em","E3@0:3 D3@3:1 E3@4:2"),
+    bar("Em","G3@0:6"),
+    bar("G","G3@0:2 D4@4:1 C4@5:1"),
+    bar("G","B3@0:3 A3@3:1 G3@4:2"),
+    bar("G","B3@0:3 C4@3:1 D4@4:2"),
+    bar("D7/G","A3@0:4 B3@4:2"),
+    bar("D7","A3@0:4 D4@4:1 C4@5:1"),
+    bar("G","B3@0:3 A3@3:1 G3@4:2"),
+    bar("Em","E3@0:3 D3@3:1 E3@4:2"),
+    bar("Em","G3@0:6"),
+    bar("G","G3@0:2 D4@4:1 F#4@5:1"),
+    bar("G/D7","G4@0:3 A4@3:1 F#4@4:2"),
+    bar("Em","G4@0:3 F#4@3:1 E4@4:2"),
+    bar("G/Em","D4@0:4 E4@4:2"),
+    bar("D7","D4@0:4 C4@4:2"),
+    bar("G","B3@0:3 A3@3:1 G3@4:2"),
+    bar("G","B3@0:3 C4@3:1 D4@4:2"),
+    bar("D7/G","A3@0:4 B3@4:2"),
+    bar("D7","A3@0:2 D4@4:1 F#4@5:1"),
+    bar("G/D7","G4@0:3 A4@3:1 F#4@4:2"),
+    bar("Em","G4@0:3 F#4@3:1 E4@4:2"),
+    bar("G/Em","D4@0:4 E4@4:2"),
+    bar("D7","D4@0:4 C4@4:2"),
+    bar("G","B3@0:1 D4@1:3 G3@4:2"),
+    bar("D7","A3@0:1 C4@1:3 F#3@4:2"),
+    bar("G","G3@0:6"),
+    bar("G","G3@0:2")
+  ]
+}));
+SONGS.push(book({
+  id:"shenandoah", n:294, world:"Folk and slow airs", title:"Shenandoah", meter:"3/4", target:66, chords:["G", "Em"],
+  teach:"American, but it belongs with the slow airs: long notes, a big range, and no hurry anywhere in it.",
+  lyric:"Oh Shenandoah, I long to see you.",
+  src:"Digital Tradition collection, notated in D and moved for the banjo. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D3@4:2",{pickup:true}),
+    bar("G","G3@0:1 G3@1:1 G3@2:3 A3@5:1"),
+    bar("G","B3@0:1 C4@1:1 D4@2:1 B3@3:3"),
+    bar("Em","G4@0:2 E4@2:3 D4@5:1"),
+    bar("Em/G","E4@0:1 D4@1:1 B3@2:1 D4@3:3"),
+    bar("G","D4@0:2 E4@2:1 E4@3:1 D4@4:2"),
+    bar("G","D4@0:1 B3@1:1 D4@2:1 B3@3:1 A3@4:1 G3@5:1"),
+    bar("G","G3@0:2 A3@2:2 B3@4:2"),
+    bar("G","B3@0:1 G3@1:1 B3@2:1 C4@3:1 D4@4:2"),
+    bar("G","D4@0:4 G3@4:1 A3@5:1"),
+    bar("G","B3@0:3 G3@3:1 A3@4:1 G3@5:1"),
+    bar("G","G3@0:2")
+  ]
+}));
+SONGS.push(book({
+  id:"lordfranklin", n:295, world:"Folk and slow airs", title:"Lord Franklin", meter:"3/4", target:72, chords:["G", "Em", "D7"],
+  teach:"A ballad about the lost Arctic expedition, in slow waltz time. A sad, plain tune that sits in the middle of the neck.",
+  lyric:"In Baffin's Bay where the whale fish blow.",
+  src:"folkinfo.org collection. Chords worked out from the melody, so trust your ear where they disagree.",
+  bars:[
+    bar("G","D3@4:1 D3@5:1",{pickup:true}),
+    bar("G","G3@0:2 A3@2:1 B3@3:1 B3@4:2"),
+    bar("G","B3@0:2 A3@2:2 G3@4:2"),
+    bar("Em","E3@0:2 E3@2:1 E3@3:1 E3@4:2"),
+    bar("Em","E3@0:4 E3@4:1 E3@5:1"),
+    bar("D7","A3@0:2 B3@2:2 C4@4:1 B3@5:1"),
+    bar("G","B3@0:2 A3@2:2 G3@4:2"),
+    bar("D7","F#3@0:3 D3@3:1 D3@4:2"),
+    bar("D7","D3@0:6"),
+    bar("D7","",{rest:true}),
+    bar("D7","D4@2:3 C4@5:1"),
+    bar("G","B3@0:3 A3@3:1 G3@4:2"),
+    bar("G","G3@0:2 A3@2:2 B3@4:2"),
+    bar("D7","C4@0:2 D4@2:2 D4@4:2"),
+    bar("D7","D4@0:2 D3@4:2"),
+    bar("G/D7","B3@0:2 B3@2:2 C4@4:2"),
+    bar("D7","A3@0:2 F#3@2:2 A3@4:2"),
+    bar("G","G3@0:1 G3@1:3 G3@4:2"),
+    bar("G","G3@0:2")
+  ]
+}));
+SONGS.push(book({
+  id:"heartbeats", n:296, world:"Folk and slow airs", title:"Heartbeats", meter:"4/4", target:84, chords:["G", "Em", "C"],
+  teach:"A picked pattern under the song's three chords, G, Em and C: bass, 2nd, 3rd, 1st string, twice a bar. The C bar lets the 2nd string ring open halfway through for the major-seventh colour. Get the roll even at 60%, then play along with the record.",
+  lyric:"Words not reproduced. The Knife wrote it in 2002; play along with José González's 2003 cover.",
+  src:"Chords as the community chord charts give them for José González's 2003 cover (D, Bm, Gmaj7, capo 1), moved to G. The picking pattern is written for this page; the vocal melody is not transcribed.",
+  bars:[
+    bar("G","D3@0:1 B3@1:1 G3@2:1 D4@3:1 D3@4:1 B3@5:1 G3@6:1 D4@7:1",{section:"Loop"}),
+    bar("Em","E3@0:1 B3@1:1 G3@2:1 E4@3:1 E3@4:1 B3@5:1 G3@6:1 E4@7:1"),
+    bar("C","E3@0:1 C4@1:1 G3@2:1 E4@3:1 E3@4:1 B3@5:1 G3@6:1 E4@7:1"),
+    bar("G","D3@0:1 B3@1:1 G3@2:1 D4@3:1 D3@4:1 B3@5:1 G3@6:1 D4@7:1"),
+    bar("G","D3@0:1 B3@1:1 G3@2:1 D4@3:1 D3@4:1 B3@5:1 G3@6:1 D4@7:1"),
+    bar("Em","E3@0:1 B3@1:1 G3@2:1 E4@3:1 E3@4:1 B3@5:1 G3@6:1 E4@7:1"),
+    bar("C","E3@0:1 C4@1:1 G3@2:1 E4@3:1 E3@4:1 B3@5:1 G3@6:1 E4@7:1"),
+    bar("G","D3@0:2 B3@2:2 G3@4:4")
+  ]
 }));
 
 /* ---- alternate settings: same tune, different transcription ---- */
@@ -1864,7 +3075,7 @@ Object.keys(MINE).forEach(id => {
 });
 sortSongs();
 
-const WORLDS = ["Old-time", "Songs and hymns", "Shanty", "Irish"];
+const WORLDS = ["Old-time", "Songs and hymns", "Shanty", "Irish", "Folk and slow airs"];
 
 const MONTH_NAME = {
   0:["Every day · before anything", "Warm-ups"],
@@ -2170,12 +3381,42 @@ function setHL(pos){
   if(phRects[pos]){
     phRects[pos].classList.add("on");
     const bar = barEls[Math.floor(pos / nSlots())];
-    if(bar){
+    if(bar && followOn && !$("hideTab").checked){
       const r = bar.getBoundingClientRect();
       if(r.top < 70 || r.bottom > innerHeight - 10) bar.scrollIntoView({block:"center", behavior:"smooth"});
     }
   }
 }
+
+/* Count in: off, one bar or two, remembered between visits.
+   Follow: off unless asked for, and it lets go the moment you scroll by hand. */
+let followOn = false, autoScrollAt = 0;
+function countBars(){
+  let v = 1;
+  try{ const s = localStorage.getItem("cbp-countin"); if(s !== null) v = +s; }catch(e){}
+  return [0, 1, 2].includes(v) ? v : 1;
+}
+function paintCount(){
+  const v = countBars();
+  [...$("countSeg").children].forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.bars === v)));
+}
+$("countSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  try{ localStorage.setItem("cbp-countin", b.dataset.bars); }catch(err){}
+  paintCount();
+});
+try{ $("follow").checked = localStorage.getItem("cbp-follow") === "1"; }catch(e){}
+$("follow").addEventListener("change", e => {
+  followOn = e.target.checked;
+  try{ localStorage.setItem("cbp-follow", e.target.checked ? "1" : "0"); }catch(err){}
+});
+/* a hand on the wheel, the trackpad, the screen or the scroll keys lets go of the page */
+const letGo = () => { if(playing) followOn = false; };
+addEventListener("wheel", letGo, {passive:true});
+addEventListener("touchmove", letGo, {passive:true});
+addEventListener("keydown", e => {
+  if(["PageUp","PageDown","Home","End","ArrowUp","ArrowDown"].includes(e.key)) letGo();
+});
 
 function start(){
   const c = ac();
@@ -2187,7 +3428,9 @@ function start(){
   const beat = song.meter === "6/8" ? 3 : 2;      // slots per counted beat
   const n = M.beats.length;
   nextTime = c.currentTime + .12;
-  if($("countin").checked){
+  followOn = $("follow").checked;
+  const cbars = countBars();
+  for(let k = 0; k < cbars; k++){
     for(let i = 0; i < n; i++) click(nextTime + i * eighth * beat, i === 0);
     nextTime += eighth * beat * n;
   }
@@ -2620,8 +3863,12 @@ function toggleRow(s){
   openRow = s.id;
   if(!song || song.id !== s.id) selectSong(s);   // which re-renders the list and opens it
   else renderSetlist();
+  /* only move the page if the row you clicked has been pushed off screen */
   const item = [...document.querySelectorAll("#setlist .songitem")].find(i => i.dataset.id === s.id);
-  if(item) item.scrollIntoView({block:"start", behavior:"smooth"});
+  if(item){
+    const r = item.getBoundingClientRect();
+    if(r.top < 0 || r.top > innerHeight - 60) item.scrollIntoView({block:"start", behavior:"smooth"});
+  }
 }
 
 function renderSetlist(){
@@ -2710,6 +3957,8 @@ function selectSong(s){
   renderSongHead();
   renderStaff();
   syncPickers();
+  paintMemory();
+  renderFive();
   if(wasPlaying) start();
 }
 
@@ -2915,7 +4164,7 @@ function addEntry(e){
   saveLog();
   afterLog();
 }
-function afterLog(){ renderLog(); renderSetlist(); renderMenu(); }
+function afterLog(){ renderLog(); renderSetlist(); renderMenu(); renderFive(); }
 
 let statCache = null, statStamp = -1;
 function songStats(){
@@ -2952,6 +4201,211 @@ function togglePlayedToday(s){
               tuning:TUNINGS[s.tuning].label, capo:s.capo || 0, mode:""});
   }
 }
+
+/* ================= five by memory =================
+   The goal: five tunes you can play with the tab hidden, and still play a week
+   later. Pin the five, play them blind, rate each go. A tune counts once it has
+   been clean from memory on three days at least a week apart first to last.   */
+
+const GOAL_KEY = "cbp-goal-v1";
+const FIRST_FIVE = ["cabbage", "saints", "susanna", "camptown", "cripple"];
+const SPACING = [1, 2, 4, 7, 14];
+const STAGES = ["Not started", "Learning with the tab", "Trying from memory", "Clean from memory", "By memory"];
+const RATE = {clean:"clean", slips:"a few slips", broke:"fell apart"};
+var GOAL = null;
+function saveGoal(){ try{ localStorage.setItem(GOAL_KEY, JSON.stringify(GOAL)); }catch(e){} }
+(function(){
+  let g = null;
+  try{ g = JSON.parse(localStorage.getItem(GOAL_KEY) || "null"); }catch(e){}
+  if(!g || !Array.isArray(g.tunes)){
+    const end = new Date(); end.setMonth(end.getMonth() + 2);
+    g = {tunes:[], start:DAY(), end:DAY(end.getTime()), n:5};
+  }
+  GOAL = g;
+  saveGoal();
+})();
+
+/* day strings to whole day numbers, in UTC so a time zone never shifts a day */
+function DAYN(d){ const [y, m, dd] = d.split("-").map(Number); return Date.UTC(y, m - 1, dd) / 864e5; }
+function dnLabel(n){ const d = new Date(n * 864e5); return WD[d.getUTCDay()] + " " + d.getUTCDate() + " " + MO[d.getUTCMonth()]; }
+const shortTitle = t => t.replace(/^\d+\s·\s/, "");
+
+function memoryStatus(id){
+  const rows = LOG.filter(e => e.song === id);
+  const mem = rows.filter(e => e.memory && e.rating);
+  const clean = mem.filter(e => e.rating === "clean");
+  const cleanDays = [...new Set(clean.map(e => e.day))].sort();
+  const span = cleanDays.length ? DAYN(cleanDays[cleanDays.length - 1]) - DAYN(cleanDays[0]) : 0;
+  let stage = rows.length ? 1 : 0;
+  if(mem.length) stage = 2;
+  if(cleanDays.length) stage = 3;
+  if(cleanDays.length >= 3 && span >= 7) stage = 4;
+  const best = clean.reduce((m, e) => Math.max(m, e.pct || 0), 0);
+
+  /* the next go is due after a gap that doubles with every clean day since the last fall */
+  let due = null;
+  const last = mem[mem.length - 1];
+  if(last){
+    const fell = mem.map(e => e.rating).lastIndexOf("broke");
+    const level = new Set(mem.slice(fell + 1).filter(e => e.rating === "clean").map(e => e.day)).size;
+    const gap = last.rating === "broke" ? 1
+              : last.rating === "slips" ? Math.max(1, Math.floor(SPACING[Math.max(0, level - 1)] / 2))
+              : SPACING[Math.min(level, SPACING.length) - 1];
+    due = DAYN(last.day) + gap;
+  }
+  return {stage, cleanDays:cleanDays.length, span, best, due};
+}
+
+function goalTunes(){ return GOAL.tunes.map(byId).filter(Boolean); }
+
+function goalPick(kind){
+  const list = goalTunes().map(s => ({s, m:memoryStatus(s.id)}));
+  const today = DAYN(DAY());
+  if(kind === "goal-new"){
+    const x = list.find(o => o.m.stage < 3);
+    return x ? x.s : null;
+  }
+  if(kind === "goal-due"){
+    const doneToday = new Set(LOG.filter(e => e.day === DAY() && e.memory && e.rating).map(e => e.song));
+    const cand = list.filter(o => o.m.stage >= 2 && !doneToday.has(o.s.id))
+                     .sort((a, b) => (a.m.due === null ? 1e9 : a.m.due) - (b.m.due === null ? 1e9 : b.m.due));
+    const due = cand.filter(o => o.m.due !== null && o.m.due <= today);
+    return ((due[0] || cand[0]) || {}).s || null;
+  }
+  if(kind === "goal-set"){
+    const x = list.filter(o => o.m.stage >= 3);
+    return x.length ? x[Math.floor(Math.random() * x.length)].s : null;
+  }
+  return null;
+}
+
+function dueLabel(due){
+  const t = DAYN(DAY());
+  if(due < t) return "overdue, play it today";
+  if(due === t) return "due today";
+  if(due === t + 1) return "due tomorrow";
+  return "due " + dnLabel(due);
+}
+
+function renderFive(){
+  const host = $("fives");
+  if(!host || !GOAL) return;
+  host.textContent = "";
+  const tunes = goalTunes();
+  const today = DAYN(DAY());
+  let held = 0;
+
+  tunes.forEach(s => {
+    const m = memoryStatus(s.id);
+    if(m.stage === 4) held++;
+    const d = document.createElement("div");
+    d.className = "fslot";
+    d.dataset.stage = String(m.stage);
+
+    const fs = document.createElement("span"); fs.className = "fs"; fs.textContent = STAGES[m.stage];
+    const ft = document.createElement("span"); ft.className = "ft"; ft.textContent = shortTitle(s.title);
+    ft.title = "Load it into the player";
+    ft.addEventListener("click", () => selectSong(s));
+    const fd = document.createElement("span"); fd.className = "fd";
+    if(m.stage === 0) fd.textContent = "Open it and start on the chord chart.";
+    else if(m.stage === 1) fd.textContent = "Hide the tab and try it, even badly.";
+    else fd.textContent = Math.min(m.cleanDays, 3) + " of 3 clean days" +
+      (m.cleanDays >= 3 && m.span < 7 ? ", spread over a week" : "") +
+      (m.best ? " · best " + m.best + "% of speed" : "");
+    d.appendChild(fs); d.appendChild(ft); d.appendChild(fd);
+
+    if(m.due !== null){
+      const du = document.createElement("span");
+      du.className = "fdue" + (m.due <= today ? " hot" : "");
+      du.textContent = dueLabel(m.due);
+      d.appendChild(du);
+    }
+    const pips = document.createElement("div"); pips.className = "pips";
+    for(let i = 0; i < 4; i++){
+      const p = document.createElement("i");
+      if(i < 3 ? m.cleanDays > i : m.stage === 4) p.className = "on";
+      pips.appendChild(p);
+    }
+    d.appendChild(pips);
+    host.appendChild(d);
+  });
+
+  for(let i = tunes.length; i < GOAL.n; i++){
+    const d = document.createElement("div");
+    d.className = "fslot empty";
+    if(!tunes.length && i === 0){
+      const b = document.createElement("button");
+      b.className = "ghost";
+      b.textContent = "Start with the first five tunes";
+      b.addEventListener("click", () => {
+        GOAL.tunes = FIRST_FIVE.filter(byId).slice(0, GOAL.n);
+        saveGoal(); renderFive();
+      });
+      d.appendChild(b);
+    } else d.textContent = "Open a tune and add it to the five.";
+    host.appendChild(d);
+  }
+
+  $("fiveCount").textContent = held + " / " + GOAL.n;
+  const left = DAYN(GOAL.end) - today;
+  $("fiveLeft").textContent = left >= 0
+    ? left + (left === 1 ? " day" : " days") + " left, to " + dnLabel(DAYN(GOAL.end))
+    : "The end date has passed. " + held + " held.";
+
+  const pin = $("fivePin");
+  const inGoal = song && GOAL.tunes.includes(song.id);
+  pin.textContent = song ? (inGoal ? "Take " + shortTitle(song.title) + " out of the five"
+                                   : "Add " + shortTitle(song.title) + " to the five") : "";
+  pin.disabled = !song || song.week === 0 || (!inGoal && GOAL.tunes.length >= GOAL.n);
+  pin.title = pin.disabled && song && song.week !== 0 ? "Five already. Take one out first." : "";
+
+  /* minutes a week across the goal, against thirty a day */
+  const wh = $("fiveWeeks");
+  wh.textContent = "";
+  const s0 = DAYN(GOAL.start), nW = Math.max(1, Math.ceil((DAYN(GOAL.end) - s0 + 1) / 7));
+  const mins = Array(nW).fill(0);
+  LOG.forEach(e => {
+    const w = Math.floor((DAYN(e.day) - s0) / 7);
+    if(w >= 0 && w < nW) mins[w] += (+e.mins || 0);
+  });
+  const cur = Math.floor((today - s0) / 7);
+  wh.style.setProperty("--nw", nW);
+  wh.title = "Minutes each week, against 210 (thirty a day)";
+  mins.forEach((v, i) => {
+    const c = document.createElement("div");
+    c.className = "wk" + (i === cur ? " cur" : "");
+    c.innerHTML = `<span></span><span class="wm"></span><span class="wbar"><i></i></span>`;
+    c.children[0].textContent = "wk " + (i + 1);
+    c.children[1].textContent = i > cur ? "·" : Math.round(v) + "m";
+    c.querySelector(".wbar i").style.width = Math.min(100, v / 210 * 100) + "%";
+    wh.appendChild(c);
+  });
+}
+
+$("fivePin").addEventListener("click", () => {
+  if(!song || song.week === 0) return;
+  if(GOAL.tunes.includes(song.id)) GOAL.tunes = GOAL.tunes.filter(id => id !== song.id);
+  else if(GOAL.tunes.length < GOAL.n) GOAL.tunes.push(song.id);
+  saveGoal(); renderFive();
+});
+
+/* from memory: cover the tab, keep the section names as the only cue */
+function paintMemory(){
+  const on = $("hideTab").checked;
+  $("staff").classList.toggle("hidden", on);
+  $("memCover").hidden = !on;
+  if(on && song){
+    const pk = song.bars[0] && song.bars[0].pickup ? 1 : 0;
+    const secs = [];
+    song.bars.forEach((b, i) => { if(b.section) secs.push(b.section + " at bar " + Math.max(1, i + 1 - pk)); });
+    if(secs.length && !(song.bars[pk] && song.bars[pk].section)) secs.unshift("Top at bar 1");
+    $("memSections").textContent = secs.length
+      ? secs.join("  ·  ")
+      : (song.bars.length - pk) + " bars, no sections marked.";
+  }
+  if(act) paintAct();
+}
+$("hideTab").addEventListener("change", paintMemory);
 
 /* ================= the practice menu =================
    A list of things you might do, not a route through them. Click one, it loads,
@@ -3059,6 +4513,7 @@ function menuCard(it){
 let act = null, actTimer = null, actNote = "";
 
 function pickTune(kind){
+  if(kind.startsWith("goal-")) return goalPick(kind);
   const st = songStats();
   const playable = SONGS.filter(s => s.week !== 0);
   const pool = kind === "known"
@@ -3081,8 +4536,9 @@ function startActivity(it){
   if(m && !(song.noTab && needsTab(m))) setMode(m);
   if(it.pct) setBpm(song.target * it.pct / 100);
   if(it.metro !== undefined) $("metro").checked = it.metro;
+  if(it.memory !== undefined){ $("hideTab").checked = it.memory; paintMemory(); }
 
-  act = {itemId:it.id || null, label:it.label, songId:song.id, title:song.title, t0:Date.now()};
+  act ={itemId:it.id || null, label:it.label, songId:song.id, title:song.title, t0:Date.now()};
   actNote = "";
   if(!clockStart) startClock();
   clearInterval(actTimer);
@@ -3106,9 +4562,11 @@ function finishActivity(opts){
       ts:Date.now(), day:DAY(), song:a.songId, title:a.title, what:a.label,
       mins:Math.round(secs / 6) / 10, bpm:bpm,
       pct:Math.round(bpm / s.target * 100),
-      meter:s.meter, tuning:TUNINGS[s.tuning].label, capo:s.capo || 0, mode:mode
+      meter:s.meter, tuning:TUNINGS[s.tuning].label, capo:s.capo || 0, mode:mode,
+      memory:$("hideTab").checked, rating:opts.rate || ""
     });
-    actNote = "Logged " + a.label + ", " + fmt(secs) + ".";
+    actNote = "Logged " + a.label + ", " + fmt(secs) +
+      ($("hideTab").checked ? ", from memory" : "") + (opts.rate ? ", " + RATE[opts.rate] : "") + ".";
   } else if(opts.discard){
     actNote = "Dropped.";
   } else {
@@ -3127,18 +4585,57 @@ function paintAct(){
   w.textContent = act.label + " ";
   const sub = document.createElement("span");
   const sameThing = act.title.replace(/^\d+\s·\s/, "") === act.label;
-  sub.textContent = (sameThing ? "· " : "· " + act.title + " · ") + bpm + " bpm";
+  sub.textContent = (sameThing ? "· " : "· " + act.title + " · ") + bpm + " bpm ";
   w.appendChild(sub);
+  if($("hideTab").checked){
+    const mt = document.createElement("span");
+    mt.className = "memtag"; mt.textContent = "from memory";
+    w.appendChild(mt);
+  }
   $("actTime").textContent = fmt(actSecs());
 }
 
-$("actLog").addEventListener("click", () => finishActivity({}));
+$("actRate").addEventListener("click", e => {
+  const b = e.target.closest("button[data-rate]"); if(!b) return;
+  finishActivity({rate:b.dataset.rate});
+});
 $("actDrop").addEventListener("click", () => finishActivity({discard:true}));
 
 /* ================= routines: there if you want one ================= */
 
 const ROUTINES = {
   none: {name:"Nothing, I'll pick as I go", hint:"Work off the menu above. It all still gets logged.", blocks:[]},
+
+  thirty: {name:"Thirty minutes toward the five",
+   hint:"Learn one new tune, recall the ones you have, run the set. Short spells, switch tunes often, and stop before you are tired.",
+   blocks:[
+    {id:"t-warm", name:"Warm up", mins:4,
+     detail:"The frame, then the chord changes. Easy and slow. Two minutes to wake the hands.",
+     checks:[
+       {id:"t-w1", label:"Bum-ditty frame", song:"wu-frame",   mode:"full", pct:80},
+       {id:"t-w2", label:"Chord changes",   song:"wu-changes", mode:"full", pct:90}
+     ]},
+    {id:"t-new", name:"The new tune", mins:12,
+     detail:"The first of the five you cannot yet play from memory. One section at a time: loop two bars, slow enough that you never miss, and stop the moment a mistake is coming. Sing it. Then hide the tab and try, even badly. Pulling it out of your head is what puts it there.",
+     checks:[
+       {id:"t-n1", label:"First section, slow",          pick:"goal-new", mode:"auto",   pct:50, memory:false},
+       {id:"t-n2", label:"Next section, slow",           pick:"goal-new", mode:"auto",   pct:50, memory:false},
+       {id:"t-n3", label:"Sing it over the chords",      pick:"goal-new", mode:"chords", pct:70, memory:false},
+       {id:"t-n4", label:"The whole tune, tab hidden",   pick:"goal-new", mode:"auto",   pct:55, memory:true}
+     ]},
+    {id:"t-recall", name:"Recall", mins:10,
+     detail:"Whatever is due on the board, tab hidden, start to finish. Rate each go honestly. Change tune after every go instead of repeating one: mixing them feels harder and holds better.",
+     checks:[
+       {id:"t-r1", label:"Due tune", pick:"goal-due", mode:"auto", pct:75, memory:true},
+       {id:"t-r2", label:"Due tune", pick:"goal-due", mode:"auto", pct:75, memory:true},
+       {id:"t-r3", label:"Due tune", pick:"goal-due", mode:"auto", pct:75, memory:true}
+     ]},
+    {id:"t-set", name:"Run the set", mins:4,
+     detail:"Everything you can play from memory, back to back, no stopping to fix anything. Once a week, record it on your phone and listen the next day.",
+     checks:[
+       {id:"t-s1", label:"The set, no stopping", pick:"goal-set", mode:"auto", pct:90, memory:true}
+     ]}
+   ]},
 
   fifteen: {name:"The fifteen minute session",
    hint:"Warm up, drill, work the tune up the ladder, then play something you already know.",
@@ -3221,7 +4718,7 @@ const ROUTINES = {
 };
 
 let routineKey = "none";
-try{ routineKey = localStorage.getItem("cbp-routine") || "none"; }catch(e){}
+try{ routineKey = localStorage.getItem("cbp-routine") || "thirty"; }catch(e){}
 if(!ROUTINES[routineKey]) routineKey = "none";
 
 const todayKey = () => "cbp-" + DAY();
@@ -3297,7 +4794,8 @@ function renderSession(){
           startActivity({
             id:c.id, label:block.name + ": " + c.label,
             songId:c.song || (block.useSelected ? currentTune().id : null),
-            pick:c.pick, mode:c.mode || null, pct:c.pct || null
+            pick:c.pick, mode:c.mode || null, pct:c.pct || null,
+            memory:c.memory, metro:c.metro
           });
         } else {
           ticks.delete(c.id);
@@ -3330,6 +4828,11 @@ function renderSession(){
 $("selRoutine").addEventListener("change", e => {
   routineKey = e.target.value;
   try{ localStorage.setItem("cbp-routine", routineKey); }catch(err){}
+  if(routineKey === "thirty"){
+    $("selTarget").value = "30";
+    try{ localStorage.setItem("cbp-target", "30"); }catch(err){}
+    paintClock();
+  }
   renderSession();
 });
 
@@ -3352,7 +4855,7 @@ function paintClock(){
   el.classList.toggle("hit", s >= targetSecs());
   $("ofTarget").textContent = "of " + fmt(targetSecs());
   if(s >= targetSecs() && clockStart)
-    $("clockHint").textContent = "Fifteen minutes is a session whatever you did with it. Stopping here is a win.";
+    $("clockHint").textContent = Math.round(targetSecs() / 60) + " minutes is a session whatever you did with it. Stopping here is a win.";
 }
 function startClock(){
   if(clockStart) return;
@@ -3375,7 +4878,15 @@ $("clockReset").addEventListener("click", () => {
   $("clockBtn").textContent = "Start";
   paintClock();
 });
-$("selTarget").addEventListener("change", paintClock);
+try{
+  const t = localStorage.getItem("cbp-target");
+  if(t && [...$("selTarget").options].some(o => o.value === t)) $("selTarget").value = t;
+  else if(!t && routineKey === "thirty") $("selTarget").value = "30";
+}catch(e){}
+$("selTarget").addEventListener("change", () => {
+  try{ localStorage.setItem("cbp-target", $("selTarget").value); }catch(e){}
+  paintClock();
+});
 
 /* ================= the log panel ================= */
 
@@ -3443,7 +4954,7 @@ function renderLog(){
         [dayLabel(e.ts), "d"],
         [CLOCKTIME(e.ts), "d"],
         [e.title, "t"],
-        [e.what || "", ""],
+        [(e.what || "") + (e.memory ? " · from memory" : "") + (e.rating ? ", " + RATE[e.rating] : ""), ""],
         [e.mins ? String(e.mins) : "·", "n"],
         [e.bpm ? e.bpm + " bpm" + (e.pct ? " · " + e.pct + "%" : "") : "", "n"],
         [(e.meter || "") + (e.capo ? " · capo " + e.capo : ""), "n"]
@@ -3510,11 +5021,12 @@ function renderLog(){
 function note(t){ $("logNote").textContent = t; }
 
 function toCsv(){
-  const head = ["date","time","tune","what","minutes","bpm","percent_of_target","meter","tuning","capo","mode"];
+  const head = ["date","time","tune","what","minutes","bpm","percent_of_target","meter","tuning","capo","mode","from_memory","rating"];
   const esc = v => /[",\n]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v);
   const rows = [...LOG].sort((a, b) => a.ts - b.ts).map(e => [
     e.day, CLOCKTIME(e.ts), e.title, e.what || "", e.mins || 0, e.bpm || "",
-    e.pct || "", e.meter || "", e.tuning || "", e.capo || 0, e.mode || ""
+    e.pct || "", e.meter || "", e.tuning || "", e.capo || 0, e.mode || "",
+    e.memory ? "yes" : "", e.rating || ""
   ].map(esc).join(","));
   return [head.join(",")].concat(rows).join("\n");
 }
@@ -3559,7 +5071,7 @@ async function offer(filename, data){
 function bundle(){
   return JSON.stringify({
     kind:"clawhammer-banjo-practice", version:VERSION, exported:new Date().toISOString(),
-    log:LOG, tunes:MINE
+    log:LOG, tunes:MINE, goal:GOAL
   }, null, 1);
 }
 $("expCsv").addEventListener("click", () => offer("banjo-practice-" + DAY() + ".csv", toCsv()));
@@ -3599,6 +5111,8 @@ $("impBtn").addEventListener("click", () => {
     try{ installMine(rec); MINE[id] = rec; tuneCount++; }catch(e){}
   });
   if(tuneCount){ saveMine(); refreshLists(); }
+  const ig = incoming && !Array.isArray(incoming) && incoming.goal;
+  if(ig && Array.isArray(ig.tunes) && !GOAL.tunes.length){ GOAL = Object.assign(GOAL, ig); saveGoal(); }
 
   LOG.sort((a, b) => a.ts - b.ts);
   saveLog(); afterLog();
@@ -3956,6 +5470,7 @@ $("verTag").textContent = "v" + VERSION;
 fillPickers();
 fillRoutines();
 renderSession();
+paintCount();
 paintClock();
 renderChords();
 setMode("full");

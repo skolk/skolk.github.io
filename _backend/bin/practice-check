@@ -1,0 +1,112 @@
+#!/usr/bin/env node
+/*
+ * practice-check: checks every tune in _backend/practice.html is built out.
+ *
+ * Pulls the tune data out of the page's script (tunings, chord shapes, SONGS,
+ * the bar/mel helpers) and runs it in a sandbox, then checks each tune:
+ *   - it has melody tab in every bar, unless the bar is marked rest:true
+ *     (no chord-chart-only tunes left)
+ *   - every note sits inside its bar, one note per slot, and on strings 1 to 4
+ *     at fret 12 or lower in the tune's tuning
+ *   - every chord in the bars has a shape in that tuning, and the tune's chord
+ *     list matches the chords its bars use
+ *   - it names a source, a teaching line and a world the page knows
+ *   - ids are unique
+ * Warns (does not fail) when fewer than 45% of on-beat melody notes are tones
+ * of the chord under them, which is how a wrong transposition shows up.
+ *
+ * Usage: _backend/bin/practice-check [--verbose]
+ * Exits non-zero on any FAIL.
+ */
+const fs = require("fs");
+const path = require("path");
+const vm = require("vm");
+
+const root = path.resolve(__dirname, "..", "..");
+const html = fs.readFileSync(path.join(root, "_backend", "practice.html"), "utf8");
+const verbose = process.argv.includes("--verbose");
+
+function slice(src, from, to){
+  const a = src.indexOf(from);
+  const b = src.indexOf(to, a + 1);
+  if(a < 0 || b < 0) throw new Error(`marker not found: ${a < 0 ? from : to}`);
+  return src.slice(a, b);
+}
+const helpers = slice(html, "/* melody written as text", "function posFor");
+const data = slice(html, "const STRING_ROW", "/* ---- tunes you have edited");
+const worlds = /const WORLDS = (\[[^\]]*\]);/.exec(html);
+if(!worlds) throw new Error("WORLDS not found");
+
+const ctx = {};
+vm.createContext(ctx);
+vm.runInContext(helpers + "\n" + data + `\nthis.SONGS = SONGS; this.SHAPES = SHAPES; this.TUNINGS = TUNINGS;
+this.METERS = {"4/4":8, "6/8":6, "3/4":6}; this.WORLDS = ${worlds[1]};`, ctx);
+const {SONGS, SHAPES, TUNINGS, METERS, WORLDS} = ctx;
+
+const PC = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const name = m => PC[m % 12] + (Math.floor(m / 12) - 1);
+const TONES = {
+  G:[7,11,2], Gmaj:[7,11,2], C:[0,4,7], D7:[2,6,9,0], D:[2,6,9], Em:[4,7,11], Am:[9,0,4],
+  Dm:[2,5,9], F:[5,9,0], G7:[7,11,2,5]
+};
+const BEATS = {"4/4":[0,2,4,6], "6/8":[0,3], "3/4":[0,2,4]};
+
+let fails = 0, warns = 0;
+const fail = (id, msg) => { fails++; console.log(`FAIL ${id}: ${msg}`); };
+const warn = (id, msg) => { warns++; console.log(`WARN ${id}: ${msg}`); };
+
+const seen = new Set();
+let checked = 0, notes = 0;
+for(const s of SONGS){
+  if(s.world === "Warm-up") continue;
+  checked++;
+  const id = s.id;
+  if(seen.has(id)) fail(id, "duplicate id");
+  seen.add(id);
+  const tuning = TUNINGS[s.tuning];
+  if(!tuning){ fail(id, `unknown tuning ${s.tuning}`); continue; }
+  const slots = METERS[s.meter];
+  if(!slots){ fail(id, `unknown meter ${s.meter}`); continue; }
+  if(!s.title) fail(id, "no title");
+  if(!s.teach) fail(id, "no teaching line");
+  if(!s.src) fail(id, "no source");
+  if(!WORLDS.includes(s.world)) fail(id, `world "${s.world}" is not in WORLDS`);
+  if(s.noTab) fail(id, "chord chart only: no melody tab");
+  if(!Array.isArray(s.bars) || !s.bars.length){ fail(id, "no bars"); continue; }
+
+  const lo = tuning.opens[4], hi = tuning.opens[1] + 12;
+  const used = new Set();
+  let onBeat = 0, fit = 0;
+  s.bars.forEach((b, i) => {
+    const where = `bar ${i + 1}`;
+    for(const c of b.c){
+      used.add(c);
+      if(!SHAPES[s.tuning][c]) fail(id, `${where}: chord ${c} has no shape in ${s.tuning}`);
+    }
+    if(b.pickup && i !== 0) fail(id, `${where}: pickup mark away from the first bar`);
+    if(!b.m || !b.m.length){ if(!s.noTab && !b.rest) fail(id, `${where}: no melody (mark a bar of rest with rest:true)`); return; }
+    const taken = new Set();
+    for(const [slot, midi, len, opts] of b.m){
+      notes++;
+      if(!(slot >= 0 && slot < slots)) fail(id, `${where}: slot ${slot} outside 0..${slots - 1}`);
+      if(!(len >= 1) || slot + len > slots) fail(id, `${where}: ${name(midi)} at ${slot} runs ${len}, past the bar`);
+      if(taken.has(slot)) fail(id, `${where}: two notes on slot ${slot}`);
+      taken.add(slot);
+      const pinned = opts && opts.str;
+      if(!pinned && (midi < lo || midi > hi)) fail(id, `${where}: ${name(midi)} is off the neck in ${s.tuning} (${name(lo)} to ${name(hi)})`);
+      if(BEATS[s.meter].includes(slot)){
+        const half = slot < slots / 2 ? 0 : 1;
+        const t = TONES[b.c[half]];
+        if(t){ onBeat++; if(t.includes(midi % 12)) fit++; }
+      }
+    }
+  });
+  const listed = new Set(s.chords || []);
+  for(const c of used) if(!listed.has(c)) fail(id, `chord ${c} is used but missing from the chord list`);
+  for(const c of listed) if(!used.has(c)) fail(id, `chord ${c} is listed but never used`);
+  if(onBeat >= 8 && fit / onBeat < 0.45) warn(id, `only ${Math.round(100 * fit / onBeat)}% of on-beat notes are chord tones`);
+  if(verbose) console.log(`ok   ${id}: ${s.bars.length} bars, ${s.meter}, ${s.tuning}, ${onBeat ? Math.round(100 * fit / onBeat) : "-"}% chord tones on the beat`);
+}
+
+console.log(`${checked} tunes, ${notes} notes: ${fails} fail, ${warns} warn`);
+process.exit(fails ? 1 : 0);
