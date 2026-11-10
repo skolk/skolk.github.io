@@ -4,6 +4,10 @@ All notable changes to this site are recorded here. Format loosely follows [Keep
 
 ## [Unreleased]
 
+### Added
+- `_backend/banjo/`: the banjo practice page as a local app. `server.py` (Python stdlib, 127.0.0.1:4100) serves `_backend/practice.html` and keeps the log, your tunes and the five as plain files in `~/banjo` (`log.json`, `tunes.json`, `goal.json`, daily `backups/`). `install.sh` installs it as the LaunchAgent `com.seankolk.banjo` after `test_server.py` passes; `--uninstall` removes it and leaves the files. The page saves to the server and keeps the browser copy as a spare. The first time a browser reaches the server, everything it holds joins the files, so an existing log comes across by opening the page once. With the server down the board says "browser only".
+- `_backend/practice.html` v0.10.0: a "Five by memory" board (stages per tune, clean from memory on three days a week apart to count, spaced due dates of 1, 2, 4, 7, 14 days), a From memory toggle that hides the tab, a rating on every log (clean, a few slips, fell apart), a thirty-minute routine built for the five, count-in off / 1 bar / 2 bars, and auto-follow during playback made opt-in, letting go when you scroll by hand.
+
 ### Fixed
 - `_posts/2025-06-20-vanisle-360.md`: front-matter `date:` was `2025-08-15` but filename said `2025-06-20`. Race actually ran June 2025. Aligned front matter to `2025-06-20` so the permalink resolves correctly.
 - `_posts/2026-02-23-Coastal-Systems.md`: front-matter `date:` was `2026-02-22` but filename said `2026-02-23`. Aligned front matter to `2026-02-23`. Also fixed category typo `costal` → `coastal`.

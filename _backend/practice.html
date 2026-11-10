@@ -615,6 +615,8 @@ footer a{color:var(--accent)}
 .five-head .fcount{font-family:var(--f-mono);font-size:22px;color:var(--accent);font-variant-numeric:tabular-nums}
 .five-head .fleft{font-size:12.5px;color:var(--muted)}
 .five-head .ghost{margin-left:auto}
+.five-head .fsaved{font-family:var(--f-mono);font-size:10.5px;color:var(--muted)}
+.five-head .fsaved.warn{color:var(--brass)}
 .fives{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
 .fslot{border:1px solid var(--rule-2);border-left:3px solid var(--rule-2);border-radius:2px;padding:10px 12px;
   background:var(--bg);display:flex;flex-direction:column;gap:4px;min-height:96px}
@@ -795,6 +797,7 @@ table.log tr.newday td{border-top:1px solid var(--rule-2)}
     <h2>Five by memory</h2>
     <span class="fcount" id="fiveCount">0 / 5</span>
     <span class="fleft" id="fiveLeft"></span>
+    <span class="fsaved" id="fiveSaved"></span>
     <button class="ghost" id="fivePin">Add this tune to the five</button>
   </div>
   <div class="fives" id="fives"></div>
@@ -1077,7 +1080,7 @@ slots count eighth notes from 0 · notes run C3 to G4, sharps as F#4
 <section class="panel" id="p-log" hidden>
   <div class="section-head">
     <h2>What you have played</h2>
-    <span class="hint">Every session, kept in this browser. Export it if you want it somewhere safer.</span>
+    <span class="hint" id="saveWhere">Every session, kept in this browser. Export it if you want it somewhere safer.</span>
   </div>
   <div class="stats" id="logStats"></div>
 
@@ -1171,7 +1174,7 @@ slots count eighth notes from 0 · notes run C3 to G4, sharps as F#4
 <footer>
   <p>Melodies transcribed from public-domain sources: <em>Boil Them Cabbage Down</em> and <em>When the Saints Go Marching In</em> from the John Chambers ABC collection at MIT; <em>Oh Susanna</em> and <em>Camptown Races</em> from the Digital Tradition collection; <em>Cripple Creek</em> from Colin Hume's traditional-American set. All moved into the key of G and set in first position for open-G banjo. Rhythms are lightly simplified for a first pass.</p>
   <p>Sound is a Karplus&ndash;Strong pluck synthesised in your browser. Close enough to a banjo to practice against, not close enough to enjoy on its own.</p>
-  <p>The practice log and any tune you write or edit live in this browser, on this device, and nowhere else. Nothing is sent anywhere. If it matters to you, export the log from the Log tab now and then.</p>
+  <p>The practice log and any tune you write or edit live in this browser and, when the banjo server in <code>_backend/banjo</code> is running, as plain files under <code>~/banjo</code> on this Mac. Nothing leaves this Mac. Export from the Log tab if you want a copy anywhere else.</p>
 </footer>
 
 </div>
@@ -4157,7 +4160,7 @@ function dayLabel(ts){
 }
 
 let logVersion = 0;
-function saveLog(){ logVersion++; try{ localStorage.setItem(LOG_KEY, JSON.stringify(LOG)); }catch(e){} }
+function saveLog(){ logVersion++; try{ localStorage.setItem(LOG_KEY, JSON.stringify(LOG)); }catch(e){} pushServer("log"); }
 function addEntry(e){
   LOG.push(e);
   LOG.sort((a, b) => a.ts - b.ts);
@@ -4213,7 +4216,7 @@ const SPACING = [1, 2, 4, 7, 14];
 const STAGES = ["Not started", "Learning with the tab", "Trying from memory", "Clean from memory", "By memory"];
 const RATE = {clean:"clean", slips:"a few slips", broke:"fell apart"};
 var GOAL = null;
-function saveGoal(){ try{ localStorage.setItem(GOAL_KEY, JSON.stringify(GOAL)); }catch(e){} }
+function saveGoal(){ try{ localStorage.setItem(GOAL_KEY, JSON.stringify(GOAL)); }catch(e){} pushServer("goal"); }
 (function(){
   let g = null;
   try{ g = JSON.parse(localStorage.getItem(GOAL_KEY) || "null"); }catch(e){}
@@ -4388,6 +4391,81 @@ $("fivePin").addEventListener("click", () => {
   else if(GOAL.tunes.length < GOAL.n) GOAL.tunes.push(song.id);
   saveGoal(); renderFive();
 });
+
+/* ================= the record on disk =================
+   With the banjo server running (_backend/banjo/server.py, port 4100), every save
+   also goes to plain files under ~/banjo. Without it the page keeps everything in
+   the browser, as it always has. The copy opened from disk and the served copy
+   write to the same files, so the log you already have comes across on its own.
+   (var, not let: saveGoal runs while the page is still loading.)                */
+
+var API = /^http:\/\/(localhost|127\.0\.0\.1):4100$/.test(location.origin) ? "" : "http://localhost:4100";
+var SYNC_KEY = "cbp-synced-at";
+var serverOn = false, serverDir = "", pushChain = Promise.resolve();
+
+function pushServer(kind){
+  if(!serverOn) return;
+  const body = JSON.stringify(kind === "log" ? LOG : kind === "tunes" ? MINE : GOAL);
+  const opts = {method:"PUT", headers:{"Content-Type":"application/json"}, body, keepalive:body.length < 60000};
+  pushChain = pushChain
+    .then(() => fetch(API + "/api/" + kind, opts))
+    .then(r => {
+      if(!r.ok) throw new Error("banjo server said " + r.status);
+      try{ localStorage.setItem(SYNC_KEY, String(Date.now())); }catch(e){}
+    })
+    .catch(() => { serverOn = false; paintWhere(); });
+}
+
+function paintWhere(){
+  const w = $("saveWhere"), f = $("fiveSaved");
+  if(w) w.textContent = serverOn
+    ? "Every session, saved as files in " + serverDir + " on this Mac, and in this browser as a spare."
+    : "Every session, kept in this browser only. Run the banjo server (_backend/banjo) to keep it as files too, or export it now and then.";
+  if(f){
+    f.textContent = serverOn ? "saved to " + serverDir : "browser only";
+    f.classList.toggle("warn", !serverOn);
+    f.title = serverOn ? "Your log, tunes and the five are written to files here." : "The banjo server is not running, so this lives in this browser alone.";
+  }
+}
+
+async function syncFromServer(){
+  let st;
+  try{
+    const r = await fetch(API + "/api/state", {cache:"no-store"});
+    if(!r.ok) throw new Error(String(r.status));
+    st = await r.json();
+  }catch(e){ serverOn = false; paintWhere(); return; }
+  serverDir = String(st.dir || "~/banjo").replace(/^\/Users\/[^/]+/, "~");
+
+  /* the log: the files are the record. The first time, everything this browser
+     holds joins it; after that, only what it logged while the server was away. */
+  let since = 0;
+  try{ since = +localStorage.getItem(SYNC_KEY) || 0; }catch(e){}
+  const srv = Array.isArray(st.log) ? st.log : [];
+  const key = e => e.ts + "|" + (e.what || "");
+  const onDisk = new Set(srv.map(key));
+  const extra = LOG.filter(e => e && e.ts && !onDisk.has(key(e)) && (!since || e.ts > since));
+  LOG = srv.concat(extra).sort((a, b) => a.ts - b.ts);
+
+  /* your tunes: both sets, the files winning where the same tune is in both */
+  const srvT = (st.tunes && typeof st.tunes === "object" && !Array.isArray(st.tunes)) ? st.tunes : {};
+  const merged = Object.assign({}, MINE, srvT);
+  Object.keys(srvT).forEach(id => {
+    if(JSON.stringify(MINE[id]) !== JSON.stringify(srvT[id])){ try{ installMine(srvT[id]); }catch(e){} }
+  });
+  MINE = merged;
+
+  /* the five: the files' picks, unless the files have none and this browser does */
+  const g = st.goal;
+  if(g && Array.isArray(g.tunes) && (g.tunes.length || !GOAL.tunes.length)) GOAL = Object.assign({}, GOAL, g);
+
+  serverOn = true;
+  saveLog(); saveMine(); saveGoal();     // writes the merged record back, both places
+  refreshLists();
+  afterLog();
+  renderFive();
+  paintWhere();
+}
 
 /* from memory: cover the tab, keep the section names as the only cue */
 function paintMemory(){
@@ -5145,7 +5223,7 @@ $("clrLog").addEventListener("click", () => {
    Everything you change is stored as text and parsed back into bars, so an
    edited tune is the same kind of thing as a built-in one.                    */
 
-function saveMine(){ try{ localStorage.setItem(TUNE_KEY, JSON.stringify(MINE)); }catch(e){} }
+function saveMine(){ try{ localStorage.setItem(TUNE_KEY, JSON.stringify(MINE)); }catch(e){} pushServer("tunes"); }
 
 function parseSpec(text){
   const MEL_TOKEN = /^[\^~\/]?[A-G](#|b)?-?\d@\d+(:\d+)?(\|[1-5])?$/;
@@ -5476,6 +5554,8 @@ renderChords();
 setMode("full");
 selectSong(SONGS.find(s => s.week === 1) || SONGS[0]);
 renderLog();
+paintWhere();
+syncFromServer();
 </script>
 </body>
 </html>
