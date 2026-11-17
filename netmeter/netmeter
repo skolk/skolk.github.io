@@ -2944,7 +2944,12 @@ def run_daemon(interval, ticks=None):
                    "-L", "0" if ticks is None else str(ticks + 1),
                    "-J", "bytes_in,bytes_out"]
             # Run under a pty (`script`), else nettop block-buffers and samples arrive bunched.
+            # stdin is a pipe held open and never written. Under launchd stdin
+            # is /dev/null, and nettop polls stdin for keys: at EOF that poll
+            # spins, and nettop burned 110-150% CPU (seen 2026-11-17). An open
+            # pipe blocks instead, and the same feed costs near zero.
             proc = subprocess.Popen(["script", "-q", "/dev/null"] + cmd,
+                                    stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, text=True)
             block_idx = 0
             pending = []
@@ -2967,6 +2972,8 @@ def run_daemon(interval, ticks=None):
             finally:
                 proc.kill()
                 proc.wait()
+                with contextlib.suppress(Exception):
+                    proc.stdin.close()
             if ticks is None:
                 log(f"nettop exited (rc {proc.returncode}); respawning")
                 time.sleep(interval)  # nettop died; breathe before respawning

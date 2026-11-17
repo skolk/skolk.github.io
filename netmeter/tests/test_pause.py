@@ -1197,4 +1197,14 @@ finally:
     nm.update_config(enforce=True, lowdata=False, lowdata_throttle=[],
                      burst_cap_mb=0, tether_name="", burst_cap_on=True)
 
+# nettop polls stdin for keys. Under launchd stdin is /dev/null, the poll hits
+# EOF at once and spins: 110-150% CPU for as long as the daemon ran (2026-11-17).
+# The feed must get a stdin that blocks, a pipe held open and never written.
+import inspect
+_src = inspect.getsource(nm.run_daemon)
+_popen = _src[_src.index("subprocess.Popen("):]
+_popen = _popen[:_popen.index(")") + 1]
+check("nettop's Popen holds stdin open on a pipe, so it never spins on EOF",
+      "stdin=subprocess.PIPE" in _popen)
+
 print(f"\n{PASS} checks passed.")
